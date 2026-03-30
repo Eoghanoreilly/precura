@@ -9,11 +9,31 @@ import {
   CalendarClock,
   Stethoscope,
   TrendingUp,
+  Package,
+  Video,
+  Sparkles,
 } from "lucide-react";
 import {
   MOCK_BLOOD_RESULTS,
+  MOCK_RESULTS_SUMMARY,
   BloodTestResult,
 } from "@/lib/blood-test-data";
+
+// -- Plain English name map ---------------------------------------------------
+
+const PLAIN_NAMES: Record<string, string> = {
+  HbA1c: "HbA1c (long-term blood sugar)",
+  "f-Glucose": "Fasting Glucose (blood sugar)",
+  "f-Insulin": "Fasting Insulin",
+  TC: "Total Cholesterol",
+  HDL: "HDL (good cholesterol)",
+  LDL: "LDL (bad cholesterol)",
+  TG: "Triglycerides (blood fats)",
+};
+
+function displayName(shortName: string, testName: string): string {
+  return PLAIN_NAMES[shortName] || testName;
+}
 
 // -- Helpers ------------------------------------------------------------------
 
@@ -77,7 +97,6 @@ function RangeBar({
 
   return (
     <div style={{ marginTop: 12, marginBottom: 4 }}>
-      {/* Bar */}
       <div
         style={{
           position: "relative",
@@ -199,7 +218,9 @@ function MiniTrend({
     y: h - ((p - min) / range) * h,
   }));
 
-  const pathD = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x},${c.y}`).join(" ");
+  const pathD = coords
+    .map((c, i) => `${i === 0 ? "M" : "L"}${c.x},${c.y}`)
+    .join(" ");
 
   return (
     <div
@@ -315,7 +336,7 @@ function BiomarkerCard({
             color: "var(--text)",
           }}
         >
-          {result.testName}
+          {displayName(result.shortName, result.testName)}
         </span>
         <span
           style={{
@@ -325,6 +346,7 @@ function BiomarkerCard({
             borderRadius: 999,
             background: cfg.bg,
             color: cfg.text,
+            flexShrink: 0,
           }}
         >
           {cfg.label}
@@ -332,7 +354,14 @@ function BiomarkerCard({
       </div>
 
       {/* Value */}
-      <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", gap: 5 }}>
+      <div
+        style={{
+          marginTop: 6,
+          display: "flex",
+          alignItems: "baseline",
+          gap: 5,
+        }}
+      >
         <span
           style={{
             fontFamily: "var(--font-space-mono)",
@@ -406,20 +435,86 @@ function BiomarkerCard({
   );
 }
 
+// -- Stat Card ----------------------------------------------------------------
+
+function StatCard({
+  count,
+  label,
+  accentColor,
+  bgColor,
+  textColor,
+}: {
+  count: number;
+  label: string;
+  accentColor: string;
+  bgColor: string;
+  textColor: string;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        background: bgColor,
+        borderRadius: 14,
+        padding: "14px 12px",
+        borderLeft: `3px solid ${accentColor}`,
+        boxShadow: "var(--shadow-sm)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 28,
+          fontWeight: 700,
+          color: textColor,
+          lineHeight: 1,
+        }}
+      >
+        {count}
+      </span>
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: textColor,
+          opacity: 0.85,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 // -- Page ---------------------------------------------------------------------
 
 export default function BloodTestResultsPage() {
   const router = useRouter();
 
   // Compute counts from actual data
-  const normalCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "normal").length;
-  const borderlineCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "borderline").length;
-  const abnormalCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "abnormal").length;
+  const normalCount = MOCK_BLOOD_RESULTS.filter(
+    (r) => r.status === "normal"
+  ).length;
+  const borderlineCount = MOCK_BLOOD_RESULTS.filter(
+    (r) => r.status === "borderline"
+  ).length;
+  const abnormalCount = MOCK_BLOOD_RESULTS.filter(
+    (r) => r.status === "abnormal"
+  ).length;
 
   // Group results: borderline first, then normal
-  const borderlineResults = MOCK_BLOOD_RESULTS.filter((r) => r.status === "borderline");
-  const normalResults = MOCK_BLOOD_RESULTS.filter((r) => r.status === "normal");
-  const abnormalResults = MOCK_BLOOD_RESULTS.filter((r) => r.status === "abnormal");
+  const borderlineResults = MOCK_BLOOD_RESULTS.filter(
+    (r) => r.status === "borderline"
+  );
+  const normalResults = MOCK_BLOOD_RESULTS.filter(
+    (r) => r.status === "normal"
+  );
+  const abnormalResults = MOCK_BLOOD_RESULTS.filter(
+    (r) => r.status === "abnormal"
+  );
 
   return (
     <div
@@ -459,7 +554,14 @@ export default function BloodTestResultsPage() {
           <ArrowLeft size={18} style={{ color: "var(--text-secondary)" }} />
         </button>
         <div>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+          <p
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: "var(--text)",
+              margin: 0,
+            }}
+          >
             Blood Test Results
           </p>
           <p
@@ -486,163 +588,119 @@ export default function BloodTestResultsPage() {
           margin: "0 auto",
         }}
       >
-        {/* ---- Quick Summary Strip ---- */}
+        {/* ---- Intro line ---- */}
+        <p
+          style={{
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: "var(--text-secondary)",
+            margin: "0 0 20px 0",
+          }}
+        >
+          Your latest blood test results have been analysed by our team and
+          reviewed by Dr. Johansson.
+        </p>
+
+        {/* ---- Stat Cards ---- */}
         <div
           style={{
             display: "flex",
-            justifyContent: "center",
-            gap: 12,
-            marginBottom: 28,
+            gap: 10,
+            marginBottom: 24,
           }}
         >
-          {/* Normal */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: "50%",
-                background: "var(--green-bg)",
-                border: "2px solid var(--green)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 20,
-                fontWeight: 700,
-                color: "var(--green-text)",
-              }}
-            >
-              {normalCount}
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--green-text)" }}>
-              Normal
-            </span>
-          </div>
-
-          {/* Borderline */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: "50%",
-                background: "var(--amber-bg)",
-                border: "2px solid var(--amber)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 20,
-                fontWeight: 700,
-                color: "var(--amber-text)",
-              }}
-            >
-              {borderlineCount}
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--amber-text)" }}>
-              Borderline
-            </span>
-          </div>
-
-          {/* Abnormal */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: "50%",
-                background: "var(--teal-bg)",
-                border: "2px solid var(--teal)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 20,
-                fontWeight: 700,
-                color: "var(--teal-text)",
-              }}
-            >
-              {abnormalCount}
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--teal-text)" }}>
-              Abnormal
-            </span>
-          </div>
+          <StatCard
+            count={normalCount}
+            label="Normal"
+            accentColor="var(--green)"
+            bgColor="var(--green-bg)"
+            textColor="var(--green-text)"
+          />
+          <StatCard
+            count={borderlineCount}
+            label="Borderline"
+            accentColor="var(--amber)"
+            bgColor="var(--amber-bg)"
+            textColor="var(--amber-text)"
+          />
+          <StatCard
+            count={abnormalCount}
+            label="Abnormal"
+            accentColor="var(--red)"
+            bgColor="var(--red-bg)"
+            textColor="var(--red-text)"
+          />
         </div>
 
-        {/* ---- Worth Watching (borderline) ---- */}
-        {borderlineResults.length > 0 && (
-          <section style={{ marginBottom: 28 }}>
-            <p
+        {/* ---- Doctor's Note ---- */}
+        <section
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: 16,
+            boxShadow: "var(--shadow-sm)",
+            marginBottom: 24,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            <div
               style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "var(--amber-text)",
-                marginBottom: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--teal-bg)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              Worth watching
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {borderlineResults.map((r) => (
-                <BiomarkerCard
-                  key={r.shortName}
-                  result={r}
-                  showTrend={r.shortName === "f-Glucose"}
-                />
-              ))}
+              <Stethoscope size={16} style={{ color: "var(--teal)" }} />
             </div>
-          </section>
-        )}
-
-        {/* ---- Abnormal ---- */}
-        {abnormalResults.length > 0 && (
-          <section style={{ marginBottom: 28 }}>
-            <p
+            <span
               style={{
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "var(--red-text)",
-                marginBottom: 10,
+                color: "var(--text)",
               }}
             >
-              Talk to a doctor
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {abnormalResults.map((r) => (
-                <BiomarkerCard key={r.shortName} result={r} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ---- All Clear (normal) ---- */}
-        {normalResults.length > 0 && (
-          <section style={{ marginBottom: 28 }}>
-            <p
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "var(--green-text)",
-                marginBottom: 10,
-              }}
-            >
-              All clear
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {normalResults.map((r) => (
-                <BiomarkerCard key={r.shortName} result={r} />
-              ))}
-            </div>
-          </section>
-        )}
+              Dr. Johansson's Review
+            </span>
+          </div>
+          <p
+            style={{
+              fontSize: 13,
+              lineHeight: 1.65,
+              color: "var(--text-secondary)",
+              margin: "0 0 14px 0",
+            }}
+          >
+            Overall your results are reassuring. Your fasting glucose is
+            trending slightly upward over the past 6 months - I'd recommend
+            monitoring this at your next test in September. Your cholesterol is
+            marginally above range but your HDL is healthy which is a positive
+            sign. No immediate action needed, but maintaining regular activity
+            will help both markers. Happy to discuss further if you'd like.
+          </p>
+          <p
+            style={{
+              fontSize: 11,
+              color: "var(--text-muted)",
+              margin: 0,
+              fontStyle: "italic",
+            }}
+          >
+            Dr. Marcus Johansson, MD
+          </p>
+        </section>
 
         {/* ---- Next Steps ---- */}
         <section
@@ -652,6 +710,7 @@ export default function BloodTestResultsPage() {
             borderRadius: 16,
             padding: 16,
             boxShadow: "var(--shadow-sm)",
+            marginBottom: 28,
           }}
         >
           <p
@@ -687,10 +746,20 @@ export default function BloodTestResultsPage() {
                 flexShrink: 0,
               }}
             >
-              <CalendarClock size={15} style={{ color: "var(--teal-text)" }} />
+              <CalendarClock
+                size={15}
+                style={{ color: "var(--teal-text)" }}
+              />
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--text)",
+                  margin: 0,
+                }}
+              >
                 Recommended retest in 6 months
               </p>
               <p
@@ -731,14 +800,27 @@ export default function BloodTestResultsPage() {
                 flexShrink: 0,
               }}
             >
-              <Stethoscope size={15} style={{ color: "var(--amber-text)" }} />
+              <Stethoscope
+                size={15}
+                style={{ color: "var(--amber-text)" }}
+              />
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--text)",
+                  margin: 0,
+                }}
+              >
                 Discuss borderline results with a specialist
               </p>
             </div>
-            <ChevronRight size={16} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
+            <ChevronRight
+              size={16}
+              style={{ color: "var(--text-faint)", flexShrink: 0 }}
+            />
           </Link>
 
           {/* Chat */}
@@ -764,15 +846,334 @@ export default function BloodTestResultsPage() {
                 flexShrink: 0,
               }}
             >
-              <MessageCircle size={15} style={{ color: "var(--teal-text)" }} />
+              <MessageCircle
+                size={15}
+                style={{ color: "var(--teal-text)" }}
+              />
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--text)",
+                  margin: 0,
+                }}
+              >
                 Ask Precura about your results
               </p>
             </div>
-            <ChevronRight size={16} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
+            <ChevronRight
+              size={16}
+              style={{ color: "var(--text-faint)", flexShrink: 0 }}
+            />
           </Link>
+        </section>
+
+        {/* ---- Worth Watching (borderline) ---- */}
+        {borderlineResults.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--amber-text)",
+                marginBottom: 10,
+              }}
+            >
+              Worth watching
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {borderlineResults.map((r) => (
+                <BiomarkerCard
+                  key={r.shortName}
+                  result={r}
+                  showTrend={r.shortName === "f-Glucose"}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ---- Abnormal ---- */}
+        {abnormalResults.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--red-text)",
+                marginBottom: 10,
+              }}
+            >
+              Talk to a doctor
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {abnormalResults.map((r) => (
+                <BiomarkerCard key={r.shortName} result={r} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ---- All Clear (normal) ---- */}
+        {normalResults.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--green-text)",
+                marginBottom: 10,
+              }}
+            >
+              All clear
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {normalResults.map((r) => (
+                <BiomarkerCard key={r.shortName} result={r} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ---- Care Packages (upsell) ---- */}
+        <section style={{ marginBottom: 0 }}>
+          <p
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--text)",
+              marginBottom: 4,
+            }}
+          >
+            Continue your health journey
+          </p>
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--text-muted)",
+              marginBottom: 16,
+            }}
+          >
+            Packages designed around your results
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            {/* Card 1: Blood Test + Consultation */}
+            <div
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                borderRadius: 20,
+                padding: "20px 18px",
+                boxShadow: "var(--shadow-md)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: "var(--teal-bg)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Video size={16} style={{ color: "var(--teal)" }} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "var(--text)",
+                  }}
+                >
+                  Blood Test + Consultation
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                  color: "var(--text-secondary)",
+                  margin: "0 0 14px 0",
+                }}
+              >
+                Get tested and discuss your results with Dr. Johansson in a
+                30-minute video call.
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "var(--text)",
+                  }}
+                >
+                  1,195 SEK
+                </span>
+                <Link
+                  href="/book"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "9px 18px",
+                    borderRadius: 12,
+                    background: "var(--accent)",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    border: "none",
+                  }}
+                >
+                  Book now
+                  <ChevronRight size={14} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Card 2: Complete Health Package */}
+            <div
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                borderRadius: 20,
+                padding: "20px 18px",
+                boxShadow: "var(--shadow-md)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: "var(--purple-bg)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sparkles size={16} style={{ color: "var(--purple)" }} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "var(--text)",
+                  }}
+                >
+                  Complete Health Package
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                  color: "var(--text-secondary)",
+                  margin: "0 0 14px 0",
+                }}
+              >
+                Blood test, doctor consultation, and a personalized 4-week
+                activity plan designed around your health profile.
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "var(--text)",
+                  }}
+                >
+                  1,895 SEK
+                </span>
+                <Link
+                  href="/book"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "9px 18px",
+                    borderRadius: 12,
+                    background: "var(--accent)",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    border: "none",
+                  }}
+                >
+                  Book now
+                  <ChevronRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
       </main>
     </div>

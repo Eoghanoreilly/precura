@@ -57,7 +57,7 @@ const ZONES = [
 ];
 
 const MODIFIABLE_FACTORS = [
-  { key: "bmi", label: "BMI", maxPoints: 3 },
+  { key: "bmi", label: "BMI (body mass index)", maxPoints: 3 },
   { key: "waist", label: "Waist", maxPoints: 4 },
   { key: "activity", label: "Physical activity", maxPoints: 2 },
   { key: "diet", label: "Daily fruit/veg", maxPoints: 1 },
@@ -71,9 +71,9 @@ const FIXED_FACTORS = [
 ] as const;
 
 const BLOOD_MARKERS = [
-  { name: "HbA1c", value: 38, unit: "mmol/mol", min: 20, max: 50, refMin: 20, refMax: 42, status: "normal" as const },
-  { name: "f-Glucose", value: 5.4, unit: "mmol/L", min: 3, max: 8, refMin: 3.9, refMax: 6.0, status: "borderline" as const },
-  { name: "f-Insulin", value: 12, unit: "mU/L", min: 0, max: 30, refMin: 2, refMax: 25, status: "normal" as const },
+  { name: "HbA1c (long-term blood sugar)", value: 38, unit: "mmol/mol", min: 20, max: 50, refMin: 20, refMax: 42, status: "normal" as const },
+  { name: "Fasting Glucose (blood sugar)", value: 5.4, unit: "mmol/L", min: 3, max: 8, refMin: 3.9, refMax: 6.0, status: "borderline" as const },
+  { name: "Fasting Insulin", value: 12, unit: "mU/L", min: 0, max: 30, refMin: 2, refMax: 25, status: "normal" as const },
 ];
 
 const PEER_DATA = {
@@ -363,7 +363,7 @@ function FactorBar({
         className="text-xs font-medium flex-shrink-0"
         style={{
           color: modifiable ? "var(--text)" : "var(--text-secondary)",
-          width: "110px",
+          width: "150px",
         }}
       >
         {label}
@@ -528,19 +528,33 @@ function ChartTooltip({
   label?: string;
 }) {
   if (!active || !payload || !payload.length) return null;
+  const score = payload[0].value;
+  const zone = getZoneForScore(score);
   return (
     <div
-      className="px-3 py-2 rounded-lg text-xs"
+      className="px-3.5 py-2.5 rounded-xl text-xs"
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--border)",
         color: "var(--text)",
-        boxShadow: "var(--shadow-md)",
+        boxShadow: "var(--shadow-lg, var(--shadow-md))",
+        minWidth: 120,
       }}
     >
-      <p style={{ color: "var(--text-muted)" }}>{label}</p>
-      <p className="font-bold" style={{ fontFamily: "var(--font-space-mono)" }}>
-        Score: {payload[0].value}
+      <p
+        className="mb-1"
+        style={{ color: "var(--text-muted)", fontSize: 10, fontFamily: "var(--font-space-mono)" }}
+      >
+        {label}
+      </p>
+      <p className="font-bold text-sm" style={{ fontFamily: "var(--font-space-mono)" }}>
+        {score} / {MAX_SCORE}
+      </p>
+      <p
+        className="mt-1 text-[10px] font-semibold"
+        style={{ color: zone.color }}
+      >
+        {zone.label} risk ({zone.risk})
       </p>
     </div>
   );
@@ -1009,28 +1023,29 @@ export default function DiabetesRiskPage() {
               Score over time
             </span>
 
-            <div className="h-44 mt-3">
+            <div style={{ height: 200, marginTop: 12, padding: "0 20px 0 0" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={MOCK_SCORE_HISTORY}
-                  margin={{ top: 5, right: 5, bottom: 0, left: -20 }}
+                  margin={{ top: 20, right: 20, bottom: 20, left: -10 }}
                 >
                   <defs>
                     <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--purple)" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="var(--purple)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--purple)" stopOpacity={0.25} />
+                      <stop offset="60%" stopColor="var(--purple)" stopOpacity={0.08} />
+                      <stop offset="100%" stopColor="var(--purple)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                    tick={{ fontSize: 11, fill: "var(--text-muted)" }}
                     axisLine={false}
                     tickLine={false}
                     style={{ fontFamily: "var(--font-space-mono)" }}
                   />
                   <YAxis
                     domain={[0, MAX_SCORE]}
-                    tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                    tick={{ fontSize: 11, fill: "var(--text-muted)" }}
                     axisLine={false}
                     tickLine={false}
                     style={{ fontFamily: "var(--font-space-mono)" }}
@@ -1042,44 +1057,45 @@ export default function DiabetesRiskPage() {
                   <ReferenceLine
                     y={7}
                     stroke="var(--green)"
-                    strokeDasharray="3 3"
+                    strokeDasharray="4 4"
                     strokeOpacity={0.3}
                   />
                   <ReferenceLine
                     y={12}
                     stroke="var(--amber)"
-                    strokeDasharray="3 3"
+                    strokeDasharray="4 4"
                     strokeOpacity={0.3}
                   />
                   <ReferenceLine
                     y={15}
                     stroke="var(--red)"
-                    strokeDasharray="3 3"
+                    strokeDasharray="4 4"
                     strokeOpacity={0.3}
                   />
                   <ReferenceLine
                     y={21}
                     stroke="var(--red)"
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.2}
+                    strokeDasharray="4 4"
+                    strokeOpacity={0.3}
                   />
                   <Area
                     type="monotone"
                     dataKey="score"
                     stroke="var(--purple)"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     fill="url(#scoreGradient)"
                     dot={{
-                      r: 4,
+                      r: 3,
                       fill: "var(--purple)",
                       stroke: "var(--bg-card)",
                       strokeWidth: 2,
+                      opacity: 0.6,
                     }}
                     activeDot={{
                       r: 6,
                       fill: "var(--purple)",
                       stroke: "var(--bg-card)",
-                      strokeWidth: 2,
+                      strokeWidth: 2.5,
                     }}
                   />
                 </AreaChart>
@@ -1236,7 +1252,47 @@ export default function DiabetesRiskPage() {
         </section>
 
         {/* ================================================================== */}
-        {/* 9. AI ENTRY */}
+        {/* 9. CARE PACKAGE UPSELL */}
+        {/* ================================================================== */}
+        <section className="animate-fade-in stagger-5 mt-5" style={{ opacity: 0 }}>
+          <div
+            className="rounded-2xl p-5"
+            style={{
+              background: "var(--accent-light)",
+              border: "1px solid var(--border)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <p
+              className="text-sm font-semibold mb-1.5"
+              style={{ color: "var(--text)" }}
+            >
+              Want expert guidance?
+            </p>
+            <p
+              className="text-xs leading-relaxed mb-4"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Get your blood tested and discuss results with Dr. Johansson, plus
+              receive a personalized activity plan.
+            </p>
+            <Link
+              href="/blood-tests"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold"
+              style={{
+                background: "var(--accent)",
+                color: "#fff",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              Complete Health Package - 1,895 SEK
+              <ExternalLink size={12} />
+            </Link>
+          </div>
+        </section>
+
+        {/* ================================================================== */}
+        {/* 10. AI ENTRY */}
         {/* ================================================================== */}
         <section className="animate-fade-in stagger-5 mt-5" style={{ opacity: 0 }}>
           <Link

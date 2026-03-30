@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Circle,
   RefreshCw,
+  Package,
 } from "lucide-react";
 import { getUser } from "@/lib/auth";
 import { getOrMockFindriscResult, getOrMockFindriscInputs } from "@/lib/mock-data";
@@ -163,8 +164,8 @@ export default function DashboardPage() {
           <div className="animate-fade-in stagger-2 mb-5" style={{ opacity: 0 }}>
             <p className="text-[10px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-muted)" }}>Recent changes</p>
             <div className="rounded-2xl overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
-              <ChangeRow label="f-Glucose" from="5.8" to="5.4" unit="mmol/L" period="6 months" direction="improved" />
-              <ChangeRow label="FINDRISC" from="12" to="10" unit="pts" period="Since Jan" direction="improved" isLast />
+              <ChangeRow label="Blood Sugar (f-Glucose)" from="5.8" to="5.4" unit="mmol/L" period="6 months" direction="improved" />
+              <ChangeRow label="Diabetes Risk Score" from="12" to="10" unit="pts" period="Since Jan" direction="improved" isLast />
             </div>
           </div>
         )}
@@ -176,17 +177,46 @@ export default function DashboardPage() {
             {hasBloodResults ? (
               <>
                 <ActionRow icon={<CalendarClock size={14} />} text="Schedule 6-month blood retest" meta="Due Sep 2026" href="/blood-tests" />
-                <ActionRow icon={<Activity size={14} />} text="Increase daily activity to 30 min" meta="Ongoing" href="/risk/diabetes" />
+                <ActionRow icon={<Activity size={14} />} text="Try a 20-min walk after dinner" meta="Small daily habit" href="/risk/diabetes" />
                 <ActionRow icon={<CheckCircle2 size={14} />} text="Complete diabetes risk check" meta="Done" href="/risk/diabetes" done isLast />
               </>
             ) : (
               <>
-                <ActionRow icon={<TrendUp size={14} />} text="Explore what small changes could do" meta="What-if explorer" href="/risk/diabetes" />
+                <ActionRow icon={<TrendUp size={14} />} text="See how lifestyle changes affect your risk" meta="What-if explorer" href="/risk/diabetes" />
                 <ActionRow icon={<TestTube size={14} />} text="Get a clearer picture with blood tests" meta="Optional next step" href="/blood-tests" isLast />
               </>
             )}
           </div>
         </div>
+
+        {/* === SECTION D2: Care Packages === */}
+        <Link href="/blood-tests">
+          <div
+            className="animate-fade-in stagger-3 card-hover rounded-2xl p-4 mb-5"
+            style={{ background: "var(--accent-light)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)", opacity: 0 }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Package size={16} style={{ color: "var(--accent)" }} />
+              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Precura Care Packages</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between rounded-xl px-3 py-2" style={{ background: "var(--bg-card)" }}>
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>Blood Test + Consultation</p>
+                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Lab analysis with a personal review</p>
+                </div>
+                <span className="text-xs font-bold shrink-0 ml-3" style={{ fontFamily: "var(--font-space-mono)", color: "var(--accent)" }}>1,195 SEK</span>
+              </div>
+              <div className="flex items-baseline justify-between rounded-xl px-3 py-2" style={{ background: "var(--bg-card)" }}>
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>Complete Package</p>
+                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Test + consultation + training plan</p>
+                </div>
+                <span className="text-xs font-bold shrink-0 ml-3" style={{ fontFamily: "var(--font-space-mono)", color: "var(--accent)" }}>1,895 SEK</span>
+              </div>
+            </div>
+          </div>
+        </Link>
 
         {/* === SECTION E: AI Chat === */}
         <div className="animate-fade-in stagger-4 mb-4" style={{ opacity: 0 }}>
