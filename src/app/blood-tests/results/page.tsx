@@ -4,17 +4,20 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  FlaskConical,
-  Brain,
-  Stethoscope,
   ChevronRight,
+  MessageCircle,
+  CalendarClock,
+  Stethoscope,
+  TrendingUp,
 } from "lucide-react";
 import {
   MOCK_BLOOD_RESULTS,
-  MOCK_RESULTS_SUMMARY,
+  BloodTestResult,
 } from "@/lib/blood-test-data";
 
-function getStatusStyle(status: "normal" | "borderline" | "abnormal") {
+// -- Helpers ------------------------------------------------------------------
+
+function getStatusConfig(status: "normal" | "borderline" | "abnormal") {
   switch (status) {
     case "normal":
       return {
@@ -40,7 +43,14 @@ function getStatusStyle(status: "normal" | "borderline" | "abnormal") {
   }
 }
 
-function ReferenceBar({
+function truncate(text: string, max: number) {
+  if (text.length <= max) return text;
+  return text.slice(0, max).replace(/\s+\S*$/, "") + "...";
+}
+
+// -- Range Bar ----------------------------------------------------------------
+
+function RangeBar({
   value,
   low,
   high,
@@ -51,263 +61,719 @@ function ReferenceBar({
   high: number;
   status: "normal" | "borderline" | "abnormal";
 }) {
-  // Calculate the visual range - extend beyond ref range for context
-  const padding = (high - low) * 0.3;
-  const visualLow = Math.max(0, low - padding);
-  const visualHigh = high + padding;
-  const totalRange = visualHigh - visualLow;
+  const range = high - low;
+  const pad = range * 0.35;
+  const vLow = Math.max(0, low - pad);
+  const vHigh = high + pad;
+  const total = vHigh - vLow;
 
-  // Position of the reference range within the visual range
-  const refStartPct = ((low - visualLow) / totalRange) * 100;
-  const refWidthPct = ((high - low) / totalRange) * 100;
+  const refStart = ((low - vLow) / total) * 100;
+  const refWidth = ((high - low) / total) * 100;
 
-  // Position of the value marker
-  const clampedValue = Math.max(visualLow, Math.min(visualHigh, value));
-  const valuePct = ((clampedValue - visualLow) / totalRange) * 100;
+  const clamped = Math.max(vLow, Math.min(vHigh, value));
+  const dotPos = ((clamped - vLow) / total) * 100;
 
-  const statusStyle = getStatusStyle(status);
+  const cfg = getStatusConfig(status);
 
   return (
-    <div className="mt-3 mb-1">
-      <div className="relative h-3">
-        {/* Full track */}
+    <div style={{ marginTop: 12, marginBottom: 4 }}>
+      {/* Bar */}
+      <div
+        style={{
+          position: "relative",
+          height: 10,
+          borderRadius: 999,
+          background: "var(--bg-elevated)",
+          overflow: "visible",
+        }}
+      >
+        {/* Left amber/red zone (below ref) */}
         <div
-          className="absolute inset-0 rounded-full"
-          style={{ background: "var(--bg-elevated)" }}
-        />
-        {/* Reference range */}
-        <div
-          className="absolute top-0 h-full rounded-full"
           style={{
-            left: `${refStartPct}%`,
-            width: `${refWidthPct}%`,
-            background: "var(--green-bg)",
-            border: "1px solid var(--green)",
-            opacity: 0.5,
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: `${refStart}%`,
+            height: "100%",
+            borderRadius: "999px 0 0 999px",
+            background: "var(--amber-bg)",
           }}
         />
-        {/* Value marker */}
+
+        {/* Green reference zone */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full"
           style={{
-            left: `${valuePct}%`,
-            transform: `translate(-50%, -50%)`,
-            background: statusStyle.dot,
-            boxShadow: `0 0 0 3px ${statusStyle.bg}`,
+            position: "absolute",
+            left: `${refStart}%`,
+            top: 0,
+            width: `${refWidth}%`,
+            height: "100%",
+            background: "var(--green-bg)",
+            borderTop: "1.5px solid var(--green)",
+            borderBottom: "1.5px solid var(--green)",
+          }}
+        />
+
+        {/* Right amber/red zone (above ref) */}
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            width: `${100 - refStart - refWidth}%`,
+            height: "100%",
+            borderRadius: "0 999px 999px 0",
+            background: "var(--amber-bg)",
+          }}
+        />
+
+        {/* Dot marker */}
+        <div
+          style={{
+            position: "absolute",
+            left: `${dotPos}%`,
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            background: cfg.dot,
+            border: "2.5px solid var(--bg-card)",
+            boxShadow:
+              status === "borderline"
+                ? `0 0 0 3px ${cfg.bg}, 0 0 8px ${cfg.dot}40`
+                : `0 0 0 3px ${cfg.bg}`,
+            zIndex: 2,
           }}
         />
       </div>
+
+      {/* Labels beneath bar */}
       <div
-        className="flex justify-between mt-1.5 text-xs"
         style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginTop: 6,
           fontFamily: "var(--font-space-mono)",
+          fontSize: 11,
           color: "var(--text-faint)",
         }}
       >
         <span>{low}</span>
-        <span>ref. range</span>
+        <span
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 12,
+            fontWeight: 600,
+            color: cfg.text,
+          }}
+        >
+          {value}
+        </span>
         <span>{high}</span>
       </div>
     </div>
   );
 }
 
-export default function BloodTestResultsPage() {
-  const router = useRouter();
+// -- Mini Trend ---------------------------------------------------------------
+
+function MiniTrend({
+  points,
+  labels,
+  unit,
+}: {
+  points: number[];
+  labels: string[];
+  unit: string;
+}) {
+  const min = Math.min(...points) - 0.2;
+  const max = Math.max(...points) + 0.2;
+  const range = max - min;
+  const w = 100;
+  const h = 36;
+
+  const coords = points.map((p, i) => ({
+    x: (i / (points.length - 1)) * w,
+    y: h - ((p - min) / range) * h,
+  }));
+
+  const pathD = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x},${c.y}`).join(" ");
 
   return (
     <div
-      className="min-h-dvh flex flex-col"
-      style={{ background: "var(--bg)" }}
+      style={{
+        marginTop: 10,
+        padding: "10px 14px",
+        borderRadius: 12,
+        background: "var(--amber-bg)",
+        border: "1px solid var(--amber)",
+      }}
     >
-      {/* Header */}
-      <header
-        className="flex items-center gap-3 px-4 py-3 shrink-0"
+      <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 8,
+        }}
+      >
+        <TrendingUp size={13} style={{ color: "var(--amber-text)" }} />
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--amber-text)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          Trending upward
+        </span>
+      </div>
+      <svg
+        viewBox={`-4 -4 ${w + 8} ${h + 8}`}
+        style={{ width: "100%", height: 44, display: "block" }}
+      >
+        <path
+          d={pathD}
+          fill="none"
+          stroke="var(--amber)"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {coords.map((c, i) => (
+          <circle
+            key={i}
+            cx={c.x}
+            cy={c.y}
+            r={3.5}
+            fill="var(--amber)"
+            stroke="var(--bg-card)"
+            strokeWidth={2}
+          />
+        ))}
+      </svg>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 4,
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 10,
+          color: "var(--amber-text)",
+        }}
+      >
+        {labels.map((l, i) => (
+          <span key={i}>
+            {l}
+            <br />
+            <span style={{ fontWeight: 600 }}>
+              {points[i]} {unit}
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// -- Biomarker Card -----------------------------------------------------------
+
+function BiomarkerCard({
+  result,
+  showTrend,
+}: {
+  result: BloodTestResult;
+  showTrend?: boolean;
+}) {
+  const cfg = getStatusConfig(result.status);
+
+  return (
+    <div
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        padding: "16px 16px 14px",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      {/* Top row: name + status badge */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: "var(--text)",
+          }}
+        >
+          {result.testName}
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            padding: "3px 10px",
+            borderRadius: 999,
+            background: cfg.bg,
+            color: cfg.text,
+          }}
+        >
+          {cfg.label}
+        </span>
+      </div>
+
+      {/* Value */}
+      <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", gap: 5 }}>
+        <span
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 26,
+            fontWeight: 700,
+            color: "var(--text)",
+            lineHeight: 1,
+          }}
+        >
+          {result.value}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 13,
+            color: "var(--text-muted)",
+          }}
+        >
+          {result.unit}
+        </span>
+      </div>
+
+      {/* Range bar */}
+      <RangeBar
+        value={result.value}
+        low={result.refRangeLow}
+        high={result.refRangeHigh}
+        status={result.status}
+      />
+
+      {/* Interpretation */}
+      <p
+        style={{
+          fontSize: 12,
+          lineHeight: 1.5,
+          color: "var(--text-secondary)",
+          marginTop: 8,
+        }}
+      >
+        {truncate(result.interpretation, 120)}
+      </p>
+
+      {/* Mini trend for borderline f-Glucose */}
+      {showTrend && (
+        <MiniTrend
+          points={[5.2, 5.5, 5.8]}
+          labels={["Sep 2025", "Dec 2025", "Mar 2026"]}
+          unit="mmol/L"
+        />
+      )}
+
+      {/* Ask about this */}
+      <Link
+        href="/chat"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          marginTop: 12,
+          fontSize: 12,
+          fontWeight: 600,
+          color: "var(--teal-text)",
+          textDecoration: "none",
+        }}
+      >
+        <MessageCircle size={13} />
+        Ask about this
+        <ChevronRight size={13} />
+      </Link>
+    </div>
+  );
+}
+
+// -- Page ---------------------------------------------------------------------
+
+export default function BloodTestResultsPage() {
+  const router = useRouter();
+
+  // Compute counts from actual data
+  const normalCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "normal").length;
+  const borderlineCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "borderline").length;
+  const abnormalCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "abnormal").length;
+
+  // Group results: borderline first, then normal
+  const borderlineResults = MOCK_BLOOD_RESULTS.filter((r) => r.status === "borderline");
+  const normalResults = MOCK_BLOOD_RESULTS.filter((r) => r.status === "normal");
+  const abnormalResults = MOCK_BLOOD_RESULTS.filter((r) => r.status === "abnormal");
+
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--bg)",
+      }}
+    >
+      {/* ---- Header ---- */}
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 16px",
           background: "var(--bg-card)",
           borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
         }}
       >
         <button
-          onClick={() => router.push("/blood-tests")}
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: "var(--bg-elevated)" }}
+          onClick={() => router.push("/dashboard")}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--bg-elevated)",
+            border: "none",
+            cursor: "pointer",
+          }}
         >
           <ArrowLeft size={18} style={{ color: "var(--text-secondary)" }} />
         </button>
-        <div className="flex items-center gap-2">
-          <FlaskConical size={18} style={{ color: "var(--teal)" }} />
-          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+        <div>
+          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: 0 }}>
             Blood Test Results
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 12,
+              color: "var(--text-muted)",
+              margin: 0,
+            }}
+          >
+            Mar 27, 2026
           </p>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="flex-1 px-4 py-5 space-y-4 overflow-y-auto">
-        {/* Title */}
-        <div className="animate-fade-in">
-          <h1
-            className="text-xl font-bold tracking-tight mb-1"
-            style={{ color: "var(--text)" }}
-          >
-            Blood Test Results
-          </h1>
-          <p
-            className="text-sm"
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              color: "var(--text-muted)",
-            }}
-          >
-            March 27, 2026
-          </p>
+      {/* ---- Content ---- */}
+      <main
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "20px 16px 40px",
+          maxWidth: 448,
+          width: "100%",
+          margin: "0 auto",
+        }}
+      >
+        {/* ---- Quick Summary Strip ---- */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 12,
+            marginBottom: 28,
+          }}
+        >
+          {/* Normal */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "var(--green-bg)",
+                border: "2px solid var(--green)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 20,
+                fontWeight: 700,
+                color: "var(--green-text)",
+              }}
+            >
+              {normalCount}
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--green-text)" }}>
+              Normal
+            </span>
+          </div>
+
+          {/* Borderline */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "var(--amber-bg)",
+                border: "2px solid var(--amber)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 20,
+                fontWeight: 700,
+                color: "var(--amber-text)",
+              }}
+            >
+              {borderlineCount}
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--amber-text)" }}>
+              Borderline
+            </span>
+          </div>
+
+          {/* Abnormal */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "var(--teal-bg)",
+                border: "2px solid var(--teal)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 20,
+                fontWeight: 700,
+                color: "var(--teal-text)",
+              }}
+            >
+              {abnormalCount}
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--teal-text)" }}>
+              Abnormal
+            </span>
+          </div>
         </div>
 
-        {/* AI Summary */}
-        <div
-          className="animate-fade-in-up stagger-1 rounded-2xl overflow-hidden"
+        {/* ---- Worth Watching (borderline) ---- */}
+        {borderlineResults.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--amber-text)",
+                marginBottom: 10,
+              }}
+            >
+              Worth watching
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {borderlineResults.map((r) => (
+                <BiomarkerCard
+                  key={r.shortName}
+                  result={r}
+                  showTrend={r.shortName === "f-Glucose"}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ---- Abnormal ---- */}
+        {abnormalResults.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--red-text)",
+                marginBottom: 10,
+              }}
+            >
+              Talk to a doctor
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {abnormalResults.map((r) => (
+                <BiomarkerCard key={r.shortName} result={r} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ---- All Clear (normal) ---- */}
+        {normalResults.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--green-text)",
+                marginBottom: 10,
+              }}
+            >
+              All clear
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {normalResults.map((r) => (
+                <BiomarkerCard key={r.shortName} result={r} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ---- Next Steps ---- */}
+        <section
           style={{
             background: "var(--bg-card)",
             border: "1px solid var(--border)",
-            opacity: 0,
+            borderRadius: 16,
+            padding: 16,
+            boxShadow: "var(--shadow-sm)",
           }}
         >
-          <div
-            className="px-4 py-2.5 flex items-center gap-2"
+          <p
             style={{
-              background: "var(--purple-bg)",
-              borderBottom: "1px solid var(--purple)",
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--text)",
+              marginBottom: 14,
             }}
           >
-            <Brain size={14} style={{ color: "var(--purple-text)" }} />
-            <p
-              className="text-xs font-semibold"
-              style={{ color: "var(--purple-text)" }}
-            >
-              AI Summary
-            </p>
-          </div>
-          <div className="p-4">
-            <p
-              className="text-sm leading-relaxed"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {MOCK_RESULTS_SUMMARY}
-            </p>
-          </div>
-        </div>
+            Next steps
+          </p>
 
-        {/* Individual results */}
-        <p
-          className="text-xs font-semibold uppercase tracking-widest pt-2"
-          style={{ color: "var(--text-muted)" }}
-        >
-          Individual results
-        </p>
-
-        {MOCK_BLOOD_RESULTS.map((result, i) => {
-          const statusStyle = getStatusStyle(result.status);
-
-          return (
+          {/* Retest */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 0",
+              borderBottom: "1px solid var(--divider)",
+            }}
+          >
             <div
-              key={result.shortName}
-              className={`animate-fade-in-up stagger-${Math.min(i + 2, 6)} rounded-2xl p-4`}
               style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                opacity: 0,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--teal-bg)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              {/* Header row */}
-              <div className="flex items-start justify-between mb-1">
-                <div>
-                  <p
-                    className="text-sm font-semibold"
-                    style={{ color: "var(--text)" }}
-                  >
-                    {result.testName}
-                  </p>
-                  <p
-                    className="text-xs"
-                    style={{
-                      fontFamily: "var(--font-space-mono)",
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    {result.shortName}
-                  </p>
-                </div>
-                <div
-                  className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                  style={{
-                    background: statusStyle.bg,
-                    color: statusStyle.text,
-                  }}
-                >
-                  {statusStyle.label}
-                </div>
-              </div>
-
-              {/* Value */}
-              <div className="flex items-baseline gap-1.5 mt-2">
-                <span
-                  className="text-2xl font-bold"
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    color: "var(--text)",
-                  }}
-                >
-                  {result.value}
-                </span>
-                <span
-                  className="text-sm"
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  {result.unit}
-                </span>
-              </div>
-
-              {/* Reference range bar */}
-              <ReferenceBar
-                value={result.value}
-                low={result.refRangeLow}
-                high={result.refRangeHigh}
-                status={result.status}
-              />
-
-              {/* Interpretation */}
+              <CalendarClock size={15} style={{ color: "var(--teal-text)" }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                Recommended retest in 6 months
+              </p>
               <p
-                className="text-xs leading-relaxed mt-3"
-                style={{ color: "var(--text-secondary)" }}
+                style={{
+                  fontFamily: "var(--font-space-mono)",
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                  margin: 0,
+                  marginTop: 1,
+                }}
               >
-                {result.interpretation}
+                Sep 27, 2026
               </p>
             </div>
-          );
-        })}
-
-        {/* CTA */}
-        <Link
-          href="/consultations"
-          className="flex items-center justify-between w-full p-4 rounded-xl animate-fade-in"
-          style={{
-            background: "var(--purple)",
-            color: "white",
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <Stethoscope size={18} />
-            <span className="text-sm font-semibold">Discuss with a doctor</span>
           </div>
-          <ChevronRight size={18} />
-        </Link>
 
-        {/* Spacer */}
-        <div className="h-4" />
+          {/* Specialist */}
+          <Link
+            href="/consultations"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 0",
+              borderBottom: "1px solid var(--divider)",
+              textDecoration: "none",
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--amber-bg)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Stethoscope size={15} style={{ color: "var(--amber-text)" }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                Discuss borderline results with a specialist
+              </p>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
+          </Link>
+
+          {/* Chat */}
+          <Link
+            href="/chat"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 0",
+              textDecoration: "none",
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--teal-bg)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <MessageCircle size={15} style={{ color: "var(--teal-text)" }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", margin: 0 }}>
+                Ask Precura about your results
+              </p>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
+          </Link>
+        </section>
       </main>
     </div>
   );

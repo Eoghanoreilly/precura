@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageCircle, User } from "lucide-react";
+import { Gauge, Heart, MessageCircle, User } from "lucide-react";
 
 const tabs = [
-  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/dashboard", label: "Dashboard", icon: Gauge },
+  { href: "/health", label: "Health", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/profile", label: "You", icon: User },
 ];
@@ -26,13 +27,16 @@ export default function BottomNav() {
         {tabs.map((tab) => {
           const active =
             pathname === tab.href ||
+            (tab.href === "/health" && pathname?.startsWith("/health")) ||
+            (tab.href === "/health" && pathname?.startsWith("/risk")) ||
+            (tab.href === "/health" && pathname?.startsWith("/blood")) ||
             (tab.href === "/chat" && pathname?.startsWith("/chat")) ||
             (tab.href === "/profile" && pathname?.startsWith("/profile"));
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex flex-col items-center gap-0.5 py-2 px-6 rounded-2xl"
+              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl"
               style={{
                 background: active ? "var(--accent-light)" : "transparent",
               }}

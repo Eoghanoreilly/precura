@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Sparkles,
-  Send,
+  Activity,
+  Heart,
+  Bone,
+  Lock,
   ChevronRight,
+  TrendingDown,
+  TrendingUp as TrendUp,
+  Minus,
   TestTube,
-  TrendingUp,
   MessageCircle,
+  Send,
+  CalendarClock,
+  CheckCircle2,
+  Circle,
   RefreshCw,
 } from "lucide-react";
 import { getUser } from "@/lib/auth";
@@ -17,10 +25,7 @@ import { getOrMockFindriscResult, getOrMockFindriscInputs } from "@/lib/mock-dat
 import { MOCK_BLOOD_RESULTS } from "@/lib/blood-test-data";
 import {
   FindriscResult,
-  FindriscInputs,
-  getPlainLanguageSummary,
   getRiskColor,
-  getModifiableAdvice,
   MAX_SCORE,
 } from "@/lib/findrisc";
 import { getUserPhase, recordVisit, type UserPhase } from "@/lib/user-state";
@@ -37,365 +42,247 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUserState] = useState<ReturnType<typeof getUser>>(null);
   const [result, setResult] = useState<FindriscResult | null>(null);
-  const [inputs, setInputs] = useState<FindriscInputs | null>(null);
   const [phase, setPhase] = useState<UserPhase>("exploring");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const u = getUser();
-    if (!u) {
-      router.push("/login");
-      return;
-    }
+    if (!u) { router.push("/login"); return; }
     setUserState(u);
     setResult(getOrMockFindriscResult());
-    setInputs(getOrMockFindriscInputs());
     setPhase(getUserPhase());
     recordVisit();
     setMounted(true);
   }, [router]);
 
-  if (!mounted || !user || !result || !inputs) {
-    return (
-      <div className="min-h-dvh flex items-center justify-center" style={{ background: "var(--bg)" }}>
-        <div className="skeleton w-10 h-10 rounded-full" />
-      </div>
-    );
+  if (!mounted || !user || !result) {
+    return <div className="min-h-dvh flex items-center justify-center" style={{ background: "var(--bg)" }}><div className="skeleton w-10 h-10 rounded-full" /></div>;
   }
 
   const firstName = user.name.split(" ")[0];
-  const summary = getPlainLanguageSummary(result);
   const color = getRiskColor(result.riskLevel);
-  const advice = getModifiableAdvice(result.breakdown);
   const pct = result.score / MAX_SCORE;
+  const hasBloodResults = phase === "results_ready" || phase === "results_reviewed";
   const normalCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "normal").length;
   const totalTests = MOCK_BLOOD_RESULTS.length;
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: "var(--bg)" }}>
-      <main className="flex-1 px-5 pt-10 pb-28 max-w-md mx-auto w-full">
-        {/* Greeting */}
-        <p
-          className="animate-fade-in text-xl font-bold tracking-tight mb-6"
-          style={{ color: "var(--text)" }}
-        >
-          {getGreeting()}, {firstName}
-        </p>
+      <main className="flex-1 px-5 pt-8 pb-28 max-w-lg mx-auto w-full">
 
-        {/* Score Ring - the hero, always visible */}
-        <div
-          className="animate-fade-in stagger-1 rounded-3xl p-6 mb-5"
-          style={{
-            background: summary.bgGradient,
-            opacity: 0,
-          }}
-        >
-          <Link href="/risk/diabetes" className="block">
-            <div className="flex items-center gap-5">
-              {/* Ring */}
-              <div className="relative w-24 h-24 shrink-0">
-                <svg viewBox="0 0 120 120" className="w-full h-full">
-                  <circle
-                    cx="60" cy="60" r="48"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.4)"
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray="226"
-                    strokeDashoffset="75"
-                    transform="rotate(135 60 60)"
-                  />
-                  <circle
-                    cx="60" cy="60" r="48"
-                    fill="none"
-                    stroke={`var(--${color})`}
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray="226"
-                    strokeDashoffset={226 - (pct * 151)}
-                    transform="rotate(135 60 60)"
-                    style={{ filter: `drop-shadow(0 0 6px var(--${color}))` }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span
-                    className="text-xs font-bold"
-                    style={{ color: `var(--${color}-text)` }}
-                  >
-                    {result.riskLabel}
-                  </span>
-                </div>
-              </div>
-
-              {/* Text */}
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-sm leading-relaxed mb-2"
-                  style={{ color: "var(--text)" }}
-                >
-                  {summary.headline}
-                </p>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    See your full breakdown
-                  </span>
-                  <ChevronRight size={12} style={{ color: "var(--text-muted)" }} />
-                </div>
-              </div>
-            </div>
-          </Link>
+        {/* Greeting + date */}
+        <div className="animate-fade-in flex items-baseline justify-between mb-5">
+          <p className="text-xl font-bold tracking-tight" style={{ color: "var(--text)" }}>
+            {getGreeting()}, {firstName}
+          </p>
+          <span className="text-[10px]" style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}>
+            {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </span>
         </div>
 
-        {/* Phase-specific content */}
-        {phase === "exploring" && <ExploringCards advice={advice} />}
-        {phase === "results_ready" && <ResultsReadyCards normalCount={normalCount} totalTests={totalTests} />}
-        {phase === "results_reviewed" && <ResultsReviewedCards normalCount={normalCount} totalTests={totalTests} advice={advice} />}
-        {phase === "returning" && <ReturningCards />}
-        {phase === "first_results" && <ExploringCards advice={advice} />}
+        {/* === SECTION A: Health Gauges Row === */}
+        <div className="animate-fade-in stagger-1 flex gap-3 overflow-x-auto pb-2 mb-5 -mx-1 px-1" style={{ opacity: 0, scrollbarWidth: "none" }}>
+          {/* Diabetes gauge */}
+          <Link href="/risk/diabetes" className="shrink-0">
+            <div
+              className="card-hover w-36 rounded-2xl p-4 flex flex-col items-center"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
+            >
+              <MiniGauge pct={pct} color={color} />
+              <span className="text-xs font-bold mt-2" style={{ color: `var(--${color}-text)` }}>
+                {result.riskLabel}
+              </span>
+              <span className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
+                Diabetes Risk
+              </span>
+            </div>
+          </Link>
 
-        {/* AI Chat - always prominent */}
-        <div className="animate-fade-in stagger-4 mb-5" style={{ opacity: 0 }}>
+          {/* Heart - not started */}
+          <div className="shrink-0 w-36 rounded-2xl p-4 flex flex-col items-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", opacity: 0.5 }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--bg-elevated)" }}>
+              <Heart size={20} style={{ color: "var(--text-faint)" }} />
+            </div>
+            <span className="text-[10px] font-semibold mt-2" style={{ color: "var(--text-muted)" }}>
+              Heart Health
+            </span>
+            <span className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>Coming soon</span>
+          </div>
+
+          {/* Bone - locked */}
+          <div className="shrink-0 w-36 rounded-2xl p-4 flex flex-col items-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", opacity: 0.4 }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--bg-elevated)" }}>
+              <Bone size={20} style={{ color: "var(--text-faint)" }} />
+            </div>
+            <span className="text-[10px] font-semibold mt-2" style={{ color: "var(--text-muted)" }}>
+              Bone Health
+            </span>
+            <span className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>Coming soon</span>
+          </div>
+        </div>
+
+        {/* === SECTION B: Attention Banner === */}
+        {hasBloodResults && phase === "results_ready" && (
+          <Link href="/blood-tests/results">
+            <div
+              className="animate-fade-in stagger-2 card-hover rounded-2xl p-4 mb-4 flex items-center gap-3"
+              style={{ background: "var(--teal-bg)", border: "1px solid #b2dfdb", boxShadow: "var(--shadow-sm)", opacity: 0 }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--bg-card)" }}>
+                <TestTube size={18} style={{ color: "var(--teal)" }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{ color: "var(--teal-text)" }}>Blood test results ready</p>
+                <p className="text-xs" style={{ color: "var(--teal-text)", opacity: 0.8 }}>{normalCount}/{totalTests} markers normal</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "var(--teal-text)" }} />
+            </div>
+          </Link>
+        )}
+
+        {phase === "returning" && (
+          <Link href="/onboarding">
+            <div
+              className="animate-fade-in stagger-2 card-hover rounded-2xl p-4 mb-4 flex items-center gap-3"
+              style={{ background: "var(--accent-light)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)", opacity: 0 }}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--bg-card)" }}>
+                <RefreshCw size={18} style={{ color: "var(--accent)" }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{ color: "var(--accent)" }}>Time for a check-in?</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Retake your assessment to track changes</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "var(--accent)" }} />
+            </div>
+          </Link>
+        )}
+
+        {/* === SECTION C: Change Highlights === */}
+        {hasBloodResults && (
+          <div className="animate-fade-in stagger-2 mb-5" style={{ opacity: 0 }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-muted)" }}>Recent changes</p>
+            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
+              <ChangeRow label="f-Glucose" from="5.8" to="5.4" unit="mmol/L" period="6 months" direction="improved" />
+              <ChangeRow label="FINDRISC" from="12" to="10" unit="pts" period="Since Jan" direction="improved" isLast />
+            </div>
+          </div>
+        )}
+
+        {/* === SECTION D: Next Actions === */}
+        <div className="animate-fade-in stagger-3 mb-5" style={{ opacity: 0 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-muted)" }}>Next steps</p>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
+            {hasBloodResults ? (
+              <>
+                <ActionRow icon={<CalendarClock size={14} />} text="Schedule 6-month blood retest" meta="Due Sep 2026" href="/blood-tests" />
+                <ActionRow icon={<Activity size={14} />} text="Increase daily activity to 30 min" meta="Ongoing" href="/risk/diabetes" />
+                <ActionRow icon={<CheckCircle2 size={14} />} text="Complete diabetes risk check" meta="Done" href="/risk/diabetes" done isLast />
+              </>
+            ) : (
+              <>
+                <ActionRow icon={<TrendUp size={14} />} text="Explore what small changes could do" meta="What-if explorer" href="/risk/diabetes" />
+                <ActionRow icon={<TestTube size={14} />} text="Get a clearer picture with blood tests" meta="Optional next step" href="/blood-tests" isLast />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* === SECTION E: AI Chat === */}
+        <div className="animate-fade-in stagger-4 mb-4" style={{ opacity: 0 }}>
           <Link href="/chat">
             <div
               className="card-hover rounded-2xl p-4 flex items-center gap-3"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-sm)",
-              }}
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
             >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "var(--purple-bg)" }}
-              >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--purple-bg)" }}>
                 <MessageCircle size={18} style={{ color: "var(--purple)" }} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                  Ask Precura anything
-                </p>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Get answers about your health data in plain language
-                </p>
+                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Ask Precura anything</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Plain-language answers about your health</p>
               </div>
               <Send size={16} style={{ color: "var(--accent)" }} />
             </div>
           </Link>
         </div>
 
-        {/* Contextual suggestion chips */}
+        {/* Chips */}
         <div className="animate-fade-in stagger-5 flex flex-wrap gap-2" style={{ opacity: 0 }}>
-          {getChips(phase).map((chip) => (
-            <Link
-              key={chip}
-              href="/chat"
-              className="px-3 py-1.5 rounded-full text-xs font-medium"
-              style={{
-                background: "var(--accent-light)",
-                color: "var(--accent)",
-              }}
-            >
+          {getChips(phase, hasBloodResults).map((chip) => (
+            <Link key={chip} href="/chat" className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
               {chip}
             </Link>
           ))}
         </div>
       </main>
-
       <BottomNav />
     </div>
   );
 }
 
-/* ---- Phase-specific card sections ---- */
-
-function ExploringCards({ advice }: { advice: string[] }) {
+/* ---- Mini gauge for dashboard ---- */
+function MiniGauge({ pct, color }: { pct: number; color: string }) {
   return (
-    <div className="animate-fade-in stagger-2 flex flex-col gap-3 mb-5" style={{ opacity: 0 }}>
-      {/* Explore what-if */}
-      <ContextCard
-        href="/risk/diabetes"
-        icon={<TrendingUp size={18} />}
-        iconBg="var(--green-bg)"
-        iconColor="var(--green)"
-        title="See what small changes could do"
-        subtitle={advice.length > 0
-          ? "Try our what-if explorer to see how lifestyle changes affect your score"
-          : "Explore the factors behind your risk score"
-        }
-      />
-
-      {/* Blood tests - soft intro, no price */}
-      <ContextCard
-        href="/blood-tests"
-        icon={<TestTube size={18} />}
-        iconBg="var(--teal-bg)"
-        iconColor="var(--teal)"
-        title="Get a clearer picture with blood tests"
-        subtitle="Your questionnaire gives an estimate. Blood tests add real measurement."
-      />
+    <div className="relative w-16 h-16">
+      <svg viewBox="0 0 120 120" className="w-full h-full">
+        <circle cx="60" cy="60" r="48" fill="none" stroke="var(--bg-elevated)" strokeWidth="8" strokeLinecap="round" strokeDasharray="226" strokeDashoffset="75" transform="rotate(135 60 60)" />
+        <circle cx="60" cy="60" r="48" fill="none" stroke={`var(--${color})`} strokeWidth="8" strokeLinecap="round" strokeDasharray="226" strokeDashoffset={226 - (pct * 151)} transform="rotate(135 60 60)" style={{ filter: `drop-shadow(0 0 4px var(--${color}))` }} />
+      </svg>
     </div>
   );
 }
 
-function ResultsReadyCards({ normalCount, totalTests }: { normalCount: number; totalTests: number }) {
+/* ---- Change highlight row ---- */
+function ChangeRow({ label, from, to, unit, period, direction, isLast }: {
+  label: string; from: string; to: string; unit: string; period: string;
+  direction: "improved" | "stable" | "worsened"; isLast?: boolean;
+}) {
+  const iconMap = { improved: TrendingDown, stable: Minus, worsened: TrendUp };
+  const colorMap = { improved: "green", stable: "text-muted", worsened: "red" };
+  const Icon = iconMap[direction];
+  const c = colorMap[direction];
+
   return (
-    <div className="animate-fade-in stagger-2 mb-5" style={{ opacity: 0 }}>
-      <Link href="/blood-tests/results">
-        <div
-          className="card-hover rounded-2xl p-5"
-          style={{
-            background: "var(--teal-bg)",
-            border: "1px solid #b2dfdb",
-            boxShadow: "var(--shadow-md)",
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "var(--bg-card)" }}
-            >
-              <TestTube size={22} style={{ color: "var(--teal)" }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-base font-semibold" style={{ color: "var(--teal-text)" }}>
-                Your blood test results are ready
-              </p>
-              <p className="text-sm mt-1" style={{ color: "var(--teal-text)", opacity: 0.8 }}>
-                {normalCount} of {totalTests} markers in normal range
-              </p>
-            </div>
-            <ChevronRight size={18} style={{ color: "var(--teal-text)" }} />
-          </div>
+    <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: isLast ? "none" : "1px solid var(--divider)" }}>
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: direction === "improved" ? "var(--green-bg)" : "var(--bg-elevated)" }}>
+        <Icon size={12} style={{ color: direction === "improved" ? "var(--green)" : `var(--${c})` }} />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{label}</span>
+          <span className="text-xs" style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-muted)" }}>{from} <span style={{ color: "var(--text-faint)" }}>-&gt;</span> {to} {unit}</span>
         </div>
-      </Link>
+        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{period}</span>
+      </div>
     </div>
   );
 }
 
-function ResultsReviewedCards({ normalCount, totalTests, advice }: { normalCount: number; totalTests: number; advice: string[] }) {
-  return (
-    <div className="animate-fade-in stagger-2 flex flex-col gap-3 mb-5" style={{ opacity: 0 }}>
-      {/* Blood results summary */}
-      <ContextCard
-        href="/blood-tests/results"
-        icon={<TestTube size={18} />}
-        iconBg="var(--teal-bg)"
-        iconColor="var(--teal)"
-        title={`Blood work: ${normalCount}/${totalTests} normal`}
-        subtitle="Review your results and what they mean"
-      />
-
-      {/* What-if explorer */}
-      {advice.length > 0 && (
-        <ContextCard
-          href="/risk/diabetes"
-          icon={<TrendingUp size={18} />}
-          iconBg="var(--green-bg)"
-          iconColor="var(--green)"
-          title="See what small changes could do"
-          subtitle="Try the what-if explorer with your updated data"
-        />
-      )}
-    </div>
-  );
-}
-
-function ReturningCards() {
-  return (
-    <div className="animate-fade-in stagger-2 mb-5" style={{ opacity: 0 }}>
-      <Link href="/onboarding">
-        <div
-          className="card-hover rounded-2xl p-5"
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "var(--accent-light)" }}
-            >
-              <RefreshCw size={20} style={{ color: "var(--accent)" }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                It's been a while. Want to check in?
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                Retake your assessment to see if anything has changed
-              </p>
-            </div>
-            <ChevronRight size={16} style={{ color: "var(--text-faint)" }} />
-          </div>
-        </div>
-      </Link>
-    </div>
-  );
-}
-
-/* ---- Reusable context card ---- */
-
-function ContextCard({
-  href,
-  icon,
-  iconBg,
-  iconColor,
-  title,
-  subtitle,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
-  title: string;
-  subtitle: string;
+/* ---- Action row ---- */
+function ActionRow({ icon, text, meta, href, done, isLast }: {
+  icon: React.ReactNode; text: string; meta: string; href: string; done?: boolean; isLast?: boolean;
 }) {
   return (
     <Link href={href}>
-      <div
-        className="card-hover rounded-2xl p-4 flex items-center gap-3"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          boxShadow: "var(--shadow-sm)",
-        }}
-      >
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: iconBg }}
-        >
-          <span style={{ color: iconColor }}>{icon}</span>
+      <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: isLast ? "none" : "1px solid var(--divider)", opacity: done ? 0.5 : 1 }}>
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: done ? "var(--green-bg)" : "var(--bg-elevated)", color: done ? "var(--green)" : "var(--text-muted)" }}>
+          {done ? <CheckCircle2 size={12} style={{ color: "var(--green)" }} /> : icon}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-            {title}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-            {subtitle}
-          </p>
+        <div className="flex-1">
+          <p className="text-sm" style={{ color: "var(--text)", textDecoration: done ? "line-through" : "none" }}>{text}</p>
+          <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{meta}</p>
         </div>
-        <ChevronRight size={16} style={{ color: "var(--text-faint)" }} />
+        {!done && <ChevronRight size={14} style={{ color: "var(--text-faint)" }} />}
       </div>
     </Link>
   );
 }
 
-/* ---- Contextual chips per phase ---- */
-
-function getChips(phase: UserPhase): string[] {
-  switch (phase) {
-    case "first_results":
-    case "exploring":
-      return ["What does my score mean?", "What can I change?", "How was this calculated?"];
-    case "results_ready":
-      return ["What do blood tests measure?", "What is HbA1c?"];
-    case "results_reviewed":
-      return ["Explain my blood results", "Should I be concerned?", "When should I retest?"];
-    case "returning":
-      return ["Has anything changed?", "Should I get retested?"];
-    case "awaiting_results":
-      return ["What is HbA1c?", "How are results analyzed?"];
-  }
+/* ---- Contextual chips ---- */
+function getChips(phase: UserPhase, hasBlood: boolean): string[] {
+  if (hasBlood) return ["Explain my glucose", "When to retest?", "What changed?"];
+  if (phase === "exploring") return ["What does my score mean?", "What can I change?"];
+  if (phase === "returning") return ["Has anything changed?", "Should I retest?"];
+  return ["What does my score mean?", "How was this calculated?"];
 }
