@@ -13,6 +13,8 @@ import {
   Video,
   Sparkles,
 } from "lucide-react";
+import { ResponsiveBullet } from "@nivo/bullet";
+import { ResponsiveLine } from "@nivo/line";
 import {
   MOCK_BLOOD_RESULTS,
   MOCK_RESULTS_SUMMARY,
@@ -34,6 +36,23 @@ const PLAIN_NAMES: Record<string, string> = {
 function displayName(shortName: string, testName: string): string {
   return PLAIN_NAMES[shortName] || testName;
 }
+
+// -- Nivo Theme ---------------------------------------------------------------
+
+const nivoTheme = {
+  fontFamily: "var(--font-dm-sans)",
+  fontSize: 11,
+  textColor: "var(--text-muted)",
+  tooltip: {
+    container: {
+      background: "var(--bg-card)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      boxShadow: "var(--shadow-md)",
+      padding: "8px 12px",
+    },
+  },
+};
 
 // -- Helpers ------------------------------------------------------------------
 
@@ -68,9 +87,9 @@ function truncate(text: string, max: number) {
   return text.slice(0, max).replace(/\s+\S*$/, "") + "...";
 }
 
-// -- Range Bar ----------------------------------------------------------------
+// -- Biomarker Bullet ---------------------------------------------------------
 
-function RangeBar({
+function BiomarkerBullet({
   value,
   low,
   high,
@@ -83,90 +102,49 @@ function RangeBar({
 }) {
   const range = high - low;
   const pad = range * 0.35;
-  const vLow = Math.max(0, low - pad);
-  const vHigh = high + pad;
-  const total = vHigh - vLow;
-
-  const refStart = ((low - vLow) / total) * 100;
-  const refWidth = ((high - low) / total) * 100;
-
-  const clamped = Math.max(vLow, Math.min(vHigh, value));
-  const dotPos = ((clamped - vLow) / total) * 100;
+  const scaleMin = Math.max(0, low - pad);
+  const scaleMax = high + pad;
 
   const cfg = getStatusConfig(status);
 
+  // rangeColors: below-normal amber, normal green, above-normal amber
+  const rangeColors =
+    status === "normal"
+      ? ["var(--amber-bg)", "var(--green-bg)", "var(--amber-bg)"]
+      : ["var(--amber-bg)", "var(--green-bg)", "var(--amber-bg)"];
+
+  const measureColor =
+    status === "normal" ? "var(--green)" : status === "borderline" ? "var(--amber)" : "var(--red)";
+
   return (
     <div style={{ marginTop: 12, marginBottom: 4 }}>
-      <div
-        style={{
-          position: "relative",
-          height: 10,
-          borderRadius: 999,
-          background: "var(--bg-elevated)",
-          overflow: "visible",
-        }}
-      >
-        {/* Left amber/red zone (below ref) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            width: `${refStart}%`,
-            height: "100%",
-            borderRadius: "999px 0 0 999px",
-            background: "var(--amber-bg)",
-          }}
+      <div style={{ height: 36, borderRadius: 6, overflow: "hidden" }}>
+        <ResponsiveBullet
+          data={[
+            {
+              id: "biomarker",
+              ranges: [low, high, scaleMax],
+              measures: [value],
+              markers: [],
+            },
+          ]}
+          layout="horizontal"
+          spacing={0}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          minValue={scaleMin}
+          maxValue={scaleMax}
+          rangeColors={rangeColors}
+          measureColors={[measureColor]}
+          measureSize={0.4}
+          markerSize={0}
+          titlePosition="before"
+          titleAlign="start"
+          titleOffsetX={0}
+          titleOffsetY={0}
+          animate={true}
+          isInteractive={false}
+          theme={nivoTheme}
         />
-
-        {/* Green reference zone */}
-        <div
-          style={{
-            position: "absolute",
-            left: `${refStart}%`,
-            top: 0,
-            width: `${refWidth}%`,
-            height: "100%",
-            background: "var(--green-bg)",
-            borderTop: "1.5px solid var(--green)",
-            borderBottom: "1.5px solid var(--green)",
-          }}
-        />
-
-        {/* Right amber/red zone (above ref) */}
-        <div
-          style={{
-            position: "absolute",
-            right: 0,
-            top: 0,
-            width: `${100 - refStart - refWidth}%`,
-            height: "100%",
-            borderRadius: "0 999px 999px 0",
-            background: "var(--amber-bg)",
-          }}
-        />
-
-        {/* Triangle marker */}
-        <div
-          style={{
-            position: "absolute",
-            left: `${dotPos}%`,
-            top: -6,
-            transform: "translateX(-50%)",
-            zIndex: 2,
-          }}
-        >
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderLeft: "6px solid transparent",
-              borderRight: "6px solid transparent",
-              borderTop: `8px solid ${cfg.dot}`,
-              filter: status === "borderline" ? `drop-shadow(0 1px 3px ${cfg.dot}60)` : "none",
-            }}
-          />
-        </div>
       </div>
 
       {/* Labels beneath bar */}
@@ -198,7 +176,7 @@ function RangeBar({
   );
 }
 
-// -- Mini Trend ---------------------------------------------------------------
+// -- Mini Trend (Nivo Line) ---------------------------------------------------
 
 function MiniTrend({
   points,
@@ -209,20 +187,15 @@ function MiniTrend({
   labels: string[];
   unit: string;
 }) {
-  const min = Math.min(...points) - 0.2;
-  const max = Math.max(...points) + 0.2;
-  const range = max - min;
-  const w = 100;
-  const h = 36;
+  const lineData = [
+    {
+      id: "trend",
+      data: points.map((y, i) => ({ x: labels[i], y })),
+    },
+  ];
 
-  const coords = points.map((p, i) => ({
-    x: (i / (points.length - 1)) * w,
-    y: h - ((p - min) / range) * h,
-  }));
-
-  const pathD = coords
-    .map((c, i) => `${i === 0 ? "M" : "L"}${c.x},${c.y}`)
-    .join(" ");
+  const yMin = Math.min(...points) - 0.3;
+  const yMax = Math.max(...points) + 0.3;
 
   return (
     <div
@@ -254,30 +227,32 @@ function MiniTrend({
           Trending upward
         </span>
       </div>
-      <svg
-        viewBox={`-4 -4 ${w + 8} ${h + 8}`}
-        style={{ width: "100%", height: 44, display: "block" }}
-      >
-        <path
-          d={pathD}
-          fill="none"
-          stroke="var(--amber)"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
+
+      <div style={{ height: 40, width: "100%" }}>
+        <ResponsiveLine
+          data={lineData}
+          curve="natural"
+          margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
+          xScale={{ type: "point" }}
+          yScale={{ type: "linear", min: yMin, max: yMax }}
+          enableGridX={false}
+          enableGridY={false}
+          enablePoints={false}
+          axisTop={null}
+          axisRight={null}
+          axisBottom={null}
+          axisLeft={null}
+          colors={["var(--amber)"]}
+          lineWidth={2.5}
+          enableArea={true}
+          areaOpacity={0.15}
+          areaBaselineValue={yMin}
+          isInteractive={false}
+          animate={true}
+          theme={nivoTheme}
         />
-        {coords.map((c, i) => (
-          <circle
-            key={i}
-            cx={c.x}
-            cy={c.y}
-            r={3.5}
-            fill="var(--amber)"
-            stroke="var(--bg-card)"
-            strokeWidth={2}
-          />
-        ))}
-      </svg>
+      </div>
+
       <div
         style={{
           display: "flex",
@@ -386,8 +361,8 @@ function BiomarkerCard({
         </span>
       </div>
 
-      {/* Range bar */}
-      <RangeBar
+      {/* Bullet chart */}
+      <BiomarkerBullet
         value={result.value}
         low={result.refRangeLow}
         high={result.refRangeHigh}

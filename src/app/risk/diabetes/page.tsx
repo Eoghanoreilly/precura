@@ -19,15 +19,9 @@ import {
   ExternalLink,
   Users,
 } from "lucide-react";
-import {
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-  ReferenceLine,
-  Area,
-  AreaChart,
-} from "recharts";
+import { ResponsiveLine } from "@nivo/line";
+import { ResponsiveBullet } from "@nivo/bullet";
+import type { LineCustomSvgLayer, DefaultSeries } from "@nivo/line";
 import {
   getOrMockFindriscResult,
   getOrMockFindriscInputs,
@@ -102,6 +96,59 @@ function getZoneForScore(score: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Nivo shared theme
+// ---------------------------------------------------------------------------
+
+const nivoTheme = {
+  fontFamily: "var(--font-dm-sans)",
+  fontSize: 11,
+  textColor: "var(--text-muted)",
+  grid: { line: { stroke: "var(--divider)", strokeWidth: 1 } },
+  axis: {
+    ticks: {
+      text: {
+        fontFamily: "var(--font-space-mono)",
+        fontSize: 10,
+        fill: "var(--text-muted)",
+      },
+    },
+  },
+  tooltip: {
+    container: {
+      background: "var(--bg-card)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      boxShadow: "var(--shadow-md)",
+      padding: "8px 12px",
+      fontFamily: "var(--font-dm-sans)",
+      fontSize: 12,
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Bell curve data generator for peer comparison
+// ---------------------------------------------------------------------------
+
+function generateBellCurve(
+  mean: number,
+  stdDev: number,
+  numPoints: number,
+  xMin: number,
+  xMax: number
+): { x: number; y: number }[] {
+  const points: { x: number; y: number }[] = [];
+  const step = (xMax - xMin) / (numPoints - 1);
+  for (let i = 0; i < numPoints; i++) {
+    const x = xMin + i * step;
+    const exponent = -0.5 * Math.pow((x - mean) / stdDev, 2);
+    const y = (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(exponent);
+    points.push({ x: Math.round(x * 10) / 10, y });
+  }
+  return points;
+}
+
+// ---------------------------------------------------------------------------
 // Score Zone Bar - the hero visual
 // ---------------------------------------------------------------------------
 
@@ -114,72 +161,64 @@ function ScoreZoneBar({
   projectedScore?: number;
   compact?: boolean;
 }) {
-  const barHeight = compact ? "h-3" : "h-5";
   const activeZone = getZoneForScore(score);
+  const barHeight = compact ? 28 : 50;
+
+  const bulletData = [
+    {
+      id: "risk",
+      ranges: [7, 12, 15, 21, MAX_SCORE + 1],
+      measures: [score],
+      markers: projectedScore !== undefined && projectedScore !== score
+        ? [projectedScore]
+        : [],
+    },
+  ];
 
   return (
     <div className="w-full">
-      {/* Zone bar */}
-      <div className={`relative flex ${barHeight} rounded-full overflow-hidden`}>
-        {ZONES.map((zone, i) => {
-          const width = ((zone.max - zone.min + 1) / (MAX_SCORE + 1)) * 100;
-          const isActive = zone.label === activeZone.label;
-          return (
-            <div
-              key={i}
-              style={{
-                width: `${width}%`,
-                background: zone.color,
-                opacity: isActive ? 1 : 0.25,
-                transition: "opacity 0.3s ease",
-              }}
-            />
-          );
-        })}
-
-        {/* Current score marker */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 z-10"
-          style={{
-            left: `${(score / MAX_SCORE) * 100}%`,
-            transform: "translate(-50%, -50%)",
-            transition: "left 0.5s ease",
+      <div style={{ height: barHeight }}>
+        <ResponsiveBullet
+          data={bulletData}
+          layout="horizontal"
+          spacing={0}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          minValue={0}
+          maxValue={MAX_SCORE + 1}
+          rangeColors={[
+            "var(--green)",
+            "var(--teal)",
+            "var(--amber)",
+            "var(--red)",
+            "var(--red)",
+          ]}
+          measureColors={[activeZone.color]}
+          measureSize={0.4}
+          markerColors={[
+            projectedScore !== undefined
+              ? getZoneForScore(projectedScore).color
+              : "var(--text-faint)",
+          ]}
+          markerSize={0.8}
+          axisPosition="after"
+          titlePosition="before"
+          titleAlign="start"
+          titleOffsetX={0}
+          titleOffsetY={0}
+          isInteractive={false}
+          animate={true}
+          theme={{
+            ...nivoTheme,
+            axis: {
+              ...nivoTheme.axis,
+              ticks: {
+                ...nivoTheme.axis.ticks,
+                line: { stroke: "transparent" },
+                text: { ...nivoTheme.axis.ticks.text, fill: "transparent" },
+              },
+            },
           }}
-        >
-          <div
-            style={{
-              width: compact ? 12 : 18,
-              height: compact ? 12 : 18,
-              borderRadius: "50%",
-              background: "var(--bg-card)",
-              border: `3px solid ${activeZone.color}`,
-              boxShadow: "var(--shadow-md)",
-            }}
-          />
-        </div>
-
-        {/* Projected score marker (what-if) */}
-        {projectedScore !== undefined && projectedScore !== score && (
-          <div
-            className="absolute top-1/2 -translate-y-1/2 z-10"
-            style={{
-              left: `${(projectedScore / MAX_SCORE) * 100}%`,
-              transform: "translate(-50%, -50%)",
-              transition: "left 0.5s ease",
-            }}
-          >
-            <div
-              style={{
-                width: compact ? 12 : 16,
-                height: compact ? 12 : 16,
-                borderRadius: "50%",
-                background: "transparent",
-                border: `2px dashed ${getZoneForScore(projectedScore).color}`,
-                boxShadow: "var(--shadow-sm)",
-              }}
-            />
-          </div>
-        )}
+        />
       </div>
 
       {/* Zone labels */}
@@ -219,10 +258,105 @@ function ScoreZoneBar({
 function PeerComparison({ score }: { score: number }) {
   const percentile = PEER_DATA.percentile;
   const zone = getZoneForScore(score);
-  const userRiskLevel = zone.label === "Low" ? "low" : zone.label === "Slight" ? "slightly_elevated" : zone.label === "Moderate" ? "moderate" : zone.label === "High" ? "high" : "very_high";
+  const userRiskLevel =
+    zone.label === "Low"
+      ? "low"
+      : zone.label === "Slight"
+        ? "slightly_elevated"
+        : zone.label === "Moderate"
+          ? "moderate"
+          : zone.label === "High"
+            ? "high"
+            : "very_high";
   const userColor = riskColorVar(userRiskLevel as FindriscResult["riskLevel"]);
-  const avgPct = (PEER_DATA.averageScore / MAX_SCORE) * 100;
-  const youPct = (score / MAX_SCORE) * 100;
+  const avg = PEER_DATA.averageScore;
+
+  // Generate a gaussian bell curve: 50 points, mean=avg, stddev=4, range 0..26
+  const bellPoints = generateBellCurve(avg, 4, 50, 0, MAX_SCORE);
+  const bellData = [
+    {
+      id: "distribution",
+      data: bellPoints.map((p) => ({ x: String(p.x), y: p.y })),
+    },
+  ];
+
+  // Custom layer: draws vertical annotation lines for Average and You
+  const AnnotationLayer: LineCustomSvgLayer<DefaultSeries> = ({
+    innerWidth,
+    innerHeight,
+    xScale,
+  }) => {
+    const scale = xScale as unknown as (v: number) => number;
+    const avgX = scale(avg);
+    const youX = scale(score);
+
+    return (
+      <g>
+        {/* Average vertical line */}
+        <line
+          x1={avgX}
+          y1={0}
+          x2={avgX}
+          y2={innerHeight}
+          stroke="var(--text-faint)"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+        />
+        <text
+          x={avgX}
+          y={-8}
+          textAnchor="middle"
+          fill="var(--text-muted)"
+          fontSize={10}
+          fontWeight={600}
+          fontFamily="var(--font-dm-sans)"
+        >
+          Average
+        </text>
+
+        {/* You vertical line */}
+        <line
+          x1={youX}
+          y1={0}
+          x2={youX}
+          y2={innerHeight}
+          stroke={userColor}
+          strokeWidth={2}
+        />
+        <circle
+          cx={youX}
+          cy={
+            // place dot on the bell curve at the user's score
+            (() => {
+              const exponent = -0.5 * Math.pow((score - avg) / 4, 2);
+              const yVal =
+                (1 / (4 * Math.sqrt(2 * Math.PI))) * Math.exp(exponent);
+              const maxY = bellPoints.reduce(
+                (m, p) => Math.max(m, p.y),
+                0
+              );
+              return innerHeight - (yVal / maxY) * innerHeight;
+            })()
+          }
+          r={5}
+          fill={userColor}
+          stroke="var(--bg-card)"
+          strokeWidth={2}
+        />
+        <text
+          x={youX}
+          y={-8}
+          textAnchor="middle"
+          fill={userColor}
+          fontSize={10}
+          fontWeight={700}
+          fontFamily="var(--font-dm-sans)"
+        >
+          You
+        </text>
+      </g>
+    );
+  };
 
   return (
     <div
@@ -235,102 +369,72 @@ function PeerComparison({ score }: { score: number }) {
     >
       <div className="flex items-center gap-2 mb-3">
         <Users size={14} style={{ color: "var(--text-muted)" }} />
-        <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
+        <span
+          className="text-[11px] font-semibold"
+          style={{ color: "var(--text-muted)" }}
+        >
           Peer comparison
         </span>
       </div>
 
-      {/* Horizontal bar with labeled markers */}
-      <div className="relative mb-1" style={{ paddingTop: 24, paddingBottom: 4 }}>
-        {/* The bar track */}
-        <div
-          className="h-2 rounded-full"
-          style={{
-            background: `linear-gradient(90deg,
-              var(--green) 0%,
-              var(--green) 25%,
-              var(--teal) 40%,
-              var(--amber) 60%,
-              var(--red) 85%,
-              var(--red) 100%)`,
-            opacity: 0.25,
+      {/* Nivo bell curve */}
+      <div style={{ height: 140 }}>
+        <ResponsiveLine
+          data={bellData}
+          xScale={{ type: "linear", min: 0, max: MAX_SCORE }}
+          yScale={{ type: "linear", min: 0, max: "auto" }}
+          curve="natural"
+          enableArea={true}
+          areaOpacity={0.15}
+          colors={["var(--teal)"]}
+          lineWidth={2}
+          enablePoints={false}
+          enableGridX={false}
+          enableGridY={false}
+          axisTop={null}
+          axisRight={null}
+          axisBottom={{
+            tickSize: 0,
+            tickPadding: 6,
+            tickValues: [0, 5, 10, 15, 20, 25],
           }}
+          axisLeft={null}
+          isInteractive={false}
+          margin={{ top: 24, right: 16, bottom: 28, left: 16 }}
+          layers={[
+            "grid",
+            "axes",
+            "areas",
+            "lines",
+            AnnotationLayer,
+          ]}
+          theme={nivoTheme}
+          defs={[
+            {
+              id: "bellGradient",
+              type: "linearGradient",
+              colors: [
+                { offset: 0, color: "var(--teal)", opacity: 0.3 },
+                { offset: 100, color: "var(--teal)", opacity: 0.02 },
+              ],
+            },
+          ]}
+          fill={[{ match: { id: "distribution" }, id: "bellGradient" }]}
         />
-
-        {/* Average marker with label */}
-        <div
-          className="absolute"
-          style={{
-            left: `${avgPct}%`,
-            top: 0,
-            transform: "translateX(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
-          <span
-            className="text-[10px] font-semibold"
-            style={{
-              color: "var(--text-muted)",
-              whiteSpace: "nowrap",
-              marginBottom: 4,
-            }}
-          >
-            Average
-          </span>
-          <div
-            style={{
-              width: 2,
-              height: 16,
-              background: "var(--text-faint)",
-              borderRadius: 1,
-            }}
-          />
-        </div>
-
-        {/* You marker with label */}
-        <div
-          className="absolute"
-          style={{
-            left: `${youPct}%`,
-            top: 0,
-            transform: "translateX(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
-          <span
-            className="text-[10px] font-bold"
-            style={{
-              color: userColor,
-              whiteSpace: "nowrap",
-              marginBottom: 4,
-            }}
-          >
-            You
-          </span>
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: userColor,
-              border: "2px solid var(--bg-card)",
-              boxShadow: "var(--shadow-sm)",
-              marginTop: 3,
-            }}
-          />
-        </div>
       </div>
 
       <p
-        className="text-xs mt-3"
+        className="text-xs mt-2"
         style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}
       >
         Your score is better than{" "}
-        <span style={{ fontFamily: "var(--font-space-mono)", color: "var(--text)", fontWeight: 600 }}>
+        <span
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            color: "var(--text)",
+            fontWeight: 600,
+          }}
+        >
           {percentile}%
         </span>{" "}
         of {PEER_DATA.peerGroup.toLowerCase()}.
@@ -458,15 +562,21 @@ function BloodMarkerBar({
   refMax: number;
   status: "normal" | "borderline";
 }) {
-  const range = max - min;
-  const valuePct = ((value - min) / range) * 100;
-  const refMinPct = ((refMin - min) / range) * 100;
-  const refMaxPct = ((refMax - min) / range) * 100;
-  const dotColor = status === "normal" ? "var(--green)" : "var(--amber)";
+  const statusColor =
+    status === "normal" ? "var(--green)" : "var(--amber)";
+
+  const bulletData = [
+    {
+      id: name,
+      ranges: [refMin, refMax, max],
+      measures: [value],
+      markers: [refMin, refMax],
+    },
+  ];
 
   return (
     <div className="py-3" style={{ borderBottom: "1px solid var(--divider)" }}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <span className="text-xs font-medium" style={{ color: "var(--text)" }}>
           {name}
         </span>
@@ -474,81 +584,67 @@ function BloodMarkerBar({
           className="text-xs font-bold"
           style={{
             fontFamily: "var(--font-space-mono)",
-            color: status === "normal" ? "var(--green-text)" : "var(--amber-text)",
+            color:
+              status === "normal"
+                ? "var(--green-text)"
+                : "var(--amber-text)",
           }}
         >
           {value} {unit}
         </span>
       </div>
 
-      {/* Range bar */}
-      <div className="relative h-2 rounded-full" style={{ background: "var(--bg-elevated)" }}>
-        {/* Reference range highlight */}
-        <div
-          className="absolute h-full rounded-full"
-          style={{
-            left: `${refMinPct}%`,
-            width: `${refMaxPct - refMinPct}%`,
-            background: "var(--green)",
-            opacity: 0.15,
+      <div style={{ height: 36 }}>
+        <ResponsiveBullet
+          data={bulletData}
+          layout="horizontal"
+          spacing={0}
+          margin={{ top: 4, right: 0, bottom: 16, left: 0 }}
+          minValue={min}
+          maxValue={max}
+          rangeColors={[
+            "var(--bg-elevated)",
+            status === "normal" ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.15)",
+            "var(--bg-elevated)",
+          ]}
+          measureColors={[statusColor]}
+          measureSize={0.35}
+          markerColors={["var(--text-faint)", "var(--text-faint)"]}
+          markerSize={0.6}
+          axisPosition="after"
+          titlePosition="before"
+          titleAlign="start"
+          titleOffsetX={0}
+          titleOffsetY={0}
+          isInteractive={false}
+          animate={true}
+          theme={{
+            ...nivoTheme,
+            axis: {
+              ...nivoTheme.axis,
+              ticks: {
+                ...nivoTheme.axis.ticks,
+                text: {
+                  ...nivoTheme.axis.ticks.text,
+                  fontSize: 9,
+                  fill: "var(--text-faint)",
+                },
+              },
+            },
           }}
         />
-        {/* Value marker - downward triangle */}
-        <div
-          className="absolute z-10"
-          style={{
-            left: `${valuePct}%`,
-            top: "-6px",
-            transform: "translateX(-50%)",
-          }}
-        >
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderLeft: "5px solid transparent",
-              borderRight: "5px solid transparent",
-              borderTop: `8px solid ${dotColor}`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Range labels */}
-      <div className="flex justify-between mt-1">
-        <span
-          className="text-[9px]"
-          style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
-        >
-          {refMin}
-        </span>
-        <span
-          className="text-[9px]"
-          style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
-        >
-          {refMax}
-        </span>
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Chart Tooltip
+// Nivo Trend Chart Tooltip
 // ---------------------------------------------------------------------------
 
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload || !payload.length) return null;
-  const score = payload[0].value;
-  const zone = getZoneForScore(score);
+function TrendTooltip({ point }: { point: { data: { x: string | number; y: string | number } } }) {
+  const scoreVal = Number(point.data.y);
+  const zone = getZoneForScore(scoreVal);
   return (
     <div
       className="px-3.5 py-2.5 rounded-xl text-xs"
@@ -562,12 +658,19 @@ function ChartTooltip({
     >
       <p
         className="mb-1"
-        style={{ color: "var(--text-muted)", fontSize: 10, fontFamily: "var(--font-space-mono)" }}
+        style={{
+          color: "var(--text-muted)",
+          fontSize: 10,
+          fontFamily: "var(--font-space-mono)",
+        }}
       >
-        {label}
+        {String(point.data.x)}
       </p>
-      <p className="font-bold text-sm" style={{ fontFamily: "var(--font-space-mono)" }}>
-        {score} / {MAX_SCORE}
+      <p
+        className="font-bold text-sm"
+        style={{ fontFamily: "var(--font-space-mono)" }}
+      >
+        {scoreVal} / {MAX_SCORE}
       </p>
       <p
         className="mt-1 text-[10px] font-semibold"
@@ -1054,77 +1157,59 @@ export default function DiabetesRiskPage() {
               Score over time
             </span>
 
-            <div style={{ height: 200, marginTop: 12, padding: "0 20px 0 0" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={MOCK_SCORE_HISTORY}
-                  margin={{ top: 20, right: 20, bottom: 20, left: -10 }}
-                >
-                  <defs>
-                    <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--purple)" stopOpacity={0.25} />
-                      <stop offset="60%" stopColor="var(--purple)" stopOpacity={0.08} />
-                      <stop offset="100%" stopColor="var(--purple)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11, fill: "var(--text-muted)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    style={{ fontFamily: "var(--font-space-mono)" }}
-                  />
-                  <YAxis
-                    domain={[0, MAX_SCORE]}
-                    tick={{ fontSize: 11, fill: "var(--text-muted)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    style={{ fontFamily: "var(--font-space-mono)" }}
-                  />
-                  <Tooltip
-                    content={<ChartTooltip />}
-                    cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }}
-                  />
-                  <ReferenceLine
-                    y={7}
-                    stroke="var(--green)"
-                    strokeDasharray="4 4"
-                    strokeOpacity={0.3}
-                  />
-                  <ReferenceLine
-                    y={12}
-                    stroke="var(--amber)"
-                    strokeDasharray="4 4"
-                    strokeOpacity={0.3}
-                  />
-                  <ReferenceLine
-                    y={15}
-                    stroke="var(--red)"
-                    strokeDasharray="4 4"
-                    strokeOpacity={0.3}
-                  />
-                  <ReferenceLine
-                    y={21}
-                    stroke="var(--red)"
-                    strokeDasharray="4 4"
-                    strokeOpacity={0.3}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="score"
-                    stroke="var(--purple)"
-                    strokeWidth={2.5}
-                    fill="url(#scoreGradient)"
-                    dot={false}
-                    activeDot={{
-                      r: 6,
-                      fill: "var(--purple)",
-                      stroke: "var(--bg-card)",
-                      strokeWidth: 2.5,
-                    }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div style={{ height: 200, marginTop: 12 }}>
+              <ResponsiveLine
+                data={[{
+                  id: "score",
+                  data: MOCK_SCORE_HISTORY.map((d) => ({ x: d.date, y: d.score })),
+                }]}
+                curve="natural"
+                margin={{ top: 10, right: 16, bottom: 28, left: 36 }}
+                xScale={{ type: "point" }}
+                yScale={{ type: "linear", min: 0, max: MAX_SCORE }}
+                enableGridX={false}
+                enableGridY={false}
+                enablePoints={false}
+                useMesh={true}
+                colors={["var(--purple)"]}
+                lineWidth={2.5}
+                enableArea={true}
+                areaOpacity={0.12}
+                areaBaselineValue={0}
+                axisBottom={{
+                  tickSize: 0,
+                  tickPadding: 8,
+                }}
+                axisLeft={{
+                  tickSize: 0,
+                  tickPadding: 8,
+                  tickValues: [0, 7, 12, 15, 21, 26],
+                }}
+                markers={[
+                  { axis: "y", value: 7, lineStyle: { stroke: "var(--green)", strokeDasharray: "4 4", strokeWidth: 1, opacity: 0.3 } },
+                  { axis: "y", value: 12, lineStyle: { stroke: "var(--amber)", strokeDasharray: "4 4", strokeWidth: 1, opacity: 0.3 } },
+                  { axis: "y", value: 15, lineStyle: { stroke: "var(--red)", strokeDasharray: "4 4", strokeWidth: 1, opacity: 0.3 } },
+                ]}
+                theme={{
+                  ...nivoTheme,
+                  crosshair: { line: { stroke: "var(--border)", strokeDasharray: "4 4" } },
+                }}
+                tooltip={({ point }) => (
+                  <div style={{
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 10,
+                    padding: "6px 10px",
+                    boxShadow: "var(--shadow-md)",
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 11,
+                  }}>
+                    <span style={{ color: "var(--text)" }}>{String(point.data.x)}</span>
+                    <br />
+                    <span style={{ color: "var(--purple)", fontWeight: 700 }}>Score: {String(point.data.y)}/{MAX_SCORE}</span>
+                  </div>
+                )}
+              />
             </div>
           </div>
         </section>
