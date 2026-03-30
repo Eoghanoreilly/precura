@@ -146,25 +146,27 @@ function RangeBar({
           }}
         />
 
-        {/* Dot marker */}
+        {/* Triangle marker */}
         <div
           style={{
             position: "absolute",
             left: `${dotPos}%`,
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 16,
-            height: 16,
-            borderRadius: "50%",
-            background: cfg.dot,
-            border: "2.5px solid var(--bg-card)",
-            boxShadow:
-              status === "borderline"
-                ? `0 0 0 3px ${cfg.bg}, 0 0 8px ${cfg.dot}40`
-                : `0 0 0 3px ${cfg.bg}`,
+            top: -6,
+            transform: "translateX(-50%)",
             zIndex: 2,
           }}
-        />
+        >
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "6px solid transparent",
+              borderRight: "6px solid transparent",
+              borderTop: `8px solid ${cfg.dot}`,
+              filter: status === "borderline" ? `drop-shadow(0 1px 3px ${cfg.dot}60)` : "none",
+            }}
+          />
+        </div>
       </div>
 
       {/* Labels beneath bar */}
@@ -457,7 +459,7 @@ function StatCard({
         background: bgColor,
         borderRadius: 14,
         padding: "14px 12px",
-        borderLeft: `3px solid ${accentColor}`,
+        border: `1px solid var(--border)`,
         boxShadow: "var(--shadow-sm)",
         display: "flex",
         flexDirection: "column",

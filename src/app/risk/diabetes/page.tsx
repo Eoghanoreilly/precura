@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Activity,
   Dumbbell,
-  Apple,
   Scale,
   TrendingDown,
   TrendingUp,
@@ -219,7 +218,12 @@ function ScoreZoneBar({
 
 function PeerComparison({ score }: { score: number }) {
   const percentile = PEER_DATA.percentile;
-  // Simple visual: a gradient bar with a marker
+  const zone = getZoneForScore(score);
+  const userRiskLevel = zone.label === "Low" ? "low" : zone.label === "Slight" ? "slightly_elevated" : zone.label === "Moderate" ? "moderate" : zone.label === "High" ? "high" : "very_high";
+  const userColor = riskColorVar(userRiskLevel as FindriscResult["riskLevel"]);
+  const avgPct = (PEER_DATA.averageScore / MAX_SCORE) * 100;
+  const youPct = (score / MAX_SCORE) * 100;
+
   return (
     <div
       className="rounded-xl p-4"
@@ -231,91 +235,106 @@ function PeerComparison({ score }: { score: number }) {
     >
       <div className="flex items-center gap-2 mb-3">
         <Users size={14} style={{ color: "var(--text-muted)" }} />
-        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-          Compared to {PEER_DATA.peerGroup.toLowerCase()}
+        <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
+          Peer comparison
         </span>
       </div>
 
-      {/* Bell curve approximation bar */}
-      <div className="relative mb-2">
+      {/* Horizontal bar with labeled markers */}
+      <div className="relative mb-1" style={{ paddingTop: 24, paddingBottom: 4 }}>
+        {/* The bar track */}
         <div
-          className="h-8 rounded-lg overflow-hidden relative"
-          style={{ background: "var(--bg-elevated)" }}
+          className="h-2 rounded-full"
+          style={{
+            background: `linear-gradient(90deg,
+              var(--green) 0%,
+              var(--green) 25%,
+              var(--teal) 40%,
+              var(--amber) 60%,
+              var(--red) 85%,
+              var(--red) 100%)`,
+            opacity: 0.25,
+          }}
+        />
+
+        {/* Average marker with label */}
+        <div
+          className="absolute"
+          style={{
+            left: `${avgPct}%`,
+            top: 0,
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
         >
-          {/* Gradient fill representing distribution */}
-          <div
-            className="absolute inset-0 rounded-lg"
+          <span
+            className="text-[10px] font-semibold"
             style={{
-              background: `linear-gradient(90deg,
-                var(--green) 0%,
-                var(--green) 25%,
-                var(--teal) 40%,
-                var(--amber) 60%,
-                var(--red) 85%,
-                var(--red) 100%)`,
-              opacity: 0.15,
-            }}
-          />
-          {/* Distribution shape - SVG bell curve */}
-          <svg
-            viewBox="0 0 200 40"
-            className="absolute inset-0 w-full h-full"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M0,40 C20,40 30,38 50,30 C70,20 80,8 100,5 C120,8 130,20 150,30 C170,38 180,40 200,40 Z"
-              fill="var(--text-muted)"
-              opacity="0.1"
-            />
-          </svg>
-          {/* Average marker */}
-          <div
-            className="absolute top-0 h-full"
-            style={{
-              left: `${(PEER_DATA.averageScore / MAX_SCORE) * 100}%`,
-              borderLeft: "1px dashed var(--text-faint)",
-            }}
-          />
-          {/* User marker */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 z-10"
-            style={{
-              left: `${(score / MAX_SCORE) * 100}%`,
-              transform: "translate(-50%, -50%)",
+              color: "var(--text-muted)",
+              whiteSpace: "nowrap",
+              marginBottom: 4,
             }}
           >
-            <div
-              style={{
-                width: 14,
-                height: 14,
-                borderRadius: "50%",
-                background: riskColorVar(getZoneForScore(score).label === "Low" ? "low" : getZoneForScore(score).label === "Slight" ? "slightly_elevated" : getZoneForScore(score).label === "Moderate" ? "moderate" : getZoneForScore(score).label === "High" ? "high" : "very_high"),
-                border: "2px solid var(--bg-card)",
-                boxShadow: "var(--shadow-sm)",
-              }}
-            />
-          </div>
+            Average
+          </span>
+          <div
+            style={{
+              width: 2,
+              height: 16,
+              background: "var(--text-faint)",
+              borderRadius: 1,
+            }}
+          />
+        </div>
+
+        {/* You marker with label */}
+        <div
+          className="absolute"
+          style={{
+            left: `${youPct}%`,
+            top: 0,
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <span
+            className="text-[10px] font-bold"
+            style={{
+              color: userColor,
+              whiteSpace: "nowrap",
+              marginBottom: 4,
+            }}
+          >
+            You
+          </span>
+          <div
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: userColor,
+              border: "2px solid var(--bg-card)",
+              boxShadow: "var(--shadow-sm)",
+              marginTop: 3,
+            }}
+          />
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <span
-          className="text-xs font-medium"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Better than{" "}
-          <span style={{ fontFamily: "var(--font-space-mono)", color: "var(--text)" }}>
-            {percentile}%
-          </span>{" "}
-          of your peer group
-        </span>
-        <span
-          className="text-[10px]"
-          style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
-        >
-          avg: {PEER_DATA.averageScore}
-        </span>
-      </div>
+      <p
+        className="text-xs mt-3"
+        style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}
+      >
+        Your score is better than{" "}
+        <span style={{ fontFamily: "var(--font-space-mono)", color: "var(--text)", fontWeight: 600 }}>
+          {percentile}%
+        </span>{" "}
+        of {PEER_DATA.peerGroup.toLowerCase()}.
+      </p>
     </div>
   );
 }
@@ -474,22 +493,22 @@ function BloodMarkerBar({
             opacity: 0.15,
           }}
         />
-        {/* Value dot */}
+        {/* Value marker - downward triangle */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 z-10"
+          className="absolute z-10"
           style={{
             left: `${valuePct}%`,
-            transform: "translate(-50%, -50%)",
+            top: "-6px",
+            transform: "translateX(-50%)",
           }}
         >
           <div
             style={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: dotColor,
-              border: "2px solid var(--bg-card)",
-              boxShadow: "var(--shadow-sm)",
+              width: 0,
+              height: 0,
+              borderLeft: "5px solid transparent",
+              borderRight: "5px solid transparent",
+              borderTop: `8px solid ${dotColor}`,
             }}
           />
         </div>
@@ -666,10 +685,23 @@ export default function DiabetesRiskPage() {
               boxShadow: "var(--shadow-md)",
             }}
           >
+            <h2
+              className="text-base font-bold mb-1"
+              style={{ color: "var(--text)" }}
+            >
+              Your Risk Level
+            </h2>
+            <p
+              className="text-xs mb-4"
+              style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}
+            >
+              Based on your health profile, here is where you fall on the diabetes risk scale.
+            </p>
+
             <ScoreZoneBar score={result.score} />
 
-            {/* Risk level + 10yr percentage below */}
-            <div className="flex items-center justify-between mt-4">
+            {/* Risk level badge */}
+            <div className="mt-4">
               <span
                 className="inline-block px-3 py-1 rounded-full text-xs font-bold"
                 style={{
@@ -679,16 +711,29 @@ export default function DiabetesRiskPage() {
               >
                 {result.riskLabel}
               </span>
-              <span
-                className="text-sm font-bold"
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {result.tenYearRisk} 10-year risk
-              </span>
             </div>
+
+            {/* Human-readable risk explanation */}
+            <p
+              className="text-xs mt-3"
+              style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}
+            >
+              Your current risk level is{" "}
+              <strong style={{ color: "var(--text)" }}>{result.riskLabel}</strong>.
+              This means roughly{" "}
+              <span style={{ fontFamily: "var(--font-space-mono)", fontWeight: 600 }}>
+                {activeZone.risk === "~1%" ? "1 in 100" : activeZone.risk === "~4%" ? "4 in 100" : activeZone.risk === "~17%" ? "17 in 100" : activeZone.risk === "~33%" ? "33 in 100" : "50 in 100"}
+              </span>{" "}
+              people with a similar profile develop Type 2 diabetes within 10 years.
+            </p>
+
+            {/* De-emphasized raw score */}
+            <p
+              className="text-[10px] mt-2"
+              style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
+            >
+              Score {result.score} out of {MAX_SCORE}
+            </p>
           </div>
         </section>
 
@@ -852,56 +897,36 @@ export default function DiabetesRiskPage() {
               </div>
             </div>
 
-            {/* Activity toggle */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Dumbbell size={14} style={{ color: "var(--text-secondary)" }} />
-                  <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
-                    30+ min activity/day
-                  </span>
-                </div>
-                <button
-                  onClick={() => setWiActivity(!wiActivity)}
-                  className="relative w-11 h-6 rounded-full transition-colors"
-                  style={{
-                    background: wiActivity ? "var(--purple)" : "var(--bg-elevated)",
-                    border: wiActivity ? "none" : "1px solid var(--border)",
-                  }}
-                >
-                  <div
-                    className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
-                    style={{
-                      background: wiActivity ? "#fff" : "var(--text-faint)",
-                      left: wiActivity ? "calc(100% - 22px)" : "2px",
-                    }}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Diet toggle */}
+            {/* Lifestyle improvements toggle (combines activity + diet) */}
             <div className="mb-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Apple size={14} style={{ color: "var(--text-secondary)" }} />
-                  <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
-                    Daily fruit/vegetables
-                  </span>
+                  <Dumbbell size={14} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <span className="text-sm font-medium block" style={{ color: "var(--text)" }}>
+                      Lifestyle improvements
+                    </span>
+                    <span className="text-[11px] block mt-0.5" style={{ color: "var(--text-muted)" }}>
+                      Regular activity + balanced diet
+                    </span>
+                    <span className="text-[10px] block" style={{ color: "var(--text-faint)" }}>
+                      At least 30 min movement daily and regular fruit/veg intake
+                    </span>
+                  </div>
                 </div>
                 <button
-                  onClick={() => setWiDiet(!wiDiet)}
-                  className="relative w-11 h-6 rounded-full transition-colors"
+                  onClick={() => { setWiActivity(!wiActivity); setWiDiet(!wiDiet); }}
+                  className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
                   style={{
-                    background: wiDiet ? "var(--purple)" : "var(--bg-elevated)",
-                    border: wiDiet ? "none" : "1px solid var(--border)",
+                    background: (wiActivity && wiDiet) ? "var(--purple)" : "var(--bg-elevated)",
+                    border: (wiActivity && wiDiet) ? "none" : "1px solid var(--border)",
                   }}
                 >
                   <div
                     className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
                     style={{
-                      background: wiDiet ? "#fff" : "var(--text-faint)",
-                      left: wiDiet ? "calc(100% - 22px)" : "2px",
+                      background: (wiActivity && wiDiet) ? "#fff" : "var(--text-faint)",
+                      left: (wiActivity && wiDiet) ? "calc(100% - 22px)" : "2px",
                     }}
                   />
                 </button>
@@ -920,47 +945,53 @@ export default function DiabetesRiskPage() {
                   compact
                 />
 
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-sm font-bold"
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        color: "var(--text)",
-                      }}
-                    >
-                      Score: {result.score}
-                    </span>
-                    <span style={{ color: "var(--text-faint)" }}>-&gt;</span>
-                    <span
-                      className="text-sm font-bold"
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        color: riskColorVar(wiResult.riskLevel),
-                      }}
-                    >
-                      {wiResult.score}
-                    </span>
-                    {scoreDiff !== 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <span
-                        className="text-xs font-bold px-2 py-0.5 rounded-full"
+                        className="inline-block px-2.5 py-1 rounded-full text-xs font-bold"
                         style={{
-                          fontFamily: "var(--font-space-mono)",
-                          background: scoreDiff < 0 ? "var(--green-bg)" : "var(--red-bg)",
-                          color: scoreDiff < 0 ? "var(--green-text)" : "var(--red-text)",
+                          background: riskBgVar(result.riskLevel),
+                          color: riskTextVar(result.riskLevel),
                         }}
                       >
-                        {scoreDiff < 0 ? "" : "+"}{scoreDiff}
+                        {getZoneForScore(result.score).label}
                       </span>
+                      <span style={{ color: "var(--text-faint)", fontSize: 12 }}>-&gt;</span>
+                      <span
+                        className="inline-block px-2.5 py-1 rounded-full text-xs font-bold"
+                        style={{
+                          background: scoreDiff !== 0 ? (scoreDiff < 0 ? "var(--green-bg)" : "var(--red-bg)") : riskBgVar(wiResult.riskLevel),
+                          color: scoreDiff !== 0 ? (scoreDiff < 0 ? "var(--green-text)" : "var(--red-text)") : riskTextVar(wiResult.riskLevel),
+                        }}
+                      >
+                        {getZoneForScore(wiResult.score).label}
+                      </span>
+                      {scoreDiff !== 0 && (
+                        <span
+                          className="text-[10px] font-bold"
+                          style={{
+                            fontFamily: "var(--font-space-mono)",
+                            color: scoreDiff < 0 ? "var(--green-text)" : "var(--red-text)",
+                          }}
+                        >
+                          {scoreDiff < 0 ? "" : "+"}{scoreDiff} pts
+                        </span>
+                      )}
+                    </div>
+                    {scoreDiff < 0 && (
+                      <TrendingDown size={16} style={{ color: "var(--green)" }} />
+                    )}
+                    {scoreDiff > 0 && (
+                      <TrendingUp size={16} style={{ color: "var(--red)" }} />
                     )}
                   </div>
-
-                  {scoreDiff < 0 && (
-                    <TrendingDown size={16} style={{ color: "var(--green)" }} />
-                  )}
-                  {scoreDiff > 0 && (
-                    <TrendingUp size={16} style={{ color: "var(--red)" }} />
-                  )}
+                  <p
+                    className="text-[10px] mt-1.5"
+                    style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
+                  >
+                    Score {result.score} -&gt; {wiResult.score} out of {MAX_SCORE}
+                  </p>
                 </div>
               </>
             )}
@@ -1084,13 +1115,7 @@ export default function DiabetesRiskPage() {
                     stroke="var(--purple)"
                     strokeWidth={2.5}
                     fill="url(#scoreGradient)"
-                    dot={{
-                      r: 3,
-                      fill: "var(--purple)",
-                      stroke: "var(--bg-card)",
-                      strokeWidth: 2,
-                      opacity: 0.6,
-                    }}
+                    dot={false}
                     activeDot={{
                       r: 6,
                       fill: "var(--purple)",
