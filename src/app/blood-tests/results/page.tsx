@@ -13,8 +13,7 @@ import {
   Video,
   Sparkles,
 } from "lucide-react";
-import { ResponsiveBullet } from "@nivo/bullet";
-import { ResponsiveLine } from "@nivo/line";
+import ReactECharts from "echarts-for-react";
 import {
   MOCK_BLOOD_RESULTS,
   MOCK_RESULTS_SUMMARY,
@@ -36,23 +35,6 @@ const PLAIN_NAMES: Record<string, string> = {
 function displayName(shortName: string, testName: string): string {
   return PLAIN_NAMES[shortName] || testName;
 }
-
-// -- Nivo Theme ---------------------------------------------------------------
-
-const nivoTheme = {
-  fontFamily: "var(--font-dm-sans)",
-  fontSize: 11,
-  textColor: "var(--text-muted)",
-  tooltip: {
-    container: {
-      background: "var(--bg-card)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
-      boxShadow: "var(--shadow-md)",
-      padding: "8px 12px",
-    },
-  },
-};
 
 // -- Helpers ------------------------------------------------------------------
 
@@ -104,46 +86,58 @@ function BiomarkerBullet({
   const pad = range * 0.35;
   const scaleMin = Math.max(0, low - pad);
   const scaleMax = high + pad;
+  const totalRange = scaleMax - scaleMin;
 
   const cfg = getStatusConfig(status);
 
-  // rangeColors: below-normal amber, normal green, above-normal amber
-  const rangeColors =
-    status === "normal"
-      ? ["var(--amber-bg)", "var(--green-bg)", "var(--amber-bg)"]
-      : ["var(--amber-bg)", "var(--green-bg)", "var(--amber-bg)"];
-
-  const measureColor =
+  const markerColor =
     status === "normal" ? "var(--green)" : status === "borderline" ? "var(--amber)" : "var(--red)";
+
+  // Percentages for positioning
+  const refLeftPct = ((low - scaleMin) / totalRange) * 100;
+  const refWidthPct = ((high - low) / totalRange) * 100;
+  const valuePct = Math.min(
+    100,
+    Math.max(0, ((value - scaleMin) / totalRange) * 100)
+  );
 
   return (
     <div style={{ marginTop: 12, marginBottom: 4 }}>
-      <div style={{ height: 36, borderRadius: 6, overflow: "hidden" }}>
-        <ResponsiveBullet
-          data={[
-            {
-              id: "biomarker",
-              ranges: [low, high, scaleMax],
-              measures: [value],
-              markers: [],
-            },
-          ]}
-          layout="horizontal"
-          spacing={0}
-          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-          minValue={scaleMin}
-          maxValue={scaleMax}
-          rangeColors={rangeColors}
-          measureColors={[measureColor]}
-          measureSize={0.4}
-          markerSize={0}
-          titlePosition="before"
-          titleAlign="start"
-          titleOffsetX={0}
-          titleOffsetY={0}
-          animate={true}
-          isInteractive={false}
-          theme={nivoTheme}
+      {/* Range bar */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: 12,
+          borderRadius: 6,
+          background: "var(--amber-bg)",
+          overflow: "visible",
+        }}
+      >
+        {/* Green reference range */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: `${refLeftPct}%`,
+            width: `${refWidthPct}%`,
+            height: "100%",
+            borderRadius: 6,
+            background: "var(--green-bg)",
+          }}
+        />
+        {/* Value marker */}
+        <div
+          style={{
+            position: "absolute",
+            top: -2,
+            left: `${valuePct}%`,
+            transform: "translateX(-50%)",
+            width: 4,
+            height: 16,
+            borderRadius: 2,
+            background: markerColor,
+          }}
         />
       </div>
 
@@ -176,7 +170,7 @@ function BiomarkerBullet({
   );
 }
 
-// -- Mini Trend (Nivo Line) ---------------------------------------------------
+// -- Mini Trend (ECharts) -----------------------------------------------------
 
 function MiniTrend({
   points,
@@ -187,15 +181,24 @@ function MiniTrend({
   labels: string[];
   unit: string;
 }) {
-  const lineData = [
-    {
-      id: "trend",
-      data: points.map((y, i) => ({ x: labels[i], y })),
-    },
-  ];
-
   const yMin = Math.min(...points) - 0.3;
   const yMax = Math.max(...points) + 0.3;
+
+  const miniTrendOption = {
+    grid: { top: 2, right: 2, bottom: 2, left: 2 },
+    xAxis: { type: "category" as const, show: false, data: labels },
+    yAxis: { type: "value" as const, show: false, min: yMin, max: yMax },
+    series: [
+      {
+        type: "line" as const,
+        smooth: true,
+        data: points,
+        symbol: "none",
+        lineStyle: { width: 2, color: "#d97706" },
+        areaStyle: { opacity: 0.12, color: "#d97706" },
+      },
+    ],
+  };
 
   return (
     <div
@@ -229,27 +232,10 @@ function MiniTrend({
       </div>
 
       <div style={{ height: 40, width: "100%" }}>
-        <ResponsiveLine
-          data={lineData}
-          curve="natural"
-          margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
-          xScale={{ type: "point" }}
-          yScale={{ type: "linear", min: yMin, max: yMax }}
-          enableGridX={false}
-          enableGridY={false}
-          enablePoints={false}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={null}
-          axisLeft={null}
-          colors={["var(--amber)"]}
-          lineWidth={2.5}
-          enableArea={true}
-          areaOpacity={0.15}
-          areaBaselineValue={yMin}
-          isInteractive={false}
-          animate={true}
-          theme={nivoTheme}
+        <ReactECharts
+          option={miniTrendOption}
+          style={{ height: 40, width: "100%" }}
+          opts={{ renderer: "svg" }}
         />
       </div>
 
