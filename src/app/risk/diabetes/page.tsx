@@ -229,93 +229,98 @@ function PeerComparison({ score }: { score: number }) {
   const userColor = riskColorVar(userRiskLevel as FindriscResult["riskLevel"]);
   const avg = PEER_DATA.averageScore;
 
+  const userY = Math.exp(-0.5 * Math.pow((score - avg) / 4, 2));
+
   const bellCurveOption = {
-    grid: { top: 30, right: 16, bottom: 30, left: 16 },
+    grid: { top: 36, right: 20, bottom: 24, left: 20 },
     xAxis: {
       type: "value" as const,
       min: 0,
       max: MAX_SCORE,
-      show: true,
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { show: false },
       axisLabel: {
         fontSize: 10,
         fontFamily: "var(--font-mono)",
-        color: "var(--text-faint)",
+        color: "#b8bac6",
+        interval: 5,
       },
     },
     yAxis: { type: "value" as const, show: false },
+    tooltip: {
+      trigger: "axis" as const,
+      backgroundColor: "#fff",
+      borderColor: "#e6e8ed",
+      borderRadius: 12,
+      padding: [8, 12],
+      textStyle: { fontSize: 12, color: "#1a1a2e" },
+      formatter: (params: Array<{ data: [number, number] }>) => {
+        const x = Math.round(params[0]?.data?.[0] ?? 0);
+        const z = getZoneForScore(x);
+        return `<div style="font-weight:600">Score ${x}</div><div style="color:${z.color};font-size:11px">${z.label} risk</div>`;
+      },
+    },
     series: [
       {
         type: "line" as const,
-        smooth: true,
-        areaStyle: { opacity: 0.15, color: "var(--teal)" },
-        lineStyle: { width: 2, color: "var(--teal)" },
+        smooth: 0.6,
         symbol: "none",
+        sampling: "lttb" as const,
+        lineStyle: { width: 2.5, color: "#5c6bc0" },
+        areaStyle: {
+          color: {
+            type: "linear" as const,
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(92,107,192,0.3)" },
+              { offset: 0.6, color: "rgba(92,107,192,0.08)" },
+              { offset: 1, color: "rgba(92,107,192,0)" },
+            ],
+          },
+        },
         data: generateBellCurve(avg, 4, MAX_SCORE),
         markLine: {
           silent: true,
           symbol: "none",
-          label: {
-            position: "start" as const,
-            fontSize: 11,
-            fontWeight: 600,
-            fontFamily: "var(--font-sans)",
-            padding: [0, 0, 0, 0],
-          },
           data: [
             {
               xAxis: avg,
-              lineStyle: {
-                color: "var(--text-faint)",
-                width: 1.5,
-                type: "dashed" as const,
-              },
-              label: {
-                formatter: "Average",
-                color: "var(--text-muted)",
-                position: "start" as const,
-              },
+              lineStyle: { color: "#b8bac6", width: 1.5, type: "dashed" as const },
+              label: { formatter: "Average", position: "insideEndTop" as const, fontSize: 11, fontWeight: 600, color: "#8b8da3", padding: [0, 0, 0, 4] },
             },
             {
               xAxis: score,
-              lineStyle: {
-                color: userColor,
-                width: 2,
-                type: "solid" as const,
-              },
-              label: {
-                formatter: "You",
-                color: userColor,
-                fontWeight: 700,
-                position: "start" as const,
-              },
+              lineStyle: { color: userColor, width: 2, type: "solid" as const },
+              label: { formatter: "You", position: "insideEndTop" as const, fontSize: 11, fontWeight: 700, color: userColor, padding: [0, 0, 0, 4] },
             },
           ],
         },
         markPoint: {
           symbol: "circle",
-          symbolSize: 10,
+          symbolSize: 14,
           data: [
             {
-              coord: [
-                score,
-                Math.exp(-0.5 * Math.pow((score - avg) / 4, 2)),
-              ],
+              coord: [score, userY],
               itemStyle: {
                 color: userColor,
-                borderColor: "var(--bg-card)",
-                borderWidth: 2,
+                borderColor: "#fff",
+                borderWidth: 3,
+                shadowColor: "rgba(0,0,0,0.15)",
+                shadowBlur: 6,
               },
               label: { show: false },
             },
           ],
+          animation: true,
+          animationDuration: 600,
+          animationEasing: "elasticOut" as const,
         },
       },
     ],
-    tooltip: { show: false },
     animation: true,
+    animationDuration: 800,
+    animationEasing: "cubicOut" as const,
   };
 
   return (
@@ -1036,17 +1041,14 @@ export default function DiabetesRiskPage() {
 
             <ReactECharts
               notMerge={true}
-              style={{ height: "200px", marginTop: 12 }}
+              style={{ height: "220px", marginTop: 12 }}
+              opts={{ renderer: "svg" }}
               option={{
-                grid: { top: 20, right: 20, bottom: 30, left: 40 },
+                grid: { top: 24, right: 16, bottom: 32, left: 44 },
                 xAxis: {
                   type: "category",
                   data: MOCK_SCORE_HISTORY.map((d) => d.date),
-                  axisLabel: {
-                    fontSize: 10,
-                    fontFamily: "var(--font-mono)",
-                    color: "var(--text-muted)",
-                  },
+                  axisLabel: { fontSize: 10, fontFamily: "var(--font-mono)", color: "#8b8da3" },
                   axisLine: { show: false },
                   axisTick: { show: false },
                 },
@@ -1054,47 +1056,55 @@ export default function DiabetesRiskPage() {
                   type: "value",
                   min: 0,
                   max: MAX_SCORE,
-                  axisLabel: {
-                    fontSize: 10,
-                    fontFamily: "var(--font-mono)",
-                    color: "var(--text-muted)",
-                  },
-                  splitLine: { show: false },
+                  axisLabel: { fontSize: 10, fontFamily: "var(--font-mono)", color: "#8b8da3" },
+                  splitLine: { lineStyle: { color: "#eef0f4", type: "dashed" as const } },
                   axisLine: { show: false },
                   axisTick: { show: false },
                 },
                 series: [
                   {
                     type: "line",
-                    smooth: true,
+                    smooth: 0.4,
                     data: MOCK_SCORE_HISTORY.map((d) => d.score),
-                    areaStyle: { opacity: 0.1, color: "var(--purple)" },
-                    lineStyle: { width: 2.5, color: "var(--purple)" },
-                    symbol: "none",
-                    emphasis: { focus: "series" },
+                    lineStyle: { width: 3, color: "#7c4dff", shadowColor: "rgba(124,77,255,0.25)", shadowBlur: 8, shadowOffsetY: 4 },
+                    areaStyle: {
+                      color: {
+                        type: "linear" as const,
+                        x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [
+                          { offset: 0, color: "rgba(124,77,255,0.25)" },
+                          { offset: 0.5, color: "rgba(124,77,255,0.06)" },
+                          { offset: 1, color: "rgba(124,77,255,0)" },
+                        ],
+                      },
+                    },
+                    symbol: "circle",
+                    symbolSize: 8,
+                    itemStyle: { color: "#7c4dff", borderColor: "#fff", borderWidth: 2.5, shadowColor: "rgba(124,77,255,0.3)", shadowBlur: 6 },
+                    emphasis: {
+                      itemStyle: { symbolSize: 14, borderWidth: 3, shadowBlur: 12 },
+                    },
                     markLine: {
                       silent: true,
                       symbol: "none",
                       label: { show: false },
-                      lineStyle: { width: 1, type: "dashed" as const, opacity: 0.3 },
+                      lineStyle: { width: 1, type: "dashed" as const, opacity: 0.25 },
                       data: [
-                        { yAxis: 7, lineStyle: { color: "var(--green)" } },
-                        { yAxis: 12, lineStyle: { color: "var(--amber)" } },
-                        { yAxis: 15, lineStyle: { color: "var(--red)" } },
-                        { yAxis: 21, lineStyle: { color: "var(--red)" } },
+                        { yAxis: 7, lineStyle: { color: "#4caf50" } },
+                        { yAxis: 12, lineStyle: { color: "#ff9800" } },
+                        { yAxis: 15, lineStyle: { color: "#ef5350" } },
                       ],
                     },
                   },
                 ],
                 tooltip: {
-                  trigger: "axis",
-                  backgroundColor: "var(--bg-card)",
-                  borderColor: "var(--border)",
-                  textStyle: {
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 12,
-                    color: "var(--text)",
-                  },
+                  trigger: "axis" as const,
+                  backgroundColor: "#fff",
+                  borderColor: "#e6e8ed",
+                  borderRadius: 12,
+                  padding: [10, 14],
+                  textStyle: { fontFamily: "var(--font-mono)", fontSize: 12, color: "#1a1a2e" },
+                  axisPointer: { type: "cross" as const, crossStyle: { color: "#e6e8ed" }, lineStyle: { color: "#e6e8ed", type: "dashed" as const } },
                   formatter: (params: Array<{ name: string; value: number }>) => {
                     const p = params[0];
                     if (!p) return "";

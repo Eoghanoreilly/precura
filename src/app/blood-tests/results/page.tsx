@@ -185,19 +185,32 @@ function MiniTrend({
   const yMax = Math.max(...points) + 0.3;
 
   const miniTrendOption = {
-    grid: { top: 2, right: 2, bottom: 2, left: 2 },
+    grid: { top: 4, right: 4, bottom: 4, left: 4 },
     xAxis: { type: "category" as const, show: false, data: labels },
     yAxis: { type: "value" as const, show: false, min: yMin, max: yMax },
     series: [
       {
         type: "line" as const,
-        smooth: true,
+        smooth: 0.4,
         data: points,
-        symbol: "none",
-        lineStyle: { width: 2, color: "#d97706" },
-        areaStyle: { opacity: 0.12, color: "#d97706" },
+        symbol: "circle",
+        symbolSize: 6,
+        itemStyle: { color: "#d97706", borderColor: "#fff", borderWidth: 2 },
+        lineStyle: { width: 2.5, color: "#d97706", shadowColor: "rgba(217,119,6,0.3)", shadowBlur: 4 },
+        areaStyle: {
+          color: {
+            type: "linear" as const,
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(217,119,6,0.25)" },
+              { offset: 1, color: "rgba(217,119,6,0)" },
+            ],
+          },
+        },
       },
     ],
+    animation: true,
+    animationDuration: 600,
   };
 
   return (
