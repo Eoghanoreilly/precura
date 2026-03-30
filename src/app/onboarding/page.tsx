@@ -103,7 +103,7 @@ export default function OnboardingPage() {
             <Loader2 size={28} className="animate-spin" style={{ color: "var(--purple)" }} />
           </div>
           <p className="text-sm font-semibold mb-2" style={{ color: "var(--text)" }}>Calculating your risk profile</p>
-          <p className="text-xs" style={{ color: "var(--text-muted)", fontFamily: "var(--font-space-mono)" }}>Running FINDRISC assessment...</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>Running FINDRISC assessment...</p>
         </div>
       </div>
     );
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
             <ArrowLeft size={16} />
             {step > 0 ? "Back" : "Exit"}
           </button>
-          <span className="text-xs font-medium" style={{ color: "var(--text-muted)", fontFamily: "var(--font-space-mono)" }}>
+          <span className="text-xs font-medium" style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
             {step + 1}/{TOTAL_STEPS}
           </span>
         </div>
@@ -171,7 +171,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setHeightCm(e.target.value)}
                     placeholder="170"
                     className="w-full px-4 py-3 rounded-xl"
-                    style={{ background: "var(--bg-input)", border: "1px solid var(--border-input)", color: "var(--text)", fontFamily: "var(--font-space-mono)", fontSize: "16px" }}
+                    style={{ background: "var(--bg-input)", border: "1px solid var(--border-input)", color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: "16px" }}
                   />
                 </div>
                 <div>
@@ -182,13 +182,13 @@ export default function OnboardingPage() {
                     onChange={(e) => setWeightKg(e.target.value)}
                     placeholder="75"
                     className="w-full px-4 py-3 rounded-xl"
-                    style={{ background: "var(--bg-input)", border: "1px solid var(--border-input)", color: "var(--text)", fontFamily: "var(--font-space-mono)", fontSize: "16px" }}
+                    style={{ background: "var(--bg-input)", border: "1px solid var(--border-input)", color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: "16px" }}
                   />
                 </div>
                 {bmi && (
                   <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
                     <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Your BMI:</span>
-                    <span className="text-sm font-bold" style={{ color: "var(--text)", fontFamily: "var(--font-space-mono)" }}>{bmi}</span>
+                    <span className="text-sm font-bold" style={{ color: "var(--text)", fontFamily: "var(--font-mono)" }}>{bmi}</span>
                     <span className="text-xs" style={{ color: parseFloat(bmi) < 25 ? "var(--teal-text)" : parseFloat(bmi) <= 30 ? "var(--amber-text)" : "var(--red-text)" }}>
                       {parseFloat(bmi) < 25 ? "Normal" : parseFloat(bmi) <= 30 ? "Overweight" : "Obese"}
                     </span>
@@ -212,7 +212,7 @@ export default function OnboardingPage() {
                   onChange={(e) => setWaistCm(e.target.value)}
                   placeholder={sex === "female" ? "80" : "94"}
                   className="w-full px-4 py-3 rounded-xl"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border-input)", color: "var(--text)", fontFamily: "var(--font-space-mono)", fontSize: "16px" }}
+                  style={{ background: "var(--bg-input)", border: "1px solid var(--border-input)", color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: "16px" }}
                 />
               </div>
             </>

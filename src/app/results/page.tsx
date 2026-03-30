@@ -142,7 +142,7 @@ export default function ResultsPage() {
                 className="text-sm"
                 style={{
                   color: "var(--text-muted)",
-                  fontFamily: "var(--font-space-mono)",
+                  fontFamily: "var(--font-mono)",
                   opacity: revealed ? 1 : 0,
                   transition: "opacity 0.5s ease 1s",
                 }}
@@ -277,7 +277,7 @@ export default function ResultsPage() {
 
           <p
             className="text-center text-[10px] mt-4"
-            style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
+            style={{ fontFamily: "var(--font-mono)", color: "var(--text-faint)" }}
           >
             This is a screening estimate, not a diagnosis
           </p>

@@ -76,7 +76,7 @@ export default function DashboardPage() {
           <p className="text-xl font-bold tracking-tight" style={{ color: "var(--text)" }}>
             {getGreeting()}, {firstName}
           </p>
-          <span className="text-[10px]" style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}>
+          <span className="text-[10px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-faint)" }}>
             {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         </div>
@@ -205,14 +205,14 @@ export default function DashboardPage() {
                   <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>Blood Test + Consultation</p>
                   <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Lab analysis with a personal review</p>
                 </div>
-                <span className="text-xs font-bold shrink-0 ml-3" style={{ fontFamily: "var(--font-space-mono)", color: "var(--accent)" }}>1,195 SEK</span>
+                <span className="text-xs font-bold shrink-0 ml-3" style={{ fontFamily: "var(--font-mono)", color: "var(--accent)" }}>1,195 SEK</span>
               </div>
               <div className="flex items-baseline justify-between rounded-xl px-3 py-2" style={{ background: "var(--bg-card)" }}>
                 <div>
                   <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>Complete Package</p>
                   <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Test + consultation + training plan</p>
                 </div>
-                <span className="text-xs font-bold shrink-0 ml-3" style={{ fontFamily: "var(--font-space-mono)", color: "var(--accent)" }}>1,895 SEK</span>
+                <span className="text-xs font-bold shrink-0 ml-3" style={{ fontFamily: "var(--font-mono)", color: "var(--accent)" }}>1,895 SEK</span>
               </div>
             </div>
           </div>
@@ -281,7 +281,7 @@ function ChangeRow({ label, from, to, unit, period, direction, isLast }: {
       <div className="flex-1">
         <div className="flex items-baseline gap-1.5">
           <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{label}</span>
-          <span className="text-xs" style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-muted)" }}>{from} <span style={{ color: "var(--text-faint)" }}>-&gt;</span> {to} {unit}</span>
+          <span className="text-xs" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{from} <span style={{ color: "var(--text-faint)" }}>-&gt;</span> {to} {unit}</span>
         </div>
         <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{period}</span>
       </div>

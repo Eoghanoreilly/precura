@@ -102,7 +102,7 @@ export default function LoginPage() {
                     background: "var(--bg-elevated)",
                     border: "1px solid var(--border)",
                     color: "var(--text)",
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     fontSize: "16px",
                     letterSpacing: "0.05em",
                   }}
@@ -125,7 +125,7 @@ export default function LoginPage() {
                       style={{
                         background: "var(--teal-bg)",
                         color: "var(--teal-text)",
-                        fontFamily: "var(--font-space-mono)",
+                        fontFamily: "var(--font-mono)",
                       }}
                     >
                       EL
@@ -152,7 +152,7 @@ export default function LoginPage() {
                       style={{
                         background: "var(--accent-light)",
                         color: "var(--accent)",
-                        fontFamily: "var(--font-space-mono)",
+                        fontFamily: "var(--font-mono)",
                       }}
                     >
                       AB
@@ -206,7 +206,7 @@ export default function LoginPage() {
 
         <p
           className="text-center text-xs mt-6"
-          style={{ color: "var(--text-faint)", fontFamily: "var(--font-space-mono)" }}
+          style={{ color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}
         >
           Demo mode - no real BankID required
         </p>

@@ -46,7 +46,7 @@ export default function Header() {
           style={{
             background: "var(--accent-light)",
             color: "var(--accent)",
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
           }}
         >
           {initials}

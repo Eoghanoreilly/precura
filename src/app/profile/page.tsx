@@ -119,7 +119,7 @@ export default function ProfilePage() {
             style={{
               background: "var(--purple-bg)",
               color: "var(--purple-text)",
-              fontFamily: "var(--font-space-mono)",
+              fontFamily: "var(--font-mono)",
             }}
           >
             {initials}
@@ -134,7 +134,7 @@ export default function ProfilePage() {
             <p
               className="text-sm"
               style={{
-                fontFamily: "var(--font-space-mono)",
+                fontFamily: "var(--font-mono)",
                 color: "var(--text-muted)",
               }}
             >
@@ -304,7 +304,7 @@ export default function ProfilePage() {
           <p
             className="text-xs leading-relaxed"
             style={{
-              fontFamily: "var(--font-space-mono)",
+              fontFamily: "var(--font-mono)",
               color: "var(--text-faint)",
             }}
           >

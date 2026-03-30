@@ -135,7 +135,7 @@ export default function BloodTestsPage() {
                 <div
                   className="ml-3 px-3 py-1 rounded-lg text-sm font-bold shrink-0"
                   style={{
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     background: "var(--bg-elevated)",
                     color: "var(--text)",
                   }}
@@ -308,7 +308,7 @@ export default function BloodTestsPage() {
                         <p
                           className="text-sm font-bold"
                           style={{
-                            fontFamily: "var(--font-space-mono)",
+                            fontFamily: "var(--font-mono)",
                             color: "var(--text)",
                           }}
                         >

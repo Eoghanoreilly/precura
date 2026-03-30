@@ -195,7 +195,7 @@ function ScoreZoneBar({
                   className="text-[10px] font-medium"
                   style={{
                     color: isActive ? "var(--text)" : "var(--text-faint)",
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                   }}
                 >
                   {zone.label}
@@ -241,7 +241,7 @@ function PeerComparison({ score }: { score: number }) {
       splitLine: { show: false },
       axisLabel: {
         fontSize: 10,
-        fontFamily: "var(--font-space-mono)",
+        fontFamily: "var(--font-mono)",
         color: "var(--text-faint)",
       },
     },
@@ -261,7 +261,7 @@ function PeerComparison({ score }: { score: number }) {
             position: "start" as const,
             fontSize: 11,
             fontWeight: 600,
-            fontFamily: "var(--font-dm-sans)",
+            fontFamily: "var(--font-sans)",
             padding: [0, 0, 0, 0],
           },
           data: [
@@ -351,7 +351,7 @@ function PeerComparison({ score }: { score: number }) {
         Your score is better than{" "}
         <span
           style={{
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
             color: "var(--text)",
             fontWeight: 600,
           }}
@@ -450,7 +450,7 @@ function FactorBar({
       <span
         className="text-xs font-bold w-8 text-right flex-shrink-0"
         style={{
-          fontFamily: "var(--font-space-mono)",
+          fontFamily: "var(--font-mono)",
           color: points === 0 ? "var(--green-text)" : "var(--text-secondary)",
         }}
       >
@@ -499,7 +499,7 @@ function BloodMarkerBar({
         <span
           className="text-xs font-bold"
           style={{
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
             color:
               status === "normal"
                 ? "var(--green-text)"
@@ -548,7 +548,7 @@ function BloodMarkerBar({
         className="flex justify-between mt-1"
         style={{
           fontSize: 9,
-          fontFamily: "var(--font-space-mono)",
+          fontFamily: "var(--font-mono)",
           color: "var(--text-faint)",
         }}
       >
@@ -701,7 +701,7 @@ export default function DiabetesRiskPage() {
               Your current risk level is{" "}
               <strong style={{ color: "var(--text)" }}>{result.riskLabel}</strong>.
               This means roughly{" "}
-              <span style={{ fontFamily: "var(--font-space-mono)", fontWeight: 600 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
                 {activeZone.risk === "~1%" ? "1 in 100" : activeZone.risk === "~4%" ? "4 in 100" : activeZone.risk === "~17%" ? "17 in 100" : activeZone.risk === "~33%" ? "33 in 100" : "50 in 100"}
               </span>{" "}
               people with a similar profile develop Type 2 diabetes within 10 years.
@@ -710,7 +710,7 @@ export default function DiabetesRiskPage() {
             {/* De-emphasized raw score */}
             <p
               className="text-[10px] mt-2"
-              style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
+              style={{ fontFamily: "var(--font-mono)", color: "var(--text-faint)" }}
             >
               Score {result.score} out of {MAX_SCORE}
             </p>
@@ -848,7 +848,7 @@ export default function DiabetesRiskPage() {
                 <span
                   className="text-sm font-bold"
                   style={{
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     color: wiWeight !== inputs.weightKg ? "var(--purple)" : "var(--text-secondary)",
                   }}
                 >
@@ -868,7 +868,7 @@ export default function DiabetesRiskPage() {
               <div
                 className="flex justify-between text-[10px] mt-1"
                 style={{
-                  fontFamily: "var(--font-space-mono)",
+                  fontFamily: "var(--font-mono)",
                   color: "var(--text-faint)",
                 }}
               >
@@ -951,7 +951,7 @@ export default function DiabetesRiskPage() {
                         <span
                           className="text-[10px] font-bold"
                           style={{
-                            fontFamily: "var(--font-space-mono)",
+                            fontFamily: "var(--font-mono)",
                             color: scoreDiff < 0 ? "var(--green-text)" : "var(--red-text)",
                           }}
                         >
@@ -968,7 +968,7 @@ export default function DiabetesRiskPage() {
                   </div>
                   <p
                     className="text-[10px] mt-1.5"
-                    style={{ fontFamily: "var(--font-space-mono)", color: "var(--text-faint)" }}
+                    style={{ fontFamily: "var(--font-mono)", color: "var(--text-faint)" }}
                   >
                     Score {result.score} -&gt; {wiResult.score} out of {MAX_SCORE}
                   </p>
@@ -1044,7 +1044,7 @@ export default function DiabetesRiskPage() {
                   data: MOCK_SCORE_HISTORY.map((d) => d.date),
                   axisLabel: {
                     fontSize: 10,
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     color: "var(--text-muted)",
                   },
                   axisLine: { show: false },
@@ -1056,7 +1056,7 @@ export default function DiabetesRiskPage() {
                   max: MAX_SCORE,
                   axisLabel: {
                     fontSize: 10,
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     color: "var(--text-muted)",
                   },
                   splitLine: { show: false },
@@ -1091,7 +1091,7 @@ export default function DiabetesRiskPage() {
                   backgroundColor: "var(--bg-card)",
                   borderColor: "var(--border)",
                   textStyle: {
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     fontSize: 12,
                     color: "var(--text)",
                   },
@@ -1100,7 +1100,7 @@ export default function DiabetesRiskPage() {
                     if (!p) return "";
                     const scoreVal = p.value;
                     const z = getZoneForScore(scoreVal);
-                    return `<div style="font-family:var(--font-space-mono);font-size:10px;color:var(--text-muted)">${p.name}</div><div style="font-weight:bold;font-size:14px">${scoreVal} / ${MAX_SCORE}</div><div style="font-size:10px;font-weight:600;color:${z.color};margin-top:2px">${z.label} risk (${z.risk})</div>`;
+                    return `<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${p.name}</div><div style="font-weight:bold;font-size:14px">${scoreVal} / ${MAX_SCORE}</div><div style="font-size:10px;font-weight:600;color:${z.color};margin-top:2px">${z.label} risk (${z.risk})</div>`;
                   },
                 },
                 animation: true,
@@ -1180,7 +1180,7 @@ export default function DiabetesRiskPage() {
                         <td
                           className="text-xs py-2 text-right"
                           style={{
-                            fontFamily: "var(--font-space-mono)",
+                            fontFamily: "var(--font-mono)",
                             color: "var(--text-secondary)",
                           }}
                         >
@@ -1193,7 +1193,7 @@ export default function DiabetesRiskPage() {
                         <td
                           className="text-xs py-2 text-right font-bold"
                           style={{
-                            fontFamily: "var(--font-space-mono)",
+                            fontFamily: "var(--font-mono)",
                             color: factor.points > 0 ? "var(--text)" : "var(--text-faint)",
                           }}
                         >
@@ -1213,7 +1213,7 @@ export default function DiabetesRiskPage() {
                     <span style={{ color: "var(--text-muted)" }}>Total score</span>
                     <span
                       className="font-bold"
-                      style={{ fontFamily: "var(--font-space-mono)", color: "var(--text)" }}
+                      style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}
                     >
                       {result.score} / {MAX_SCORE}
                     </span>
@@ -1228,7 +1228,7 @@ export default function DiabetesRiskPage() {
                     <span style={{ color: "var(--text-muted)" }}>10-year probability</span>
                     <span
                       className="font-bold"
-                      style={{ fontFamily: "var(--font-space-mono)", color: "var(--text)" }}
+                      style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}
                     >
                       {result.tenYearRisk}
                     </span>
@@ -1237,7 +1237,7 @@ export default function DiabetesRiskPage() {
 
                 {/* FINDRISC reference */}
                 <div className="mt-3 text-[11px]" style={{ color: "var(--text-faint)" }}>
-                  <p style={{ fontFamily: "var(--font-space-mono)" }}>
+                  <p style={{ fontFamily: "var(--font-mono)" }}>
                     FINDRISC - Finnish Diabetes Risk Score
                   </p>
                   <a

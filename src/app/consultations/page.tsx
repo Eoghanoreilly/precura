@@ -128,7 +128,7 @@ export default function ConsultationsPage() {
                 <span
                   className="text-sm"
                   style={{
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     color: "var(--text)",
                   }}
                 >
@@ -191,7 +191,7 @@ export default function ConsultationsPage() {
                   style={{
                     background: "var(--purple-bg)",
                     color: "var(--purple-text)",
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                   }}
                 >
                   {DOCTOR.initials}
@@ -325,7 +325,7 @@ export default function ConsultationsPage() {
                     <span
                       className="text-base font-bold"
                       style={{
-                        fontFamily: "var(--font-space-mono)",
+                        fontFamily: "var(--font-mono)",
                         color:
                           selectedDayIndex === i
                             ? "white"
@@ -357,7 +357,7 @@ export default function ConsultationsPage() {
                     onClick={() => setSelectedTime(time)}
                     className="py-3 rounded-xl text-sm font-semibold"
                     style={{
-                      fontFamily: "var(--font-space-mono)",
+                      fontFamily: "var(--font-mono)",
                       background:
                         selectedTime === time
                           ? "var(--purple)"
@@ -400,7 +400,7 @@ export default function ConsultationsPage() {
                   <p
                     className="text-lg font-bold"
                     style={{
-                      fontFamily: "var(--font-space-mono)",
+                      fontFamily: "var(--font-mono)",
                       color: "var(--text)",
                     }}
                   >

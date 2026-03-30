@@ -58,7 +58,7 @@ export default function RiskCard({ result }: RiskCardProps) {
               <span
                 className="text-4xl font-bold"
                 style={{
-                  fontFamily: "var(--font-space-mono)",
+                  fontFamily: "var(--font-mono)",
                   color: "var(--text)",
                 }}
               >
@@ -67,7 +67,7 @@ export default function RiskCard({ result }: RiskCardProps) {
               <span
                 className="text-base"
                 style={{
-                  fontFamily: "var(--font-space-mono)",
+                  fontFamily: "var(--font-mono)",
                   color: "var(--text-muted)",
                 }}
               >
@@ -114,7 +114,7 @@ export default function RiskCard({ result }: RiskCardProps) {
             Estimated 10-year risk:{" "}
             <span
               style={{
-                fontFamily: "var(--font-space-mono)",
+                fontFamily: "var(--font-mono)",
                 color: `var(--${color}-text)`,
                 fontWeight: 700,
               }}
@@ -146,7 +146,7 @@ export default function RiskCard({ result }: RiskCardProps) {
                     <span
                       className="text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{
-                        fontFamily: "var(--font-space-mono)",
+                        fontFamily: "var(--font-mono)",
                         background: `var(--${color}-bg)`,
                         color: `var(--${color}-text)`,
                       }}

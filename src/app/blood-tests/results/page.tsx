@@ -148,7 +148,7 @@ function BiomarkerBullet({
           justifyContent: "space-between",
           alignItems: "flex-start",
           marginTop: 6,
-          fontFamily: "var(--font-space-mono)",
+          fontFamily: "var(--font-mono)",
           fontSize: 11,
           color: "var(--text-faint)",
         }}
@@ -156,7 +156,7 @@ function BiomarkerBullet({
         <span>{low}</span>
         <span
           style={{
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
             fontSize: 12,
             fontWeight: 600,
             color: cfg.text,
@@ -244,7 +244,7 @@ function MiniTrend({
           display: "flex",
           justifyContent: "space-between",
           marginTop: 4,
-          fontFamily: "var(--font-space-mono)",
+          fontFamily: "var(--font-mono)",
           fontSize: 10,
           color: "var(--amber-text)",
         }}
@@ -327,7 +327,7 @@ function BiomarkerCard({
       >
         <span
           style={{
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
             fontSize: 26,
             fontWeight: 700,
             color: "var(--text)",
@@ -338,7 +338,7 @@ function BiomarkerCard({
         </span>
         <span
           style={{
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
             fontSize: 13,
             color: "var(--text-muted)",
           }}
@@ -429,7 +429,7 @@ function StatCard({
     >
       <span
         style={{
-          fontFamily: "var(--font-space-mono)",
+          fontFamily: "var(--font-mono)",
           fontSize: 28,
           fontWeight: 700,
           color: textColor,
@@ -529,7 +529,7 @@ export default function BloodTestResultsPage() {
           </p>
           <p
             style={{
-              fontFamily: "var(--font-space-mono)",
+              fontFamily: "var(--font-mono)",
               fontSize: 12,
               color: "var(--text-muted)",
               margin: 0,
@@ -727,7 +727,7 @@ export default function BloodTestResultsPage() {
               </p>
               <p
                 style={{
-                  fontFamily: "var(--font-space-mono)",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 11,
                   color: "var(--text-muted)",
                   margin: 0,
@@ -1015,7 +1015,7 @@ export default function BloodTestResultsPage() {
               >
                 <span
                   style={{
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     fontSize: 18,
                     fontWeight: 700,
                     color: "var(--text)",
@@ -1107,7 +1107,7 @@ export default function BloodTestResultsPage() {
               >
                 <span
                   style={{
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     fontSize: 18,
                     fontWeight: 700,
                     color: "var(--text)",

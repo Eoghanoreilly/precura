@@ -128,7 +128,7 @@ export default function LandingPage() {
                 gradient="linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)"
                 className="rounded-3xl"
               />
-              <p className="text-[10px] text-center mt-2" style={{ color: "var(--text-faint)", fontFamily: "var(--font-space-mono)" }}>
+              <p className="text-[10px] text-center mt-2" style={{ color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>
                 Hero illustration - health data visualization
               </p>
             </div>
@@ -163,7 +163,7 @@ export default function LandingPage() {
               <div
                 className="px-3.5 py-1.5 rounded-full text-xs font-bold"
                 style={{
-                  fontFamily: "var(--font-space-mono)",
+                  fontFamily: "var(--font-mono)",
                   background: "var(--amber-bg)",
                   color: "var(--amber-text)",
                 }}
@@ -187,7 +187,7 @@ export default function LandingPage() {
             <div
               className="flex justify-between text-xs"
               style={{
-                fontFamily: "var(--font-space-mono)",
+                fontFamily: "var(--font-mono)",
                 color: "var(--text-muted)",
               }}
             >
@@ -300,7 +300,7 @@ export default function LandingPage() {
             <p
               className="text-xs"
               style={{
-                fontFamily: "var(--font-space-mono)",
+                fontFamily: "var(--font-mono)",
                 color: "var(--text-muted)",
               }}
             >
@@ -329,7 +329,7 @@ export default function LandingPage() {
         <p
           className="text-xs"
           style={{
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
             color: "var(--text-faint)",
           }}
         >

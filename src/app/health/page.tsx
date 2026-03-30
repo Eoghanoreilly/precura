@@ -180,7 +180,7 @@ export default function HealthPage() {
                   Blood Tests -{" "}
                   <span
                     style={{
-                      fontFamily: "var(--font-space-mono)",
+                      fontFamily: "var(--font-mono)",
                       color: "var(--teal-text)",
                     }}
                   >
@@ -363,7 +363,7 @@ export default function HealthPage() {
                   style={{ color: `var(--${color}-text)` }}
                 >
                   {result.riskLabel} - score{" "}
-                  <span style={{ fontFamily: "var(--font-space-mono)" }}>
+                  <span style={{ fontFamily: "var(--font-mono)" }}>
                     {result.score}/{MAX_SCORE}
                   </span>
                 </p>
@@ -567,7 +567,7 @@ export default function HealthPage() {
               <span
                 className="text-[10px] shrink-0"
                 style={{
-                  fontFamily: "var(--font-space-mono)",
+                  fontFamily: "var(--font-mono)",
                   color: "var(--text-faint)",
                 }}
               >
@@ -616,7 +616,7 @@ export default function HealthPage() {
                 <span
                   className="text-sm font-bold"
                   style={{
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     color: "var(--accent)",
                   }}
                 >
@@ -663,7 +663,7 @@ export default function HealthPage() {
                 <span
                   className="text-sm font-bold"
                   style={{
-                    fontFamily: "var(--font-space-mono)",
+                    fontFamily: "var(--font-mono)",
                     color: "var(--accent)",
                   }}
                 >
@@ -717,7 +717,7 @@ function StatCard({
       <p
         className="text-lg font-bold"
         style={{
-          fontFamily: "var(--font-space-mono)",
+          fontFamily: "var(--font-mono)",
           color: "var(--text)",
         }}
       >
@@ -798,7 +798,7 @@ function BloodMarkerRow({
         <p
           className="text-[10px]"
           style={{
-            fontFamily: "var(--font-space-mono)",
+            fontFamily: "var(--font-mono)",
             color: "var(--text-muted)",
           }}
         >
