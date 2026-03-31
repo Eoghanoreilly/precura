@@ -69,108 +69,75 @@ function truncate(text: string, max: number) {
   return text.slice(0, max).replace(/\s+\S*$/, "") + "...";
 }
 
-// -- Biomarker Bullet ---------------------------------------------------------
+// -- Scale ranges per biomarker -----------------------------------------------
 
-function BiomarkerBullet({
-  value,
-  low,
-  high,
-  status,
-}: {
-  value: number;
-  low: number;
-  high: number;
+const SCALE_RANGES: Record<string, { scaleMin: number; scaleMax: number }> = {
+  HbA1c: { scaleMin: 15, scaleMax: 50 },
+  "f-Glucose": { scaleMin: 3, scaleMax: 7 },
+  "f-Insulin": { scaleMin: 0, scaleMax: 30 },
+  TC: { scaleMin: 2, scaleMax: 7 },
+  HDL: { scaleMin: 0.5, scaleMax: 3 },
+  LDL: { scaleMin: 0, scaleMax: 5 },
+  TG: { scaleMin: 0, scaleMax: 3 },
+};
+
+// -- Range Bar ----------------------------------------------------------------
+
+function RangeBar({ value, refLow, refHigh, scaleMin, scaleMax, status }: {
+  value: number; refLow: number; refHigh: number; scaleMin: number; scaleMax: number;
   status: "normal" | "borderline" | "abnormal";
 }) {
-  const range = high - low;
-  const pad = range * 0.35;
-  const scaleMin = Math.max(0, low - pad);
-  const scaleMax = high + pad;
-  const totalRange = scaleMax - scaleMin;
-
-  const cfg = getStatusConfig(status);
-
-  const markerColor =
-    status === "normal" ? "var(--green)" : status === "borderline" ? "var(--amber)" : "var(--red)";
-
-  // Percentages for positioning
-  const refLeftPct = ((low - scaleMin) / totalRange) * 100;
-  const refWidthPct = ((high - low) / totalRange) * 100;
-  const valuePct = Math.min(
-    100,
-    Math.max(0, ((value - scaleMin) / totalRange) * 100)
-  );
+  const range = scaleMax - scaleMin;
+  const refStartPct = ((refLow - scaleMin) / range) * 100;
+  const refWidthPct = ((refHigh - refLow) / range) * 100;
+  const valuePct = ((value - scaleMin) / range) * 100;
+  const color = status === "normal" ? "#4caf50" : status === "borderline" ? "#ff9800" : "#ef5350";
 
   return (
-    <div style={{ marginTop: 12, marginBottom: 4 }}>
-      {/* Range bar */}
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: 12,
+    <div style={{ marginTop: 10, marginBottom: 4 }}>
+      <div style={{ position: "relative", height: 12, borderRadius: 6, background: "#f5f5f5" }}>
+        <div style={{
+          position: "absolute",
+          left: `${refStartPct}%`,
+          width: `${refWidthPct}%`,
+          height: "100%",
           borderRadius: 6,
-          background: "var(--amber-bg)",
-          overflow: "visible",
-        }}
-      >
-        {/* Green reference range */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: `${refLeftPct}%`,
-            width: `${refWidthPct}%`,
-            height: "100%",
-            borderRadius: 6,
-            background: "var(--green-bg)",
-          }}
-        />
-        {/* Value marker */}
-        <div
-          style={{
-            position: "absolute",
-            top: -2,
-            left: `${valuePct}%`,
-            transform: "translateX(-50%)",
-            width: 4,
-            height: 16,
-            borderRadius: 2,
-            background: markerColor,
-          }}
-        />
+          background: "rgba(76,175,80,0.15)",
+          border: "1px solid rgba(76,175,80,0.3)",
+        }} />
+        <div style={{
+          position: "absolute",
+          left: `${valuePct}%`,
+          top: -7,
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}>
+          <div style={{
+            width: 0, height: 0,
+            borderLeft: "6px solid transparent",
+            borderRight: "6px solid transparent",
+            borderTop: `8px solid ${color}`,
+            filter: status === "borderline" ? `drop-shadow(0 1px 3px rgba(255,152,0,0.5))` : "none",
+          }} />
+        </div>
       </div>
-
-      {/* Labels beneath bar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginTop: 6,
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          color: "var(--text-faint)",
-        }}
-      >
-        <span>{low}</span>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            fontWeight: 600,
-            color: cfg.text,
-          }}
-        >
-          {value}
-        </span>
-        <span>{high}</span>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        marginTop: 6,
+        fontSize: 10,
+        color: "#999",
+        fontFamily: "var(--font-mono)",
+      }}>
+        <span>{scaleMin}</span>
+        <span style={{ color, fontWeight: 600 }}>{value}</span>
+        <span>{scaleMax}</span>
       </div>
     </div>
   );
 }
 
-// -- Mini Trend (ECharts) -----------------------------------------------------
+// -- Mini Trend (ECharts sparkline) -------------------------------------------
 
 function MiniTrend({
   points,
@@ -191,19 +158,31 @@ function MiniTrend({
     series: [
       {
         type: "line" as const,
-        smooth: 0.4,
+        smooth: 0.3,
         data: points,
-        symbol: "circle",
-        symbolSize: 6,
-        itemStyle: { color: "#d97706", borderColor: "#fff", borderWidth: 2 },
-        lineStyle: { width: 2.5, color: "#d97706", shadowColor: "rgba(217,119,6,0.3)", shadowBlur: 4 },
+        symbol: function (_value: number, params: { dataIndex: number }) {
+          return params.dataIndex === points.length - 1 ? "circle" : "none";
+        },
+        symbolSize: 8,
+        itemStyle: { color: "#ff9800", borderColor: "#fff", borderWidth: 2 },
+        lineStyle: {
+          width: 2,
+          color: {
+            type: "linear" as const,
+            x: 0, y: 0, x2: 1, y2: 0,
+            colorStops: [
+              { offset: 0, color: "rgba(255,152,0,0.3)" },
+              { offset: 1, color: "#ff9800" },
+            ],
+          },
+        },
         areaStyle: {
           color: {
             type: "linear" as const,
             x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: "rgba(217,119,6,0.25)" },
-              { offset: 1, color: "rgba(217,119,6,0)" },
+              { offset: 0, color: "rgba(255,152,0,0.12)" },
+              { offset: 1, color: "transparent" },
             ],
           },
         },
@@ -360,11 +339,13 @@ function BiomarkerCard({
         </span>
       </div>
 
-      {/* Bullet chart */}
-      <BiomarkerBullet
+      {/* Range bar */}
+      <RangeBar
         value={result.value}
-        low={result.refRangeLow}
-        high={result.refRangeHigh}
+        refLow={result.refRangeLow}
+        refHigh={result.refRangeHigh}
+        scaleMin={SCALE_RANGES[result.shortName]?.scaleMin ?? result.refRangeLow * 0.5}
+        scaleMax={SCALE_RANGES[result.shortName]?.scaleMax ?? result.refRangeHigh * 1.5}
         status={result.status}
       />
 

@@ -27,7 +27,6 @@ import { MOCK_BLOOD_RESULTS } from "@/lib/blood-test-data";
 import {
   FindriscResult,
   getRiskColor,
-  MAX_SCORE,
 } from "@/lib/findrisc";
 import { getUserPhase, recordVisit, type UserPhase } from "@/lib/user-state";
 import BottomNav from "@/components/BottomNav";
@@ -62,7 +61,6 @@ export default function DashboardPage() {
 
   const firstName = user.name.split(" ")[0];
   const color = getRiskColor(result.riskLevel);
-  const pct = result.score / MAX_SCORE;
   const hasBloodResults = phase === "results_ready" || phase === "results_reviewed";
   const normalCount = MOCK_BLOOD_RESULTS.filter((r) => r.status === "normal").length;
   const totalTests = MOCK_BLOOD_RESULTS.length;
@@ -89,11 +87,8 @@ export default function DashboardPage() {
               className="card-hover w-36 rounded-2xl p-4 flex flex-col items-center"
               style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
             >
-              <MiniGauge pct={pct} color={color} />
-              <span className="text-xs font-bold mt-2" style={{ color: `var(--${color}-text)` }}>
-                {result.riskLabel}
-              </span>
-              <span className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
+              <RiskZoneBar score={result.score} riskLabel={result.riskLabel} color={color} />
+              <span className="text-[10px] mt-2" style={{ color: "var(--text-muted)" }}>
                 Diabetes Risk
               </span>
             </div>
@@ -251,14 +246,40 @@ export default function DashboardPage() {
   );
 }
 
-/* ---- Mini gauge for dashboard ---- */
-function MiniGauge({ pct, color }: { pct: number; color: string }) {
+/* ---- Risk zone bar for dashboard ---- */
+function RiskZoneBar({ score, riskLabel, color }: { score: number; riskLabel: string; color: string }) {
+  const zones = [
+    { color: "var(--teal)", label: "Low" },
+    { color: "var(--green)", label: "Slight" },
+    { color: "var(--amber)", label: "Mod" },
+    { color: "var(--red)", label: "High" },
+    { color: "#b71c1c", label: "V.High" },
+  ];
+  const riskColor = `var(--${color})`;
+  const markerPct = Math.min(Math.max((score / 26) * 100, 2), 98);
+
   return (
-    <div className="relative w-16 h-16">
-      <svg viewBox="0 0 120 120" className="w-full h-full">
-        <circle cx="60" cy="60" r="48" fill="none" stroke="var(--bg-elevated)" strokeWidth="8" strokeLinecap="round" strokeDasharray="226" strokeDashoffset="75" transform="rotate(135 60 60)" />
-        <circle cx="60" cy="60" r="48" fill="none" stroke={`var(--${color})`} strokeWidth="8" strokeLinecap="round" strokeDasharray="226" strokeDashoffset={226 - (pct * 151)} transform="rotate(135 60 60)" style={{ filter: `drop-shadow(0 0 4px var(--${color}))` }} />
-      </svg>
+    <div className="w-full flex flex-col items-center">
+      <span className="text-xs mb-2" style={{ color: riskColor, fontWeight: 600 }}>
+        {riskLabel}
+      </span>
+      <div className="w-full" style={{ position: "relative" }}>
+        <div className="flex w-full rounded-full overflow-hidden" style={{ height: 8, gap: 1 }}>
+          {zones.map((z, i) => (
+            <div key={i} style={{ flex: 1, background: z.color, borderRadius: i === 0 ? "4px 0 0 4px" : i === zones.length - 1 ? "0 4px 4px 0" : 0 }} />
+          ))}
+        </div>
+        <div style={{ position: "absolute", left: `${markerPct}%`, bottom: -7, transform: "translateX(-50%)", zIndex: 2 }}>
+          <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: `6px solid ${riskColor}` }} />
+        </div>
+      </div>
+      <div className="flex w-full mt-2" style={{ gap: 1 }}>
+        {zones.map((z, i) => (
+          <span key={i} className="text-center" style={{ flex: 1, fontSize: 9, color: "var(--text-faint)", lineHeight: 1 }}>
+            {z.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

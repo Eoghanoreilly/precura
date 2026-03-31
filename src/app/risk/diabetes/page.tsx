@@ -113,83 +113,115 @@ function ScoreZoneBar({
   score,
   projectedScore,
   compact,
+  triangleMarker,
 }: {
   score: number;
   projectedScore?: number;
   compact?: boolean;
+  triangleMarker?: boolean;
 }) {
   const activeZone = getZoneForScore(score);
-  const barHeight = compact ? 28 : 50;
-  const total = MAX_SCORE + 1;
+  const total = MAX_SCORE;
   const scorePct = (score / total) * 100;
   const projectedPct =
     projectedScore !== undefined ? (projectedScore / total) * 100 : null;
+  const zoneColors = ["#4caf50", "#26a69a", "#ff9800", "#ef5350", "#c62828"];
+  const zoneWidths = ["27%", "19%", "12%", "23%", "19%"];
+  const zoneLabels = ["Low", "Slight", "Mod", "High", "V.High"];
+  const dotBorderColor =
+    activeZone.label === "Low" ? "#4caf50"
+    : activeZone.label === "Slight" ? "#26a69a"
+    : activeZone.label === "Moderate" ? "#ff9800"
+    : activeZone.label === "High" ? "#ef5350"
+    : "#c62828";
 
   return (
     <div className="w-full">
       {/* Zone bar */}
-      <div
-        className="relative flex rounded-lg overflow-hidden"
-        style={{ height: barHeight }}
-      >
-        {ZONES.map((zone, i) => {
-          const width = ((zone.max - zone.min + 1) / total) * 100;
-          return (
-            <div
-              key={i}
-              style={{ width: `${width}%`, background: zone.color }}
-            />
-          );
-        })}
+      <div style={{ display: "flex", height: 20, borderRadius: 10, overflow: "hidden", position: "relative" }}>
+        {zoneColors.map((color, i) => (
+          <div key={i} style={{ width: zoneWidths[i], background: color }} />
+        ))}
 
-        {/* Score marker */}
+        {/* Score dot marker */}
         <div
           style={{
             position: "absolute",
             left: `${scorePct}%`,
-            top: 0,
-            bottom: 0,
-            width: 3,
+            top: "50%",
+            transform: "translate(-50%,-50%)",
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
             background: "#fff",
-            borderRadius: 2,
-            boxShadow: "0 0 4px rgba(0,0,0,0.4)",
-            transform: "translateX(-50%)",
+            border: `3px solid ${dotBorderColor}`,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
             transition: "left 0.4s ease",
+            zIndex: 2,
           }}
         />
 
-        {/* Projected score marker */}
-        {projectedPct !== null && projectedScore !== score && (
+        {/* Projected score dot marker */}
+        {projectedPct !== null && projectedScore !== score && (() => {
+          const projZone = getZoneForScore(projectedScore!);
+          const projDotColor =
+            projZone.label === "Low" ? "#4caf50"
+            : projZone.label === "Slight" ? "#26a69a"
+            : projZone.label === "Moderate" ? "#ff9800"
+            : projZone.label === "High" ? "#ef5350"
+            : "#c62828";
+          return (
+            <div
+              style={{
+                position: "absolute",
+                left: `${projectedPct}%`,
+                top: "50%",
+                transform: "translate(-50%,-50%)",
+                width: 14,
+                height: 14,
+                borderRadius: "50%",
+                background: "#fff",
+                border: `3px solid ${projDotColor}`,
+                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                transition: "left 0.4s ease",
+                opacity: 0.7,
+                zIndex: 1,
+              }}
+            />
+          );
+        })()}
+      </div>
+
+      {/* Triangle marker below bar */}
+      {triangleMarker && (
+        <div style={{ position: "relative", height: 12 }}>
           <div
             style={{
               position: "absolute",
-              left: `${projectedPct}%`,
-              top: 0,
-              bottom: 0,
-              width: 3,
-              background: "#fff",
-              borderRadius: 2,
-              boxShadow: "0 0 4px rgba(0,0,0,0.4)",
+              left: `${scorePct}%`,
+              top: 2,
               transform: "translateX(-50%)",
+              width: 0,
+              height: 0,
+              borderLeft: "7px solid transparent",
+              borderRight: "7px solid transparent",
+              borderBottom: `9px solid ${dotBorderColor}`,
               transition: "left 0.4s ease",
-              opacity: 0.6,
-              borderLeft: "2px dashed rgba(255,255,255,0.8)",
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Zone labels */}
-      {!compact && (
+      {!compact && !triangleMarker && (
         <div className="flex mt-2">
-          {ZONES.map((zone, i) => {
-            const width = ((zone.max - zone.min + 1) / total) * 100;
-            const isActive = zone.label === activeZone.label;
+          {zoneLabels.map((label, i) => {
+            const isActive = i === ZONES.findIndex((z) => z.label === activeZone.label);
             return (
               <div
                 key={i}
                 className="text-center"
-                style={{ width: `${width}%` }}
+                style={{ width: zoneWidths[i] }}
               >
                 <span
                   className="text-[10px] font-medium"
@@ -198,7 +230,7 @@ function ScoreZoneBar({
                     fontFamily: "var(--font-mono)",
                   }}
                 >
-                  {zone.label}
+                  {label}
                 </span>
               </div>
             );
@@ -232,7 +264,7 @@ function PeerComparison({ score }: { score: number }) {
   const userY = Math.exp(-0.5 * Math.pow((score - avg) / 4, 2));
 
   const bellCurveOption = {
-    grid: { top: 36, right: 20, bottom: 24, left: 20 },
+    grid: { top: 36, right: 20, bottom: 12, left: 20 },
     xAxis: {
       type: "value" as const,
       min: 0,
@@ -240,42 +272,40 @@ function PeerComparison({ score }: { score: number }) {
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { show: false },
-      axisLabel: {
-        fontSize: 10,
-        fontFamily: "var(--font-mono)",
-        color: "#b8bac6",
-        interval: 5,
-      },
+      axisLabel: { show: false },
     },
     yAxis: { type: "value" as const, show: false },
-    tooltip: {
-      trigger: "axis" as const,
-      backgroundColor: "#fff",
-      borderColor: "#e6e8ed",
-      borderRadius: 12,
-      padding: [8, 12],
-      textStyle: { fontSize: 12, color: "#1a1a2e" },
-      formatter: (params: Array<{ data: [number, number] }>) => {
-        const x = Math.round(params[0]?.data?.[0] ?? 0);
-        const z = getZoneForScore(x);
-        return `<div style="font-weight:600">Score ${x}</div><div style="color:${z.color};font-size:11px">${z.label} risk</div>`;
-      },
-    },
+    tooltip: { show: false },
     series: [
       {
         type: "line" as const,
         smooth: 0.6,
         symbol: "none",
         sampling: "lttb" as const,
-        lineStyle: { width: 2.5, color: "#5c6bc0" },
+        lineStyle: {
+          width: 2.5,
+          color: {
+            type: "linear" as const,
+            x: 0, y: 0, x2: 1, y2: 0,
+            colorStops: [
+              { offset: 0, color: "#4caf50" },
+              { offset: 0.27, color: "#26a69a" },
+              { offset: 0.46, color: "#ff9800" },
+              { offset: 0.7, color: "#ef5350" },
+              { offset: 1, color: "#c62828" },
+            ],
+          },
+        },
         areaStyle: {
           color: {
             type: "linear" as const,
-            x: 0, y: 0, x2: 0, y2: 1,
+            x: 0, y: 0, x2: 1, y2: 0,
             colorStops: [
-              { offset: 0, color: "rgba(92,107,192,0.3)" },
-              { offset: 0.6, color: "rgba(92,107,192,0.08)" },
-              { offset: 1, color: "rgba(92,107,192,0)" },
+              { offset: 0, color: "rgba(76,175,80,0.15)" },
+              { offset: 0.27, color: "rgba(38,166,154,0.12)" },
+              { offset: 0.46, color: "rgba(255,152,0,0.10)" },
+              { offset: 0.7, color: "rgba(239,83,80,0.08)" },
+              { offset: 1, color: "rgba(198,40,40,0.05)" },
             ],
           },
         },
@@ -286,19 +316,14 @@ function PeerComparison({ score }: { score: number }) {
           data: [
             {
               xAxis: avg,
-              lineStyle: { color: "#b8bac6", width: 1.5, type: "dashed" as const },
-              label: { formatter: "Average", position: "insideEndTop" as const, fontSize: 11, fontWeight: 600, color: "#8b8da3", padding: [0, 0, 0, 4] },
-            },
-            {
-              xAxis: score,
-              lineStyle: { color: userColor, width: 2, type: "solid" as const },
-              label: { formatter: "You", position: "insideEndTop" as const, fontSize: 11, fontWeight: 700, color: userColor, padding: [0, 0, 0, 4] },
+              lineStyle: { color: "#9e9e9e", width: 1.5, type: "dashed" as const },
+              label: { formatter: "Avg (age 35-45)", position: "insideEndTop" as const, fontSize: 10, fontWeight: 600, color: "#9e9e9e", padding: [0, 0, 0, 4] },
             },
           ],
         },
         markPoint: {
           symbol: "circle",
-          symbolSize: 14,
+          symbolSize: 16,
           data: [
             {
               coord: [score, userY],
@@ -306,10 +331,10 @@ function PeerComparison({ score }: { score: number }) {
                 color: userColor,
                 borderColor: "#fff",
                 borderWidth: 3,
-                shadowColor: "rgba(0,0,0,0.15)",
-                shadowBlur: 6,
+                shadowColor: "rgba(0,0,0,0.2)",
+                shadowBlur: 8,
               },
-              label: { show: false },
+              label: { show: true, formatter: "You", position: "top" as const, distance: 10, fontSize: 11, fontWeight: 700, color: userColor },
             },
           ],
           animation: true,
@@ -515,37 +540,32 @@ function BloodMarkerBar({
         </span>
       </div>
 
-      {/* CSS range bar */}
-      <div
-        className="relative h-3 rounded-full overflow-hidden"
-        style={{ background: "var(--bg-elevated)" }}
-      >
-        {/* Reference range (green/amber zone) */}
-        <div
-          className="absolute top-0 bottom-0 rounded-full"
-          style={{
-            left: `${refMinPct}%`,
-            width: `${refMaxPct - refMinPct}%`,
-            background:
-              status === "normal"
-                ? "rgba(34,197,94,0.15)"
-                : "rgba(245,158,11,0.15)",
-          }}
-        />
-        {/* Value marker */}
+      {/* Range bar with green zone + triangle marker */}
+      <div style={{ position: "relative", height: 12, borderRadius: 6, background: "#f5f5f5" }}>
+        {/* Reference range highlight */}
         <div
           style={{
             position: "absolute",
-            left: `${valuePct}%`,
-            top: 0,
-            bottom: 0,
-            width: 4,
-            borderRadius: 2,
-            background: statusColor,
-            transform: "translateX(-50%)",
-            transition: "left 0.4s ease",
+            left: `${refMinPct}%`,
+            width: `${refMaxPct - refMinPct}%`,
+            height: "100%",
+            borderRadius: 6,
+            background: "rgba(76,175,80,0.15)",
+            border: "1px solid rgba(76,175,80,0.3)",
           }}
         />
+        {/* Triangle value marker */}
+        <div style={{ position: "absolute", left: `${valuePct}%`, top: -7, transform: "translateX(-50%)" }}>
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "6px solid transparent",
+              borderRight: "6px solid transparent",
+              borderTop: `8px solid ${statusColor}`,
+            }}
+          />
+        </div>
       </div>
 
       {/* Min/max labels */}
@@ -670,54 +690,35 @@ export default function DiabetesRiskPage() {
               boxShadow: "var(--shadow-md)",
             }}
           >
-            <h2
-              className="text-base font-bold mb-1"
-              style={{ color: "var(--text)" }}
+            {/* Risk level name - prominent */}
+            <p
+              className="text-xs mb-1"
+              style={{ color: "var(--text-secondary)" }}
             >
               Your Risk Level
-            </h2>
-            <p
-              className="text-xs mb-4"
-              style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}
-            >
-              Based on your health profile, here is where you fall on the diabetes risk scale.
             </p>
+            <h2
+              className="text-xl font-bold mb-4"
+              style={{
+                color: activeZone.label === "Low" ? "#4caf50"
+                  : activeZone.label === "Slight" ? "#26a69a"
+                  : activeZone.label === "Moderate" ? "#ff9800"
+                  : activeZone.label === "High" ? "#ef5350"
+                  : "#c62828",
+              }}
+            >
+              {result.riskLabel}
+            </h2>
 
-            <ScoreZoneBar score={result.score} />
+            {/* Zone bar with triangle marker */}
+            <ScoreZoneBar score={result.score} triangleMarker />
 
-            {/* Risk level badge */}
-            <div className="mt-4">
-              <span
-                className="inline-block px-3 py-1 rounded-full text-xs font-bold"
-                style={{
-                  background: riskBgVar(result.riskLevel),
-                  color: riskTextVar(result.riskLevel),
-                }}
-              >
-                {result.riskLabel}
-              </span>
-            </div>
-
-            {/* Human-readable risk explanation */}
+            {/* Probability text below zone bar */}
             <p
               className="text-xs mt-3"
               style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}
             >
-              Your current risk level is{" "}
-              <strong style={{ color: "var(--text)" }}>{result.riskLabel}</strong>.
-              This means roughly{" "}
-              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
-                {activeZone.risk === "~1%" ? "1 in 100" : activeZone.risk === "~4%" ? "4 in 100" : activeZone.risk === "~17%" ? "17 in 100" : activeZone.risk === "~33%" ? "33 in 100" : "50 in 100"}
-              </span>{" "}
-              people with a similar profile develop Type 2 diabetes within 10 years.
-            </p>
-
-            {/* De-emphasized raw score */}
-            <p
-              className="text-[10px] mt-2"
-              style={{ fontFamily: "var(--font-mono)", color: "var(--text-faint)" }}
-            >
-              Score {result.score} out of {MAX_SCORE}
+              ~{activeZone.risk === "~1%" ? "1" : activeZone.risk === "~4%" ? "4" : activeZone.risk === "~17%" ? "17" : activeZone.risk === "~33%" ? "33" : "50"}% chance of developing Type 2 diabetes in 10 years
             </p>
           </div>
         </section>
@@ -1057,42 +1058,45 @@ export default function DiabetesRiskPage() {
                   min: 0,
                   max: MAX_SCORE,
                   axisLabel: { fontSize: 10, fontFamily: "var(--font-mono)", color: "#8b8da3" },
-                  splitLine: { lineStyle: { color: "#eef0f4", type: "dashed" as const } },
+                  splitLine: { show: false },
                   axisLine: { show: false },
                   axisTick: { show: false },
                 },
                 series: [
                   {
                     type: "line",
-                    smooth: 0.4,
+                    smooth: 0.3,
                     data: MOCK_SCORE_HISTORY.map((d) => d.score),
-                    lineStyle: { width: 3, color: "#7c4dff", shadowColor: "rgba(124,77,255,0.25)", shadowBlur: 8, shadowOffsetY: 4 },
-                    areaStyle: {
+                    lineStyle: {
+                      width: 3,
                       color: {
                         type: "linear" as const,
-                        x: 0, y: 0, x2: 0, y2: 1,
+                        x: 0, y: 0, x2: 1, y2: 0,
                         colorStops: [
-                          { offset: 0, color: "rgba(124,77,255,0.25)" },
-                          { offset: 0.5, color: "rgba(124,77,255,0.06)" },
-                          { offset: 1, color: "rgba(124,77,255,0)" },
+                          { offset: 0, color: "#4caf50" },
+                          { offset: 1, color: "#ff9800" },
                         ],
                       },
                     },
+                    areaStyle: { opacity: 0 },
                     symbol: "circle",
-                    symbolSize: 8,
-                    itemStyle: { color: "#7c4dff", borderColor: "#fff", borderWidth: 2.5, shadowColor: "rgba(124,77,255,0.3)", shadowBlur: 6 },
-                    emphasis: {
-                      itemStyle: { symbolSize: 14, borderWidth: 3, shadowBlur: 12 },
+                    symbolSize: 10,
+                    itemStyle: (params: { dataIndex: number }) => {
+                      const val = MOCK_SCORE_HISTORY[params.dataIndex]?.score ?? 0;
+                      const z = getZoneForScore(val);
+                      const c = z.label === "Low" ? "#4caf50" : z.label === "Slight" ? "#26a69a" : z.label === "Moderate" ? "#ff9800" : z.label === "High" ? "#ef5350" : "#c62828";
+                      return { color: "#fff", borderColor: c, borderWidth: 3, shadowColor: "rgba(0,0,0,0.15)", shadowBlur: 4 };
                     },
-                    markLine: {
+                    emphasis: {
+                      itemStyle: { borderWidth: 3, shadowBlur: 8 },
+                    },
+                    markArea: {
                       silent: true,
-                      symbol: "none",
-                      label: { show: false },
-                      lineStyle: { width: 1, type: "dashed" as const, opacity: 0.25 },
                       data: [
-                        { yAxis: 7, lineStyle: { color: "#4caf50" } },
-                        { yAxis: 12, lineStyle: { color: "#ff9800" } },
-                        { yAxis: 15, lineStyle: { color: "#ef5350" } },
+                        [{ yAxis: 0, itemStyle: { color: "rgba(76,175,80,0.06)" } }, { yAxis: 7 }],
+                        [{ yAxis: 7, itemStyle: { color: "rgba(38,166,154,0.06)" } }, { yAxis: 12 }],
+                        [{ yAxis: 12, itemStyle: { color: "rgba(255,152,0,0.08)" } }, { yAxis: 15 }],
+                        [{ yAxis: 15, itemStyle: { color: "rgba(239,83,80,0.06)" } }, { yAxis: MAX_SCORE }],
                       ],
                     },
                   },
@@ -1104,7 +1108,7 @@ export default function DiabetesRiskPage() {
                   borderRadius: 12,
                   padding: [10, 14],
                   textStyle: { fontFamily: "var(--font-mono)", fontSize: 12, color: "#1a1a2e" },
-                  axisPointer: { type: "cross" as const, crossStyle: { color: "#e6e8ed" }, lineStyle: { color: "#e6e8ed", type: "dashed" as const } },
+                  axisPointer: { type: "line" as const, lineStyle: { color: "#e6e8ed", type: "dashed" as const } },
                   formatter: (params: Array<{ name: string; value: number }>) => {
                     const p = params[0];
                     if (!p) return "";
