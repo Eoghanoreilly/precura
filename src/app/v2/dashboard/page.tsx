@@ -2,35 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  ChevronRight,
-  AlertTriangle,
-  TestTube,
-  Dumbbell,
-  CheckCircle2,
-  Circle,
-  MessageSquare,
-  Search,
-  Home,
-  Heart,
-  MessageCircle,
-  User,
+  MessageCircle, Sparkles, ChevronRight, Send,
+  Activity, TestTube, Stethoscope, Dumbbell,
+  TrendingUp, TrendingDown, Minus,
+  AlertCircle, Calendar, Clock,
 } from "lucide-react";
 import {
-  PATIENT,
-  BLOOD_TEST_HISTORY,
-  SCREENING_SCORES,
-  RISK_ASSESSMENTS,
-  BIOMETRICS_HISTORY,
-  MESSAGES,
-  TRAINING_PLAN,
+  PATIENT, BLOOD_TEST_HISTORY, RISK_ASSESSMENTS,
+  BIOMETRICS_HISTORY, MESSAGES, TRAINING_PLAN,
   getMarkerHistory,
 } from "@/lib/v2/mock-patient";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+import ImagePlaceholder from "@/components/ImagePlaceholder";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -39,804 +22,230 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function relativeTime(iso: string): string {
-  const now = new Date();
-  const then = new Date(iso);
-  const diffMs = now.getTime() - then.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  const diffD = Math.floor(diffH / 24);
-  if (diffD === 1) return "Yesterday";
-  if (diffD < 7) return `${diffD}d ago`;
-  return formatDate(iso);
-}
-
-// ---------------------------------------------------------------------------
-// Zone bar component (shared across risk rows)
-// ---------------------------------------------------------------------------
-
-function ZoneBar({
-  level,
-  zones,
-}: {
-  level: string;
-  zones: { key: string; color: string }[];
-}) {
-  const idx = zones.findIndex((z) => z.key === level);
-  const segCount = zones.length;
-  const markerPct = idx >= 0 ? ((idx + 0.5) / segCount) * 100 : 10;
+export default function V2Dashboard() {
+  const [chatOpen, setChatOpen] = useState(false);
+  const latestBlood = BLOOD_TEST_HISTORY[0];
+  const normalCount = latestBlood.results.filter((r) => r.status === "normal").length;
+  const lastMsg = MESSAGES[MESSAGES.length - 1];
+  const glucoseHistory = getMarkerHistory("f-Glucose");
+  const latestGlucose = glucoseHistory[glucoseHistory.length - 1];
+  const firstGlucose = glucoseHistory[0];
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
-      <div
-        className="flex rounded-full overflow-hidden"
-        style={{ height: 6, gap: 1 }}
-      >
-        {zones.map((z, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              background: z.color,
-              borderRadius:
-                i === 0
-                  ? "3px 0 0 3px"
-                  : i === segCount - 1
-                  ? "0 3px 3px 0"
-                  : 0,
-            }}
-          />
-        ))}
+    <div style={{ background: "var(--bg)", minHeight: "100dvh", position: "relative" }}>
+      <div style={{ maxWidth: 448, margin: "0 auto", padding: "0 20px 40px" }}>
+
+        {/* ---- TOP BAR ---- */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, paddingBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--accent-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Activity size={14} style={{ color: "var(--accent)" }} />
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>Precura</span>
+          </div>
+          <Link href="/v2/profile">
+            <div style={{ width: 34, height: 34, borderRadius: 12, background: "var(--accent-light)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--accent)" }}>
+              AB
+            </div>
+          </Link>
+        </div>
+
+        {/* ---- GREETING ---- */}
+        <div style={{ marginBottom: 16 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", marginBottom: 2 }}>{getGreeting()}, {PATIENT.firstName}</h1>
+          <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          </p>
+        </div>
+
+        {/* ---- HERO CARD ---- */}
+        <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 14, boxShadow: "var(--shadow-md)" }}>
+          <ImagePlaceholder number={1} height="120px" gradient="linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)" className="rounded-none" />
+          <div style={{ background: "var(--bg-card)", padding: "16px 18px 18px", border: "1px solid var(--border)", borderTop: "none" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <AlertCircle size={14} style={{ color: "var(--amber)" }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--amber-text)" }}>Worth watching</span>
+            </div>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", lineHeight: 1.4, marginBottom: 4 }}>
+              Your blood sugar has been gradually rising over 5 years
+            </p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 12 }}>
+              {firstGlucose.value} to {latestGlucose.value} mmol/L since {firstGlucose.date.slice(0, 4)}. Still in normal range, but Dr. Johansson is monitoring this closely.
+            </p>
+            <Link href="/v2/health" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 600, color: "var(--accent)" }}>
+              View your health data <ChevronRight size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* ---- QUICK ACTIONS: Horizontal scroll ---- */}
+        <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginBottom: 14, scrollbarWidth: "none" }}>
+          <QuickCard icon={<Stethoscope size={18} />} color="accent" label="Dr. Johansson" sub="1 new message" href="/v2/doctor" />
+          <QuickCard icon={<TestTube size={18} />} color="teal" label="Blood Results" sub={`${normalCount}/${latestBlood.results.length} normal`} href="/v2/blood-tests/results" />
+          <QuickCard icon={<Dumbbell size={18} />} color="purple" label="Today's Workout" sub="Upper body" href="/v2/training" />
+          <QuickCard icon={<Calendar size={18} />} color="blue" label="Next Blood Test" sub="Sep 15, 2026" href="/v2/blood-tests" />
+        </div>
+
+        {/* ---- DOCTOR MESSAGE ---- */}
+        <Link href="/v2/doctor">
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px", marginBottom: 14, boxShadow: "var(--shadow-sm)", display: "flex", gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--accent-light)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--accent)", flexShrink: 0 }}>MJ</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Dr. Johansson</span>
+                <span style={{ fontSize: 10, color: "var(--text-faint)" }}>Yesterday</span>
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {lastMsg.text.slice(0, 80)}...
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        {/* ---- HEALTH SNAPSHOT ---- */}
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 8 }}>Health snapshot</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+          <HealthMetric label="Diabetes Risk" value={RISK_ASSESSMENTS.diabetes.riskLabel} color="amber" trend="worsening" href="/v2/health" />
+          <HealthMetric label="Heart Risk" value={RISK_ASSESSMENTS.cardiovascular.riskLabel} color="teal" trend="stable" href="/v2/health" />
+          <HealthMetric label="Blood Sugar" value={`${latestGlucose.value}`} unit="mmol/L" color="amber" trend="worsening" href="/v2/blood-tests/results" />
+          <HealthMetric label="Blood Pressure" value={BIOMETRICS_HISTORY[0].bloodPressure} color="green" trend="stable" href="/v2/health" />
+        </div>
+
+        {/* ---- TRAINING ---- */}
+        <Link href="/v2/training">
+          <div style={{ borderRadius: 16, overflow: "hidden", marginBottom: 14, boxShadow: "var(--shadow-sm)" }}>
+            <ImagePlaceholder number={2} height="80px" gradient="linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)" className="rounded-none" />
+            <div style={{ background: "var(--bg-card)", padding: "14px 16px", border: "1px solid var(--border)", borderTop: "none" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{TRAINING_PLAN.name}</p>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>Week 10 - 2 of 3 workouts completed this week</p>
+                </div>
+                <ChevronRight size={14} style={{ color: "var(--text-faint)" }} />
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        {/* ---- MEMBERSHIP ---- */}
+        <div style={{ background: "var(--accent-light)", borderRadius: 16, padding: "14px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)" }}>Precura Annual Member</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Next blood test: Sep 15, 2026</p>
+          </div>
+          <Link href="/v2/membership" style={{ fontSize: 11, fontWeight: 600, color: "var(--accent)", padding: "6px 12px", borderRadius: 100, background: "var(--bg-card)" }}>
+            Manage
+          </Link>
+        </div>
+
+        {/* ---- RECENT ---- */}
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 8 }}>Recent</p>
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+          {[
+            { icon: TestTube, text: "Blood results reviewed by Dr. Johansson", date: "Mar 28", color: "teal" },
+            { icon: Stethoscope, text: "Dr. Johansson responded to your message", date: "Mar 28", color: "accent" },
+            { icon: Dumbbell, text: "Completed: Interval walking + core work", date: "Mar 26", color: "purple" },
+          ].map((event, i, arr) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: i < arr.length - 1 ? "1px solid var(--divider)" : "none" }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <event.icon size={13} style={{ color: `var(--${event.color})` }} />
+              </div>
+              <p style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>{event.text}</p>
+              <span style={{ fontSize: 10, color: "var(--text-faint)", flexShrink: 0, fontFamily: "var(--font-mono)" }}>{event.date}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      {/* Marker dot */}
-      <div
+
+      {/* ---- FLOATING CHAT BUBBLE ---- */}
+      <button
+        onClick={() => setChatOpen(!chatOpen)}
         style={{
-          position: "absolute",
-          left: `${markerPct}%`,
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 10,
-          height: 10,
-          borderRadius: "50%",
-          background: "#fff",
-          border: `2px solid ${zones[Math.max(idx, 0)]?.color || "var(--text-muted)"}`,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+          position: "fixed", bottom: 24, right: 24, width: 52, height: 52, borderRadius: 16,
+          background: "var(--accent)", border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 14px rgba(92,107,192,0.35), 0 2px 6px rgba(0,0,0,0.1)",
+          zIndex: 50,
         }}
-      />
+      >
+        {chatOpen ? <span style={{ color: "#fff", fontSize: 18, fontWeight: 300 }}>x</span> : <MessageCircle size={22} color="#fff" />}
+      </button>
+
+      {/* ---- CHAT SHEET ---- */}
+      {chatOpen && (
+        <div style={{
+          position: "fixed", bottom: 88, right: 20, width: "calc(100% - 40px)", maxWidth: 380,
+          background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 20,
+          boxShadow: "var(--shadow-lg)", zIndex: 49, overflow: "hidden",
+        }}>
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--divider)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Sparkles size={16} style={{ color: "var(--accent)" }} />
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Precura AI</span>
+            </div>
+            <Link href="/v2/doctor" style={{ fontSize: 11, fontWeight: 600, color: "var(--accent)" }}>
+              Message Doctor
+            </Link>
+          </div>
+          <div style={{ padding: "12px 16px", maxHeight: 200, overflowY: "auto" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 8, background: "var(--accent-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Sparkles size={10} style={{ color: "var(--accent)" }} />
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, background: "var(--bg-elevated)", padding: "8px 12px", borderRadius: "4px 12px 12px 12px" }}>
+                Hi Anna! I have your full health history. What would you like to know?
+              </p>
+            </div>
+          </div>
+          <div style={{ padding: "8px 12px", display: "flex", flexWrap: "wrap", gap: 6, borderTop: "1px solid var(--divider)" }}>
+            {["Why is my glucose rising?", "Explain my blood results", "Am I at risk?"].map((q) => (
+              <Link key={q} href="/v2/chat" style={{ fontSize: 10, fontWeight: 500, padding: "5px 10px", borderRadius: 100, background: "var(--accent-light)", color: "var(--accent)", textDecoration: "none" }}>
+                {q}
+              </Link>
+            ))}
+          </div>
+          <div style={{ padding: "8px 12px", borderTop: "1px solid var(--divider)", display: "flex", gap: 8 }}>
+            <input placeholder="Ask anything..." style={{ flex: 1, border: "1px solid var(--border)", borderRadius: 10, padding: "8px 12px", fontSize: 13, background: "var(--bg-elevated)", outline: "none", color: "var(--text)" }} />
+            <button style={{ width: 36, height: 36, borderRadius: 10, background: "var(--accent)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <Send size={14} color="#fff" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Risk row inside health overview card
-// ---------------------------------------------------------------------------
-
-const RISK_ZONES_4 = [
-  { key: "low", color: "var(--green)" },
-  { key: "low_moderate", color: "var(--teal)" },
-  { key: "moderate", color: "var(--amber)" },
-  { key: "high", color: "var(--red)" },
-];
-
-function riskStyle(level: string): { color: string; bg: string } {
-  switch (level) {
-    case "low":
-      return { color: "var(--green-text)", bg: "var(--green-bg)" };
-    case "low_moderate":
-      return { color: "var(--teal-text)", bg: "var(--teal-bg)" };
-    case "moderate":
-      return { color: "var(--amber-text)", bg: "var(--amber-bg)" };
-    case "high":
-      return { color: "var(--red-text)", bg: "var(--red-bg)" };
-    default:
-      return { color: "var(--text-muted)", bg: "var(--bg-elevated)" };
-  }
-}
-
-function trendLabel(trend: string): string {
-  switch (trend) {
-    case "worsening":
-      return "trending up";
-    case "improving":
-      return "trending down";
-    default:
-      return "stable";
-  }
-}
-
-function RiskRow({
-  label,
-  riskLevel,
-  riskLabel,
-  trend,
-  showZoneBar,
-  subtitle,
-}: {
-  label: string;
-  riskLevel: string;
-  riskLabel: string;
-  trend?: string;
-  showZoneBar?: boolean;
-  subtitle?: string;
-}) {
-  const style = riskStyle(riskLevel);
-  const desc = subtitle
-    ? subtitle
-    : `${riskLabel} - ${trend ? trendLabel(trend) : "stable"}`;
-
+function QuickCard({ icon, color, label, sub, href }: { icon: React.ReactNode; color: string; label: string; sub: string; href: string }) {
   return (
-    <Link href="/v2/health">
-      <div
-        className="flex items-center gap-3 px-4 py-3 card-hover"
-        style={{ cursor: "pointer" }}
-      >
-        <div className="flex-1 min-w-0">
-          <p
-            className="text-sm font-medium"
-            style={{ color: "var(--text)" }}
-          >
-            {label}
-          </p>
-          {showZoneBar && (
-            <div className="mt-1.5 mb-1" style={{ maxWidth: 160 }}>
-              <ZoneBar level={riskLevel} zones={RISK_ZONES_4} />
-            </div>
-          )}
-          <p className="text-xs" style={{ color: style.color }}>
-            {desc}
-          </p>
+    <Link href={href} style={{ flexShrink: 0, textDecoration: "none" }}>
+      <div style={{ width: 130, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 14px 12px", boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10, color: `var(--${color})` }}>
+          {icon}
         </div>
-        <ChevronRight size={16} style={{ color: "var(--text-faint)" }} />
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{label}</p>
+        <p style={{ fontSize: 10, color: "var(--text-muted)" }}>{sub}</p>
       </div>
     </Link>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Bottom nav (v2 routes)
-// ---------------------------------------------------------------------------
-
-const NAV_TABS = [
-  { href: "/v2/dashboard", label: "Home", icon: Home },
-  { href: "/v2/health", label: "Health", icon: Heart },
-  { href: "/v2/chat", label: "Chat", icon: MessageCircle },
-  { href: "/v2/profile", label: "You", icon: User },
-];
-
-function BottomNav() {
-  const pathname = usePathname();
-
+function HealthMetric({ label, value, unit, color, trend, href }: { label: string; value: string; unit?: string; color: string; trend: string; href: string }) {
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-10 safe-bottom"
-      style={{
-        background: "rgba(255,255,255,0.92)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderTop: "1px solid var(--divider)",
-      }}
-    >
-      <div className="flex items-center justify-around max-w-md mx-auto py-1.5">
-        {NAV_TABS.map((tab) => {
-          const active =
-            pathname === tab.href ||
-            (tab.href !== "/v2/dashboard" &&
-              pathname?.startsWith(tab.href));
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl"
-              style={{
-                background: active ? "var(--accent-light)" : "transparent",
-              }}
-            >
-              <tab.icon
-                size={20}
-                strokeWidth={active ? 2.5 : 2}
-                style={{
-                  color: active ? "var(--accent)" : "var(--text-muted)",
-                }}
-              />
-              <span
-                className="text-[10px] font-semibold"
-                style={{
-                  color: active ? "var(--accent)" : "var(--text-muted)",
-                }}
-              >
-                {tab.label}
-              </span>
-            </Link>
-          );
-        })}
+    <Link href={href} style={{ textDecoration: "none" }}>
+      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px", boxShadow: "var(--shadow-sm)" }}>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</p>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: `var(--${color}-text)`, fontFamily: "var(--font-mono)" }}>{value}</span>
+          {unit && <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{unit}</span>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
+          {trend === "worsening" ? <TrendingUp size={10} style={{ color: "var(--amber)" }} /> : trend === "improving" ? <TrendingDown size={10} style={{ color: "var(--green)" }} /> : <Minus size={10} style={{ color: "var(--text-faint)" }} />}
+          <span style={{ fontSize: 10, color: trend === "worsening" ? "var(--amber)" : trend === "improving" ? "var(--green)" : "var(--text-faint)" }}>
+            {trend === "worsening" ? "Trending up" : trend === "improving" ? "Improving" : "Stable"}
+          </span>
+        </div>
       </div>
-    </nav>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main Dashboard Page
-// ---------------------------------------------------------------------------
-
-export default function DashboardV2Page() {
-  const [chatInput, setChatInput] = useState("");
-
-  // Derived data
-  const latestBlood = BLOOD_TEST_HISTORY[0];
-  const normalCount = latestBlood.results.filter(
-    (r) => r.status === "normal"
-  ).length;
-  const borderlineCount = latestBlood.results.filter(
-    (r) => r.status === "borderline"
-  ).length;
-  const totalMarkers = latestBlood.results.length;
-  const borderlineNames = latestBlood.results
-    .filter((r) => r.status === "borderline")
-    .map((r) => r.plainName.toLowerCase());
-
-  const lastDoctorMsg = [...MESSAGES]
-    .filter((m) => m.from === "doctor")
-    .pop();
-
-  const glucoseHistory = getMarkerHistory("f-Glucose");
-  const glucoseYears =
-    glucoseHistory.length > 1
-      ? new Date(glucoseHistory[glucoseHistory.length - 1].date).getFullYear() -
-        new Date(glucoseHistory[0].date).getFullYear()
-      : 0;
-
-  const allRiskLevels = [
-    RISK_ASSESSMENTS.diabetes.riskLevel as string,
-    RISK_ASSESSMENTS.cardiovascular.riskLevel as string,
-    RISK_ASSESSMENTS.bone.riskLevel as string,
-  ];
-  const areasToWatch = allRiskLevels.filter(
-    (l) => l === "moderate" || l === "high"
-  ).length;
-  const urgentCount = allRiskLevels.filter((l) => l === "high").length;
-
-  const progressMetrics = TRAINING_PLAN.progressMetrics;
-
-  const chips = [
-    "Why is my glucose rising?",
-    "Explain my blood results",
-    "Am I at risk for diabetes?",
-  ];
-
-  return (
-    <div
-      className="min-h-dvh flex flex-col"
-      style={{ background: "var(--bg)" }}
-    >
-      <main className="flex-1 px-5 pt-8 pb-28 max-w-md mx-auto w-full">
-        {/* ------------------------------------------------------------ */}
-        {/* 1. Greeting                                                   */}
-        {/* ------------------------------------------------------------ */}
-        <div className="animate-fade-in mb-1">
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ color: "var(--text)" }}
-          >
-            {getGreeting()}, {PATIENT.firstName}
-          </h1>
-          <p
-            className="text-xs mt-0.5"
-            style={{ color: "var(--text-muted)" }}
-          >
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </p>
-        </div>
-
-        {/* ------------------------------------------------------------ */}
-        {/* 2. Membership pill                                            */}
-        {/* ------------------------------------------------------------ */}
-        <div className="animate-fade-in stagger-1 flex items-center gap-2 mt-4 mb-6" style={{ opacity: 0 }}>
-          <span
-            className="text-[11px] font-semibold px-3 py-1 rounded-full"
-            style={{
-              background: "var(--accent-light)",
-              color: "var(--accent)",
-            }}
-          >
-            Precura Member
-          </span>
-          <span
-            className="text-[11px]"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Next blood test: {formatDate(PATIENT.nextBloodTest)}
-          </span>
-        </div>
-
-        {/* ------------------------------------------------------------ */}
-        {/* 3. Health Overview Card (hero)                                */}
-        {/* ------------------------------------------------------------ */}
-        <div
-          className="animate-fade-in stagger-2 rounded-2xl mb-4 overflow-hidden"
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-md)",
-            opacity: 0,
-          }}
-        >
-          <div className="px-4 pt-4 pb-2">
-            <h2
-              className="text-sm font-bold"
-              style={{ color: "var(--text)" }}
-            >
-              Your health overview
-            </h2>
-          </div>
-
-          {/* Risk rows */}
-          <div>
-            <div style={{ borderBottom: "1px solid var(--divider)" }}>
-              <RiskRow
-                label="Diabetes"
-                riskLevel={RISK_ASSESSMENTS.diabetes.riskLevel}
-                riskLabel={RISK_ASSESSMENTS.diabetes.riskLabel}
-                trend={RISK_ASSESSMENTS.diabetes.trend}
-                showZoneBar
-              />
-            </div>
-            <div style={{ borderBottom: "1px solid var(--divider)" }}>
-              <RiskRow
-                label="Heart"
-                riskLevel={RISK_ASSESSMENTS.cardiovascular.riskLevel}
-                riskLabel={RISK_ASSESSMENTS.cardiovascular.riskLabel}
-                trend={RISK_ASSESSMENTS.cardiovascular.trend}
-                showZoneBar
-              />
-            </div>
-            <div style={{ borderBottom: "1px solid var(--divider)" }}>
-              <RiskRow
-                label="Bone"
-                riskLevel={RISK_ASSESSMENTS.bone.riskLevel}
-                riskLabel={RISK_ASSESSMENTS.bone.riskLabel}
-                trend={RISK_ASSESSMENTS.bone.trend}
-                showZoneBar
-              />
-            </div>
-            <div>
-              <RiskRow
-                label="Mental"
-                riskLevel="low"
-                riskLabel="Minimal"
-                subtitle={`PHQ-9: ${SCREENING_SCORES.phq9.score} - ${SCREENING_SCORES.phq9.level}`}
-              />
-            </div>
-          </div>
-
-          {/* Summary line */}
-          <div
-            className="px-4 py-3 text-xs font-medium"
-            style={{
-              borderTop: "1px solid var(--divider)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            {areasToWatch} area{areasToWatch !== 1 ? "s" : ""} to watch.{" "}
-            {urgentCount} urgent.
-          </div>
-        </div>
-
-        {/* ------------------------------------------------------------ */}
-        {/* 4. Attention Banner                                           */}
-        {/* ------------------------------------------------------------ */}
-        <Link href="/v2/health">
-          <div
-            className="animate-fade-in stagger-2 card-hover rounded-2xl p-4 mb-4 flex items-start gap-3"
-            style={{
-              background: "var(--amber-bg)",
-              border: "1px solid #ffe0b2",
-              boxShadow: "var(--shadow-sm)",
-              opacity: 0,
-            }}
-          >
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-              style={{ background: "rgba(255,255,255,0.7)" }}
-            >
-              <AlertTriangle
-                size={16}
-                style={{ color: "var(--amber-text)" }}
-              />
-            </div>
-            <div className="flex-1">
-              <p
-                className="text-sm font-semibold leading-snug"
-                style={{ color: "var(--amber-text)" }}
-              >
-                Your fasting glucose has been rising for {glucoseYears} years.
-              </p>
-              <p
-                className="text-xs mt-1 leading-relaxed"
-                style={{ color: "var(--amber-text)", opacity: 0.85 }}
-              >
-                Dr. Johansson recommends monitoring closely.
-              </p>
-            </div>
-            <ChevronRight
-              size={16}
-              className="shrink-0 mt-1"
-              style={{ color: "var(--amber-text)", opacity: 0.5 }}
-            />
-          </div>
-        </Link>
-
-        {/* ------------------------------------------------------------ */}
-        {/* 5. Recent Blood Results                                       */}
-        {/* ------------------------------------------------------------ */}
-        <Link href="/v2/blood-tests/results">
-          <div
-            className="animate-fade-in stagger-3 card-hover rounded-2xl p-4 mb-4"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-              opacity: 0,
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "var(--teal-bg)" }}
-              >
-                <TestTube size={18} style={{ color: "var(--teal)" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-sm font-semibold"
-                  style={{ color: "var(--text)" }}
-                >
-                  Blood Test - {formatDate(latestBlood.date)}
-                </p>
-                <p
-                  className="text-xs mt-0.5"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  {normalCount}/{totalMarkers} normal
-                  {borderlineCount > 0 && (
-                    <>
-                      , {borderlineCount} borderline (
-                      {borderlineNames.join(", ")})
-                    </>
-                  )}
-                </p>
-                <p
-                  className="text-[11px] mt-1"
-                  style={{ color: "var(--text-faint)" }}
-                >
-                  Reviewed by Dr. Johansson
-                </p>
-              </div>
-              <ChevronRight
-                size={16}
-                style={{ color: "var(--text-faint)" }}
-              />
-            </div>
-          </div>
-        </Link>
-
-        {/* ------------------------------------------------------------ */}
-        {/* 6. Messages - latest doctor message                           */}
-        {/* ------------------------------------------------------------ */}
-        {lastDoctorMsg && (
-          <Link href="/v2/doctor">
-            <div
-              className="animate-fade-in stagger-3 card-hover rounded-2xl p-4 mb-4"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-sm)",
-                opacity: 0,
-              }}
-            >
-              <div className="flex items-start gap-3">
-                {/* Doctor avatar */}
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-                  style={{
-                    background: "var(--accent-light)",
-                    color: "var(--accent)",
-                  }}
-                >
-                  MJ
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: "var(--text)" }}
-                    >
-                      Dr. Johansson
-                    </p>
-                    <span
-                      className="text-[10px] shrink-0"
-                      style={{ color: "var(--text-faint)" }}
-                    >
-                      {relativeTime(lastDoctorMsg.date)}
-                    </span>
-                  </div>
-                  <p
-                    className="text-xs mt-1 leading-relaxed"
-                    style={{
-                      color: "var(--text-secondary)",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {lastDoctorMsg.text}
-                  </p>
-                </div>
-                <ChevronRight
-                  size={16}
-                  className="shrink-0 mt-1"
-                  style={{ color: "var(--text-faint)" }}
-                />
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {/* ------------------------------------------------------------ */}
-        {/* 7. Training Plan Progress                                     */}
-        {/* ------------------------------------------------------------ */}
-        <Link href="/v2/training">
-          <div
-            className="animate-fade-in stagger-4 card-hover rounded-2xl p-4 mb-4"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-              opacity: 0,
-            }}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "var(--purple-bg)" }}
-              >
-                <Dumbbell size={18} style={{ color: "var(--purple)" }} />
-              </div>
-              <div className="flex-1">
-                <p
-                  className="text-sm font-semibold"
-                  style={{ color: "var(--text)" }}
-                >
-                  {TRAINING_PLAN.name}
-                </p>
-                <p
-                  className="text-[11px]"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  This week
-                </p>
-              </div>
-              <ChevronRight
-                size={16}
-                style={{ color: "var(--text-faint)" }}
-              />
-            </div>
-
-            {/* Progress bars */}
-            <div className="flex flex-col gap-2.5">
-              {progressMetrics.map((m, i) => {
-                const pct = Math.min(
-                  (m.current / m.target) * 100,
-                  100
-                );
-                const label =
-                  m.metric === "Weekly active minutes"
-                    ? `${m.current}/${m.target} active min`
-                    : m.metric === "Daily steps average"
-                    ? `${m.current.toLocaleString()}/${m.target.toLocaleString()} steps`
-                    : `${m.current}/${m.target} strength`;
-                return (
-                  <div key={i}>
-                    <div className="flex items-baseline justify-between mb-1">
-                      <span
-                        className="text-xs"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        {label}
-                      </span>
-                      <span
-                        className="text-[10px] font-semibold"
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        {Math.round(pct)}%
-                      </span>
-                    </div>
-                    <div
-                      className="w-full rounded-full overflow-hidden"
-                      style={{
-                        height: 5,
-                        background: "var(--bg-elevated)",
-                      }}
-                    >
-                      <div
-                        className="rounded-full"
-                        style={{
-                          width: `${pct}%`,
-                          height: "100%",
-                          background:
-                            pct >= 100
-                              ? "var(--green)"
-                              : pct >= 60
-                              ? "var(--accent)"
-                              : "var(--amber)",
-                          transition: "width 0.6s ease",
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Link>
-
-        {/* ------------------------------------------------------------ */}
-        {/* 8. Actions - tracked next steps                               */}
-        {/* ------------------------------------------------------------ */}
-        <div
-          className="animate-fade-in stagger-4 mb-4"
-          style={{ opacity: 0 }}
-        >
-          <p
-            className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Next steps
-          </p>
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
-            {[
-              {
-                text: "Retest blood panel in Sep 2026",
-                done: false,
-              },
-              {
-                text: "Start Vitamin D3 supplement",
-                done: false,
-              },
-              {
-                text: "Increase daily steps to 8,000",
-                done: false,
-              },
-            ].map((action, i, arr) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 px-4 py-3"
-                style={{
-                  borderBottom:
-                    i < arr.length - 1
-                      ? "1px solid var(--divider)"
-                      : "none",
-                }}
-              >
-                <div
-                  className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                  style={{
-                    background: action.done
-                      ? "var(--green-bg)"
-                      : "var(--bg-elevated)",
-                  }}
-                >
-                  {action.done ? (
-                    <CheckCircle2
-                      size={14}
-                      style={{ color: "var(--green)" }}
-                    />
-                  ) : (
-                    <Circle
-                      size={14}
-                      style={{ color: "var(--text-faint)" }}
-                    />
-                  )}
-                </div>
-                <span
-                  className="text-sm"
-                  style={{
-                    color: action.done
-                      ? "var(--text-muted)"
-                      : "var(--text)",
-                    textDecoration: action.done
-                      ? "line-through"
-                      : "none",
-                  }}
-                >
-                  {action.text}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ------------------------------------------------------------ */}
-        {/* 9. AI Chat bar                                                */}
-        {/* ------------------------------------------------------------ */}
-        <div
-          className="animate-fade-in stagger-5"
-          style={{ opacity: 0 }}
-        >
-          <Link href="/v2/chat">
-            <div
-              className="card-hover rounded-2xl p-4 mb-3"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-sm)",
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: "var(--purple-bg)" }}
-                >
-                  <Search
-                    size={18}
-                    style={{ color: "var(--purple)" }}
-                  />
-                </div>
-                <span
-                  className="text-sm"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  Ask about your health...
-                </span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Suggestion chips */}
-          <div className="flex flex-wrap gap-2">
-            {chips.map((chip) => (
-              <Link
-                key={chip}
-                href="/v2/chat"
-                className="px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{
-                  background: "var(--accent-light)",
-                  color: "var(--accent)",
-                }}
-              >
-                {chip}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </main>
-
-      {/* ------------------------------------------------------------ */}
-      {/* 10. Bottom Nav                                                 */}
-      {/* ------------------------------------------------------------ */}
-      <BottomNav />
-    </div>
+    </Link>
   );
 }
