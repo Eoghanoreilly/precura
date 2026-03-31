@@ -2,14 +2,28 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Activity, Smartphone, Loader2, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
-import Link from "next/link";
-import { DEMO_USERS, setUser } from "@/lib/auth";
-import { initMockReturningUser } from "@/lib/user-state";
+import { Activity, Smartphone, Loader2, CheckCircle2 } from "lucide-react";
 
 type LoginState = "idle" | "verifying" | "success";
 
-export default function LoginPage() {
+const V2_DEMO_USERS = {
+  returning: {
+    name: "Anna Bergstrom",
+    personnummer: "198507220148",
+    initials: "AB",
+    description: "Returning member - full data",
+    route: "/v2/dashboard",
+  },
+  new: {
+    name: "Erik Lindqvist",
+    personnummer: "199201150234",
+    initials: "EL",
+    description: "New user - starts onboarding",
+    route: "/v2/connect",
+  },
+};
+
+export default function V2LoginPage() {
   const router = useRouter();
   const [personnummer, setPersonnummer] = useState("");
   const [loginState, setLoginState] = useState<LoginState>("idle");
@@ -25,20 +39,14 @@ export default function LoginPage() {
 
   function handleLogin(type: "new" | "returning") {
     setSelectedDemo(type);
-    const user = DEMO_USERS[type];
+    const user = V2_DEMO_USERS[type];
     setPersonnummer(formatPersonnummer(user.personnummer));
     setLoginState("verifying");
 
     setTimeout(() => {
       setLoginState("success");
       setTimeout(() => {
-        setUser(user);
-        if (type === "new") {
-          router.push("/onboarding");
-        } else {
-          initMockReturningUser();
-          router.push("/dashboard");
-        }
+        router.push(user.route);
       }, 800);
     }, 2000);
   }
@@ -51,7 +59,7 @@ export default function LoginPage() {
       }}
     >
       <div className="w-full max-w-sm">
-        {/* Logo */}
+        {/* Logo with v2 badge */}
         <div className="flex items-center justify-center gap-2.5 mb-10">
           <div
             className="w-11 h-11 rounded-2xl flex items-center justify-center"
@@ -61,6 +69,16 @@ export default function LoginPage() {
           </div>
           <span className="font-bold text-xl tracking-tight" style={{ color: "var(--text)" }}>
             Precura
+          </span>
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: "var(--accent)",
+              color: "#ffffff",
+              letterSpacing: "0.02em",
+            }}
+          >
+            v2
           </span>
         </div>
 
@@ -114,6 +132,33 @@ export default function LoginPage() {
                 </p>
                 <div className="grid gap-3">
                   <button
+                    onClick={() => handleLogin("returning")}
+                    className="card-hover w-full flex items-center gap-3 p-4 rounded-2xl text-left"
+                    style={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
+                      style={{
+                        background: "var(--accent-light)",
+                        color: "var(--accent)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      AB
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                        Anna Bergstrom
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                        Returning member - full data
+                      </p>
+                    </div>
+                  </button>
+                  <button
                     onClick={() => handleLogin("new")}
                     className="card-hover w-full flex items-center gap-3 p-4 rounded-2xl text-left"
                     style={{
@@ -140,75 +185,7 @@ export default function LoginPage() {
                       </p>
                     </div>
                   </button>
-                  <button
-                    onClick={() => handleLogin("returning")}
-                    className="card-hover w-full flex items-center gap-3 p-4 rounded-2xl text-left"
-                    style={{
-                      background: "var(--bg-elevated)",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
-                      style={{
-                        background: "var(--accent-light)",
-                        color: "var(--accent)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      AB
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                        Anna Bergstrom
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        Returning user - has data
-                      </p>
-                    </div>
-                  </button>
                 </div>
-
-                {/* Divider */}
-                <div className="flex items-center gap-3 my-5">
-                  <div className="flex-1 h-px" style={{ background: "var(--divider)" }} />
-                  <span className="text-xs" style={{ color: "var(--text-faint)" }}>or</span>
-                  <div className="flex-1 h-px" style={{ background: "var(--divider)" }} />
-                </div>
-
-                {/* Try v2 button */}
-                <Link
-                  href="/v2/login"
-                  className="card-hover w-full flex items-center gap-3 p-4 rounded-2xl text-left block"
-                  style={{
-                    background: "linear-gradient(135deg, var(--accent-light) 0%, var(--purple-bg) 100%)",
-                    border: "1px solid var(--accent-light)",
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "var(--accent)", boxShadow: "var(--shadow-sm)" }}
-                  >
-                    <Sparkles size={18} style={{ color: "#ffffff" }} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold" style={{ color: "var(--accent-hover)" }}>
-                        Try Precura v2
-                      </p>
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: "var(--accent)", color: "#ffffff" }}
-                      >
-                        New
-                      </span>
-                    </div>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      Full platform prototype
-                    </p>
-                  </div>
-                  <ArrowRight size={16} style={{ color: "var(--accent)" }} />
-                </Link>
               </div>
             )}
 
@@ -224,7 +201,7 @@ export default function LoginPage() {
                   Open BankID on your device
                 </p>
                 <p className="text-xs mb-5" style={{ color: "var(--text-muted)" }}>
-                  Verifying {selectedDemo === "new" ? "Erik Lindqvist" : "Anna Bergstrom"}
+                  Verifying {selectedDemo === "returning" ? "Anna Bergstrom" : "Erik Lindqvist"}
                 </p>
                 <Loader2 size={20} className="animate-spin" style={{ color: "var(--text-muted)" }} />
               </div>
