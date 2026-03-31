@@ -18,7 +18,7 @@ export default function BloodTestsPage() {
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100dvh" }}>
-      <div style={{ maxWidth: 448, margin: "0 auto", padding: "0 20px 60px" }}>
+      <div style={{ maxWidth: 768, margin: "0 auto", padding: "0 20px 60px" }}>
         <div style={{ paddingTop: 16, marginBottom: 20 }}>
           <Link href="/v2/dashboard" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "var(--text-muted)" }}>
             <ArrowLeft size={16} /> Back

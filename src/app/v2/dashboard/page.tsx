@@ -48,10 +48,11 @@ export default function V2Dashboard() {
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100dvh", position: "relative" }}>
-      <div style={{ maxWidth: 448, margin: "0 auto", padding: "0 20px 60px" }}>
+      {/* Responsive container: narrow on mobile, wide on desktop */}
+      <div className="v2-container">
 
         {/* TOP BAR */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, paddingBottom: 10 }}>
+        <div className="v2-topbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, paddingBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--accent-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Activity size={14} style={{ color: "var(--accent)" }} />
@@ -68,6 +69,10 @@ export default function V2Dashboard() {
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", marginBottom: 2 }}>{getGreeting()}, {PATIENT.firstName}</h1>
           <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
         </div>
+
+        {/* Desktop: two column layout */}
+        <div className="v2-grid">
+        <div className="v2-main">
 
         {/* ==================== NUMBERED CARDS ==================== */}
 
@@ -106,7 +111,7 @@ export default function V2Dashboard() {
         {/* 7-10. HEALTH SNAPSHOT */}
         <NumberLabel n={7} label="7-10" />
         <Sec title="Health snapshot" />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+        <div className="v2-health-grid" style={{ marginBottom: 14 }}>
           <HM n={7} label="Diabetes Risk" value="Moderate risk" color="amber" trend="worsening" href="/v2/health" />
           <HM n={8} label="Heart Risk" value="Low-mod risk" color="teal" trend="stable" href="/v2/health" />
           <HM n={9} label="Blood Sugar" value={`${latestGlucose.value}`} unit="mmol/L" color="amber" trend="worsening" href="/v2/blood-tests/results" />
@@ -148,13 +153,11 @@ export default function V2Dashboard() {
           </div>
         </Link>
 
-        {/* 13. ARTICLE - Blood sugar */}
-        <NumberLabel n={13} />
-        <ArticleCard title="Understanding your blood sugar numbers" subtitle="What fasting glucose and HbA1c actually tell you about your health" img={IMG.bloodTest} href="/v2/chat" />
-
-        {/* 14. ARTICLE - Food */}
-        <NumberLabel n={14} />
-        <ArticleCard title="5 foods that help prevent Type 2 diabetes" subtitle="Evidence-based dietary choices for metabolic health" img={IMG.food} href="/v2/chat" />
+        {/* 13-14. ARTICLES */}
+        <div className="v2-article-grid">
+          <div><NumberLabel n={13} /><ArticleCard title="Understanding your blood sugar numbers" subtitle="What fasting glucose and HbA1c actually tell you about your health" img={IMG.bloodTest} href="/v2/chat" /></div>
+          <div><NumberLabel n={14} /><ArticleCard title="5 foods that help prevent Type 2 diabetes" subtitle="Evidence-based dietary choices for metabolic health" img={IMG.food} href="/v2/chat" /></div>
+        </div>
 
         {/* 15. TIP CARD */}
         <NumberLabel n={15} />
@@ -260,13 +263,11 @@ export default function V2Dashboard() {
           </div>
         </div>
 
-        {/* 22. ARTICLE - FINDRISC */}
-        <NumberLabel n={22} />
-        <ArticleCard title="How FINDRISC predicts your diabetes risk" subtitle="The validated clinical tool behind your risk score" img={IMG.nature} href="/v2/chat" />
-
-        {/* 23. ARTICLE - Family history */}
-        <NumberLabel n={23} />
-        <ArticleCard title="What your family history means for your health" subtitle="Your mother's T2D diagnosis and what it means for you" img={IMG.family} href="/v2/chat" />
+        {/* 22-23. ARTICLES */}
+        <div className="v2-article-grid">
+          <div><NumberLabel n={22} /><ArticleCard title="How FINDRISC predicts your diabetes risk" subtitle="The validated clinical tool behind your risk score" img={IMG.nature} href="/v2/chat" /></div>
+          <div><NumberLabel n={23} /><ArticleCard title="What your family history means for your health" subtitle="Your mother's T2D diagnosis and what it means for you" img={IMG.family} href="/v2/chat" /></div>
+        </div>
 
         {/* 24. COMMUNITY */}
         <NumberLabel n={24} />
@@ -341,7 +342,81 @@ export default function V2Dashboard() {
         <NumberLabel n={29} label="29 (bonus)" />
         <ArticleCard title="The science behind post-meal walks" subtitle="How 20 minutes of walking regulates blood sugar better than most medications" img={IMG.walking} href="/v2/chat" />
 
-      </div>
+        </div>{/* end v2-main */}
+
+        {/* DESKTOP SIDEBAR - visible only on lg+ screens */}
+        <div className="v2-sidebar">
+          {/* Doctor */}
+          <Link href="/v2/doctor" style={{ textDecoration: "none" }}>
+            <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px", boxShadow: "var(--shadow-sm)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--accent-light)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>MJ</div>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Dr. Johansson</p>
+                  <p style={{ fontSize: 10, color: "var(--text-muted)" }}>Your Precura physician</p>
+                </div>
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>{lastMsg.text.slice(0, 100)}...</p>
+              <p style={{ fontSize: 11, fontWeight: 500, color: "var(--accent)", marginTop: 8 }}>View conversation</p>
+            </div>
+          </Link>
+
+          {/* Membership */}
+          <div style={{ background: "var(--accent-light)", borderRadius: 14, padding: "14px 16px" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)" }}>Precura Annual Member</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>Next blood test: Sep 15, 2026</p>
+            <Link href="/v2/membership" style={{ fontSize: 11, fontWeight: 600, color: "var(--accent)" }}>Manage plan</Link>
+          </div>
+
+          {/* Medications */}
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", boxShadow: "var(--shadow-sm)" }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>Current medications</p>
+            {MEDICATIONS.map((m) => (
+              <div key={m.name} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+                <span style={{ fontSize: 12, color: "var(--text)" }}>{m.name} {m.dose}</span>
+                <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{m.frequency}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Upcoming */}
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", boxShadow: "var(--shadow-sm)" }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>Upcoming</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Calendar size={14} style={{ color: "var(--blue)" }} />
+              <div>
+                <p style={{ fontSize: 12, color: "var(--text)" }}>6-month blood retest</p>
+                <p style={{ fontSize: 10, color: "var(--text-muted)" }}>Sep 15, 2026</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Upgrade */}
+          <Link href="/v2/membership" style={{ textDecoration: "none" }}>
+            <div style={{ borderRadius: 14, padding: "16px", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "#fff" }}>
+              <p style={{ fontSize: 14, fontWeight: 700 }}>Upgrade to Platinum</p>
+              <p style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>4 blood tests/year + 6-month training</p>
+            </div>
+          </Link>
+
+          {/* Quick links */}
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", boxShadow: "var(--shadow-sm)" }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>Quick links</p>
+            {[
+              { label: "Health overview", href: "/v2/health" },
+              { label: "Blood test results", href: "/v2/blood-tests/results" },
+              { label: "Training plan", href: "/v2/training" },
+              { label: "Download health report", href: "/v2/health" },
+            ].map((link) => (
+              <Link key={link.label} href={link.href} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", fontSize: 12, color: "var(--text-secondary)", textDecoration: "none", borderBottom: "1px solid var(--divider)" }}>
+                {link.label} <ChevronRight size={12} style={{ color: "var(--text-faint)" }} />
+              </Link>
+            ))}
+          </div>
+        </div>{/* end v2-sidebar */}
+
+        </div>{/* end v2-grid */}
+      </div>{/* end v2-container */}
 
       {/* FLOATING CHAT */}
       <button onClick={() => setChatOpen(!chatOpen)} style={{ position: "fixed", bottom: 24, right: 24, width: 52, height: 52, borderRadius: 16, background: "var(--accent)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(92,107,192,0.35)", zIndex: 50 }}>

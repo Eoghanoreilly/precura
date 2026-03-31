@@ -262,3 +262,104 @@ textarea:focus {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
+
+/* ==========================================
+   RESPONSIVE LAYOUT SYSTEM
+   Mobile: single column, full width
+   Tablet: wider container
+   Desktop: multi-column grid
+   ========================================== */
+
+.v2-container {
+  max-width: 448px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+.v2-topbar {
+  /* spans full width on all breakpoints */
+}
+
+.v2-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.v2-main {
+  /* main content column */
+}
+
+.v2-sidebar {
+  /* sidebar - hidden on mobile, shows on desktop */
+  display: none;
+}
+
+/* Two-column article grid on tablet+ */
+.v2-article-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Health snapshot - 2x2 on all sizes */
+.v2-health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .v2-container {
+    max-width: 640px;
+    padding: 0 24px 60px;
+  }
+
+  .v2-article-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .v2-container {
+    max-width: 1080px;
+    padding: 0 32px 60px;
+  }
+
+  .v2-grid {
+    flex-direction: row;
+    gap: 24px;
+  }
+
+  .v2-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .v2-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 320px;
+    flex-shrink: 0;
+    gap: 14px;
+  }
+
+  .v2-health-grid {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+
+  .v2-article-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .v2-container {
+    max-width: 1200px;
+    padding: 0 40px 60px;
+  }
+
+  .v2-sidebar {
+    width: 360px;
+  }
+}

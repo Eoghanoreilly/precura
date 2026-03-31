@@ -17,7 +17,7 @@ export default function HealthPage() {
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100dvh" }}>
-      <div style={{ maxWidth: 448, margin: "0 auto", padding: "0 20px 100px" }}>
+      <div style={{ maxWidth: 768, margin: "0 auto", padding: "0 20px 100px" }}>
         <div style={{ paddingTop: 16, marginBottom: 16 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>Your Health</h1>
           <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Complete picture from your medical records and Precura data</p>
