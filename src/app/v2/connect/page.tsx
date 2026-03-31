@@ -278,7 +278,7 @@ export default function ConnectPage() {
               </div>
 
               <button
-                onClick={() => router.push("/v2/onboarding")}
+                onClick={() => router.push("/v2/dashboard")}
                 className="w-full py-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2"
                 style={{
                   background: "var(--accent)",
