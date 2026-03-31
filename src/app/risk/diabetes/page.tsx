@@ -734,50 +734,6 @@ export default function DiabetesRiskPage() {
         {/* 4. FACTOR BREAKDOWN */}
         {/* ================================================================== */}
         <section className="animate-fade-in stagger-2 mt-5" style={{ opacity: 0 }}>
-          {/* Modifiable */}
-          <div
-            className="rounded-2xl p-5 mb-3"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ background: "var(--green)" }}
-              />
-              <span
-                className="text-[11px] font-semibold uppercase tracking-wider"
-                style={{ color: "var(--green-text)" }}
-              >
-                Things you can change
-              </span>
-            </div>
-
-            {MODIFIABLE_FACTORS.filter(
-              (f) => result.breakdown[f.key].points > 0
-            ).map((f) => (
-              <FactorBar
-                key={f.key}
-                label={f.label}
-                points={result.breakdown[f.key].points}
-                maxPoints={f.maxPoints}
-                modifiable
-                onClick={scrollToWhatIf}
-              />
-            ))}
-            {MODIFIABLE_FACTORS.every(
-              (f) => result.breakdown[f.key].points === 0
-            ) && (
-              <p className="text-xs py-2" style={{ color: "var(--green-text)" }}>
-                All lifestyle factors looking good
-              </p>
-            )}
-          </div>
-
-          {/* Fixed */}
           <div
             className="rounded-2xl p-5"
             style={{
@@ -787,32 +743,128 @@ export default function DiabetesRiskPage() {
             }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Lock size={12} style={{ color: "var(--text-faint)" }} />
+              <Activity size={14} style={{ color: "var(--text-muted)" }} />
               <span
                 className="text-[11px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--text-muted)" }}
               >
-                Fixed factors
+                Factor breakdown
               </span>
             </div>
 
-            {FIXED_FACTORS.filter(
-              (f) => result.breakdown[f.key].points > 0
-            ).map((f) => (
-              <FactorBar
-                key={f.key}
-                label={f.label}
-                points={result.breakdown[f.key].points}
-                maxPoints={f.maxPoints}
-              />
-            ))}
-            {FIXED_FACTORS.every(
-              (f) => result.breakdown[f.key].points === 0
-            ) && (
-              <p className="text-xs py-2" style={{ color: "var(--text-muted)" }}>
-                No fixed risk factors
-              </p>
-            )}
+            {(() => {
+              const donutColorMap: Record<string, string> = {
+                family: "#ef5350",
+                waist: "#ff9800",
+                activity: "#ffc107",
+                bmi: "#66bb6a",
+                age: "#7c4dff",
+                glucose: "#42a5f5",
+                bloodPressure: "#ab47bc",
+                diet: "#26a69a",
+              };
+              const allFactors = [...MODIFIABLE_FACTORS, ...FIXED_FACTORS];
+              const activeFactors = allFactors.filter(
+                (f) => result.breakdown[f.key].points > 0
+              );
+
+              if (activeFactors.length === 0) {
+                return (
+                  <p className="text-xs py-2" style={{ color: "var(--green-text)" }}>
+                    All factors looking good
+                  </p>
+                );
+              }
+
+              const donutData = activeFactors.map((f) => ({
+                value: result.breakdown[f.key].points,
+                name: f.label,
+                key: f.key,
+              }));
+              const donutColors = activeFactors.map((f) => donutColorMap[f.key] || "#9e9e9e");
+
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ width: 140, flexShrink: 0 }}>
+                    <ReactECharts
+                      notMerge={true}
+                      style={{ height: "140px", width: "140px" }}
+                      option={{
+                        tooltip: { show: false },
+                        series: [
+                          {
+                            type: "pie",
+                            radius: ["50%", "75%"],
+                            center: ["50%", "50%"],
+                            data: donutData,
+                            label: { show: false },
+                            labelLine: { show: false },
+                            itemStyle: {
+                              borderRadius: 6,
+                              borderColor: "#fff",
+                              borderWidth: 2,
+                            },
+                            color: donutColors,
+                            emphasis: {
+                              itemStyle: {
+                                shadowBlur: 10,
+                                shadowColor: "rgba(0,0,0,0.15)",
+                              },
+                            },
+                          },
+                        ],
+                        animation: true,
+                        animationDuration: 600,
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    {activeFactors.map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={MODIFIABLE_FACTORS.some((m) => m.key === f.key) ? scrollToWhatIf : undefined}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "5px 0",
+                          background: "transparent",
+                          border: "none",
+                          cursor: MODIFIABLE_FACTORS.some((m) => m.key === f.key) ? "pointer" : "default",
+                          width: "100%",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            background: donutColorMap[f.key] || "#9e9e9e",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          className="text-xs"
+                          style={{ color: "var(--text-secondary)", flex: 1, textAlign: "left" }}
+                        >
+                          {f.label}
+                        </span>
+                        <span
+                          className="text-xs font-bold"
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            color: donutColorMap[f.key] || "#9e9e9e",
+                            flexShrink: 0,
+                          }}
+                        >
+                          +{result.breakdown[f.key].points}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </section>
 
