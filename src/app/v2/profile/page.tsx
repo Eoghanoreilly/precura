@@ -101,21 +101,6 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {/* Bottom nav */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", borderTop: "1px solid var(--divider)", padding: "6px 0", zIndex: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-around", maxWidth: 448, margin: "0 auto" }}>
-          {[
-            { href: "/v2/dashboard", label: "Home" },
-            { href: "/v2/health", label: "Health" },
-            { href: "/v2/chat", label: "Chat" },
-            { href: "/v2/profile", label: "You", active: true },
-          ].map((tab) => (
-            <Link key={tab.href} href={tab.href} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 16px", borderRadius: 16, background: tab.active ? "var(--accent-light)" : "transparent", fontSize: 10, fontWeight: 600, color: tab.active ? "var(--accent)" : "var(--text-muted)", textDecoration: "none" }}>
-              {tab.label}
-            </Link>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

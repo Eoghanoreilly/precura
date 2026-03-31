@@ -150,7 +150,7 @@ export default function HealthPage() {
               <Dumbbell size={18} style={{ color: "var(--purple)" }} />
               <div>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "var(--purple-text)" }}>{TRAINING_PLAN.name}</p>
-                <p style={{ fontSize: 11, color: "var(--purple-text)", opacity: 0.8 }}>{TRAINING_PLAN.progressMetrics[0].current}/{TRAINING_PLAN.progressMetrics[0].target} active min this week</p>
+                <p style={{ fontSize: 11, color: "var(--purple-text)", opacity: 0.8 }}>Week {TRAINING_PLAN.currentWeek}/{TRAINING_PLAN.totalWeeks} - {TRAINING_PLAN.completedThisWeek}/{TRAINING_PLAN.weeklySchedule.length} sessions done</p>
               </div>
             </div>
             <ChevronRight size={16} style={{ color: "var(--purple-text)" }} />
@@ -158,21 +158,6 @@ export default function HealthPage() {
         </Link>
       </div>
 
-      {/* Bottom nav */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", borderTop: "1px solid var(--divider)", padding: "6px 0", zIndex: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-around", maxWidth: 448, margin: "0 auto" }}>
-          {[
-            { href: "/v2/dashboard", label: "Home" },
-            { href: "/v2/health", label: "Health", active: true },
-            { href: "/v2/chat", label: "Chat" },
-            { href: "/v2/profile", label: "You" },
-          ].map((tab) => (
-            <Link key={tab.href} href={tab.href} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 16px", borderRadius: 16, background: tab.active ? "var(--accent-light)" : "transparent", fontSize: 10, fontWeight: 600, color: tab.active ? "var(--accent)" : "var(--text-muted)", textDecoration: "none" }}>
-              {tab.label}
-            </Link>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

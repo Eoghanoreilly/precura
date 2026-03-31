@@ -221,7 +221,7 @@ export const SCREENING_SCORES = {
 export const RISK_ASSESSMENTS = {
   diabetes: {
     riskLevel: "moderate" as const,
-    riskLabel: "Moderate",
+    riskLabel: "Moderate risk",
     trend: "worsening" as const,
     summary: "Your diabetes risk is moderate and has been gradually increasing. Fasting glucose has risen from 5.0 to 5.8 over 5 years. Family history (mother with T2D) is a significant non-modifiable factor. Activity level and weight are the main modifiable factors.",
     tenYearRisk: "~17%",
@@ -235,7 +235,7 @@ export const RISK_ASSESSMENTS = {
   },
   cardiovascular: {
     riskLevel: "low_moderate" as const,
-    riskLabel: "Low-moderate",
+    riskLabel: "Low-moderate risk",
     trend: "stable" as const,
     summary: "Your cardiovascular risk is low-moderate. Blood pressure is controlled with medication. Father's heart attack at 65 is a risk factor. Cholesterol is borderline but HDL is healthy. Main action: maintain blood pressure control and monitor cholesterol.",
     tenYearRisk: "~3%",
@@ -249,7 +249,7 @@ export const RISK_ASSESSMENTS = {
   },
   bone: {
     riskLevel: "low" as const,
-    riskLabel: "Low",
+    riskLabel: "Low risk",
     trend: "stable" as const,
     summary: "Your bone health risk is low. Age 40, no major risk factors. Vitamin D is slightly below optimal (48 nmol/L, target >50). Supplementation recommended.",
     tenYearRisk: "<5%",
@@ -332,25 +332,47 @@ export const TRAINING_PLAN = {
   createdBy: "Eoghan O'Reilly, Certified Personal Trainer",
   reviewedBy: "Dr. Marcus Johansson",
   startDate: "2026-01-20",
+  currentWeek: 10,
+  totalWeeks: 12,
   goal: "Improve insulin sensitivity, support weight management, reduce cardiovascular risk factors",
   weeklySchedule: [
-    { day: "Monday", activity: "Brisk walk 30 min + bodyweight strength (squats, lunges, push-ups) 15 min", intensity: "Moderate", notes: "Can split into two 20-min sessions if needed" },
-    { day: "Tuesday", activity: "Rest or gentle stretching/yoga 20 min", intensity: "Light", notes: "Focus on lower back and hip flexibility (history of back strain)" },
-    { day: "Wednesday", activity: "Interval walking 25 min (2 min brisk, 1 min easy pace) + core work 10 min", intensity: "Moderate-High", notes: "Core work supports back health" },
-    { day: "Thursday", activity: "Rest day", intensity: "None", notes: "" },
-    { day: "Friday", activity: "Resistance band workout 30 min (full body)", intensity: "Moderate", notes: "Focus on compound movements for metabolic benefit" },
-    { day: "Saturday", activity: "Outdoor activity 45-60 min (walk, cycle, swim)", intensity: "Moderate", notes: "Choose something enjoyable - consistency matters more than intensity" },
-    { day: "Sunday", activity: "Rest or gentle walk 20 min", intensity: "Light", notes: "" },
+    {
+      day: "Monday",
+      name: "Upper Body",
+      exercises: [
+        { name: "Push-ups", sets: 3, reps: 12, weight: null, unit: "reps", notes: "On knees if needed" },
+        { name: "Dumbbell rows", sets: 3, reps: 10, weight: 8, unit: "kg", notes: "Each arm" },
+        { name: "Shoulder press", sets: 3, reps: 10, weight: 6, unit: "kg", notes: "" },
+        { name: "Plank hold", sets: 3, reps: 30, weight: null, unit: "sec", notes: "Core engaged" },
+      ],
+    },
+    {
+      day: "Wednesday",
+      name: "Lower Body + Core",
+      exercises: [
+        { name: "Bodyweight squats", sets: 3, reps: 15, weight: null, unit: "reps", notes: "" },
+        { name: "Walking lunges", sets: 3, reps: 12, weight: null, unit: "per leg", notes: "" },
+        { name: "Glute bridges", sets: 3, reps: 15, weight: null, unit: "reps", notes: "Squeeze at top" },
+        { name: "Dead bugs", sets: 3, reps: 10, weight: null, unit: "per side", notes: "Slow and controlled" },
+      ],
+    },
+    {
+      day: "Friday",
+      name: "Full Body + Cardio",
+      exercises: [
+        { name: "Brisk walk intervals", sets: 1, reps: 20, weight: null, unit: "min", notes: "2 min fast, 1 min easy" },
+        { name: "Resistance band pull-aparts", sets: 3, reps: 15, weight: null, unit: "reps", notes: "" },
+        { name: "Step-ups", sets: 3, reps: 10, weight: null, unit: "per leg", notes: "Use a sturdy chair" },
+        { name: "Core circuit", sets: 2, reps: 1, weight: null, unit: "rounds", notes: "Mountain climbers, bicycle crunches, plank - 30 sec each" },
+      ],
+    },
   ],
+  completedThisWeek: 2,
+  totalCompleted: 28,
   medicalConsiderations: [
-    "Blood pressure: monitored by Precura. Current Enalapril keeps it controlled. Avoid heavy overhead pressing.",
-    "Lower back history: core strengthening included. Avoid loaded spinal flexion. Consult physio if pain returns.",
-    "Pre-diabetic trajectory: focus on post-meal walks (blood sugar regulation). Strength training improves insulin sensitivity.",
-  ],
-  progressMetrics: [
-    { metric: "Weekly active minutes", target: 150, current: 95, unit: "min" },
-    { metric: "Daily steps average", target: 8000, current: 5200, unit: "steps" },
-    { metric: "Strength sessions completed", target: 3, current: 2, unit: "/week" },
+    "Blood pressure: monitored by Precura. Avoid heavy overhead pressing.",
+    "Lower back history: core strengthening included. Avoid loaded spinal flexion.",
+    "Pre-diabetic trajectory: post-meal walks support blood sugar regulation.",
   ],
 };
 
@@ -399,4 +421,4 @@ Metabolic syndrome: 2 of 5 criteria currently met (BP on medication, fasting glu
 
 Recent: Blood test March 2026 showed continued glucose rise and new Vitamin D deficiency. Doctor recommended supplementation and retest in 6 months.
 
-Training plan active since January 2026. Adherence moderate - hitting 2/3 strength sessions and averaging 5,200 steps (target 8,000).`;
+Training plan active since January 2026 (week 10 of 12). Adherence good - 28 sessions completed, 2 of 3 done this week.`;
