@@ -223,6 +223,41 @@ export default function V2LoginPage() {
           </div>
         </div>
 
+        {/* Agent Smith Prototypes */}
+        <div className="mt-8">
+          <div className="text-center mb-4">
+            <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Agent Smith Prototypes</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>10 independent product visions</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 1, name: "Minimalist", style: "Apple x Stripe", color: "#111", bg: "#f5f5f5" },
+              { id: 2, name: "Terminal", style: "Bloomberg x Grafana", color: "#00ff88", bg: "#0d1117" },
+              { id: 3, name: "Conversational", style: "ChatGPT x iMessage", color: "#7c5cfc", bg: "#f0eeff" },
+              { id: 4, name: "Editorial", style: "NYT x Monocle", color: "#1a1a1a", bg: "#faf5ef" },
+              { id: 5, name: "Coach", style: "Duolingo x Nike", color: "#ff4500", bg: "#fff3ee" },
+              { id: 6, name: "Clinician", style: "MyChart x Linear", color: "#2563eb", bg: "#eff6ff" },
+              { id: 7, name: "Storyteller", style: "NYT Interactive", color: "#e11d48", bg: "#fff1f2" },
+              { id: 8, name: "Companion", style: "Headspace x Calm", color: "#d97706", bg: "#fffbeb" },
+              { id: 9, name: "Brutalist", style: "Swiss x Bauhaus", color: "#fff", bg: "#000" },
+              { id: 10, name: "Architect", style: "Notion x Arc", color: "#4f46e5", bg: "#eef2ff" },
+            ].map((a) => (
+              <button
+                key={a.id}
+                onClick={() => router.push(`/smith${a.id}`)}
+                className="p-3 rounded-xl text-left transition-all active:scale-95 hover:opacity-80"
+                style={{ background: a.bg, border: `1px solid ${a.bg === "#000" ? "#333" : "var(--border)"}` }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold" style={{ color: a.color, fontFamily: "var(--font-mono)" }}>{a.id}</span>
+                  <span className="text-xs font-semibold" style={{ color: a.color }}>{a.name}</span>
+                </div>
+                <p className="text-[10px] mt-1 opacity-60" style={{ color: a.color }}>{a.style}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <p
           className="text-center text-xs mt-6"
           style={{ color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}
