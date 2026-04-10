@@ -231,16 +231,16 @@ export default function V2LoginPage() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { id: 1, name: "Minimalist", style: "Apple x Stripe", color: "#111", bg: "#f5f5f5" },
-              { id: 2, name: "Terminal", style: "Bloomberg x Grafana", color: "#00ff88", bg: "#0d1117" },
-              { id: 3, name: "Conversational", style: "ChatGPT x iMessage", color: "#7c5cfc", bg: "#f0eeff" },
-              { id: 4, name: "Editorial", style: "NYT x Monocle", color: "#1a1a1a", bg: "#faf5ef" },
-              { id: 5, name: "Coach", style: "Duolingo x Nike", color: "#ff4500", bg: "#fff3ee" },
-              { id: 6, name: "Clinician", style: "MyChart x Linear", color: "#2563eb", bg: "#eff6ff" },
-              { id: 7, name: "Storyteller", style: "NYT Interactive", color: "#e11d48", bg: "#fff1f2" },
-              { id: 8, name: "Companion", style: "Headspace x Calm", color: "#d97706", bg: "#fffbeb" },
-              { id: 9, name: "Brutalist", style: "Swiss x Bauhaus", color: "#fff", bg: "#000" },
-              { id: 10, name: "Architect", style: "Notion x Arc", color: "#4f46e5", bg: "#eef2ff" },
+              { id: 1, name: "Blood Tests", style: "Werlabs killer", color: "#1e6bb8", bg: "#eef5fc" },
+              { id: 2, name: "Your Doctor", style: "Doctor-first", color: "#0d8a72", bg: "#f0faf7" },
+              { id: 3, name: "One Number", style: "Health score", color: "#1a1a1a", bg: "#f0f0f0" },
+              { id: 4, name: "Train To Prevent", style: "Fitness + health", color: "#e8550f", bg: "#fff4ee" },
+              { id: 5, name: "Break The Pattern", style: "Family health", color: "#6b21a8", bg: "#f5f0ff" },
+              { id: 6, name: "Better 1177", style: "Swedish standard", color: "#1862a5", bg: "#edf4ff" },
+              { id: 7, name: "Connect The Dots", style: "Health timeline", color: "#0f5959", bg: "#eefaf9" },
+              { id: 8, name: "Guided Journey", style: "Coaching program", color: "#2d7a3a", bg: "#f0faf1" },
+              { id: 9, name: "Full Picture", style: "Data depth", color: "#3730a3", bg: "#eef2ff" },
+              { id: 10, name: "The Trajectory", style: "One chart", color: "#c41c1c", bg: "#fff1f0" },
             ].map((a) => (
               <button
                 key={a.id}
