@@ -544,7 +544,7 @@ export default function Smith6Halsodata() {
               Registrerade allergier
             </div>
 
-            {ALLERGIES.map((a, i) => (
+            {(ALLERGIES as Array<{substance: string; reaction: string; severity: string}>).map((a, i) => (
               <div
                 key={a.substance}
                 style={{

@@ -13,7 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Droplets,
+  Droplet,
   Heart,
   Scale,
   Activity,
@@ -179,7 +179,7 @@ export default function ImpactPage() {
                     justifyContent: "center",
                   }}
                 >
-                  <Droplets size={18} color="var(--amber-text)" />
+                  <Droplet size={18} color="var(--amber-text)" />
                 </div>
                 <div>
                   <div
@@ -258,7 +258,7 @@ export default function ImpactPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {/* HbA1c */}
             <MarkerCard
-              icon={<Droplets size={16} color="var(--teal-text)" />}
+              icon={<Droplet size={16} color="var(--teal-text)" />}
               iconBg="var(--teal-bg)"
               label="HbA1c (long-term blood sugar)"
               current={`${hba1cHistory[hba1cHistory.length - 1]?.value} mmol/mol`}
