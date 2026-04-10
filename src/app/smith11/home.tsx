@@ -9,10 +9,9 @@ import {
   Shield,
   Heart,
   Flame,
-  Stethoscope,
+  HeartPulse,
   MessageCircle,
   ArrowUpRight,
-  HeartPulse,
 } from "lucide-react";
 import {
   PATIENT,
@@ -465,7 +464,7 @@ function DoctorMessagePreview({ onNavigate }: { onNavigate: (tab: "home" | "bloo
             flexShrink: 0,
           }}
         >
-          <Stethoscope size={20} style={{ color: "#FFFFFF" }} />
+          <HeartPulse size={20} style={{ color: "#FFFFFF" }} />
         </div>
         <div className="flex-1" style={{ minWidth: 0 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
