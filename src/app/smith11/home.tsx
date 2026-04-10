@@ -9,9 +9,10 @@ import {
   Shield,
   Heart,
   Flame,
-  HeartPulse,
+  Stethoscope,
   MessageCircle,
   ArrowUpRight,
+  HeartPulse,
 } from "lucide-react";
 import {
   PATIENT,
@@ -434,7 +435,7 @@ function SectionHeader({
 /* ------------------------------------------------------------------ */
 /* Doctor Message Preview                                               */
 /* ------------------------------------------------------------------ */
-function DoctorMessagePreview({ onNavigate }: { onNavigate: (tab: string) => void }) {
+function DoctorMessagePreview({ onNavigate }: { onNavigate: (tab: "home" | "blood" | "training" | "doctor" | "you") => void }) {
   const lastMsg = MESSAGES[MESSAGES.length - 1];
   const isDoctor = lastMsg.from === "doctor";
 
@@ -464,7 +465,7 @@ function DoctorMessagePreview({ onNavigate }: { onNavigate: (tab: string) => voi
             flexShrink: 0,
           }}
         >
-          <HeartPulse size={20} style={{ color: "#FFFFFF" }} />
+          <Stethoscope size={20} style={{ color: "#FFFFFF" }} />
         </div>
         <div className="flex-1" style={{ minWidth: 0 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
@@ -639,7 +640,7 @@ function BiometricsRow() {
 /* ------------------------------------------------------------------ */
 /* HOME PAGE                                                            */
 /* ------------------------------------------------------------------ */
-export default function HomePage({ onNavigate }: { onNavigate: (tab: string) => void }) {
+export default function HomePage({ onNavigate }: { onNavigate: (tab: "home" | "blood" | "training" | "doctor" | "you") => void }) {
   const latestResults = BLOOD_TEST_HISTORY[0].results;
 
   return (
