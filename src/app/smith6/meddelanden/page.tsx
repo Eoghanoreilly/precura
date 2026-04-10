@@ -1,515 +1,247 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import React from "react";
 import {
-  ChevronLeft, Send, Paperclip, FileText, User,
-  Clock, CheckCheck,
-} from "lucide-react";
-import {
-  PATIENT, MESSAGES, DOCTOR_NOTES,
+  MESSAGES,
+  DOCTOR_NOTES,
+  PATIENT,
 } from "@/lib/v2/mock-patient";
 
-const HEALTHCARE_BLUE = "#1862a5";
-const HEALTHCARE_BLUE_LIGHT = "#e8f0fb";
-const HEALTHCARE_BLUE_DARK = "#0f4c81";
-const WARM_BG = "#f7f8fa";
-const CARD_BG = "#ffffff";
-const TEXT_PRIMARY = "#1a1a2e";
-const TEXT_SECONDARY = "#4a5568";
-const TEXT_MUTED = "#718096";
-const BORDER_COLOR = "#e2e8f0";
+/* ------------------------------------------------------------------ */
+/* Reusable building blocks                                            */
+/* ------------------------------------------------------------------ */
 
-function formatTime(d: string) {
-  return new Date(d).toLocaleTimeString("sv-SE", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        background: "#FFFFFF",
+        border: "1px solid #D1E9F6",
+        borderRadius: 4,
+        boxShadow: "0 1px 2px rgba(13,58,111,0.08)",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("sv-SE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <h2 style={{ color: "#0D3A6F", fontSize: 22, fontWeight: 700, marginBottom: subtitle ? 4 : 16 }}>{title}</h2>
+      {subtitle && <p style={{ color: "#4B7BA7", fontSize: 16, margin: "0 0 16px" }}>{subtitle}</p>}
+      {children}
+    </section>
+  );
 }
 
-function formatFullDate(d: string) {
-  return new Date(d).toLocaleDateString("sv-SE", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+/* ------------------------------------------------------------------ */
+/* Message bubble                                                      */
+/* ------------------------------------------------------------------ */
 
-export default function Smith6Meddelanden() {
-  const [messageText, setMessageText] = useState("");
-  const [activeView, setActiveView] = useState<"messages" | "notes">("messages");
-
-  // Group messages by date
-  const messagesByDate: Record<string, typeof MESSAGES> = {};
-  MESSAGES.forEach((msg) => {
-    const dateKey = msg.date.split("T")[0];
-    if (!messagesByDate[dateKey]) messagesByDate[dateKey] = [];
-    messagesByDate[dateKey].push(msg);
-  });
+function MessageBubble({ msg }: { msg: typeof MESSAGES[number] }) {
+  const isDoctor = msg.from === "doctor";
+  const date = new Date(msg.date);
+  const timeStr = date.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
+  const dateStr = date.toLocaleDateString("sv-SE");
 
   return (
-    <div style={{ background: WARM_BG, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Header */}
-      <header
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+        marginBottom: 20,
+      }}
+    >
+      {/* Avatar */}
+      <div
         style={{
-          background: HEALTHCARE_BLUE,
-          color: "white",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
+          width: 40,
+          height: 40,
+          borderRadius: 4,
+          background: isDoctor ? "#D1E9F6" : "#EDF2F7",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#0D3A6F",
+          fontWeight: 600,
+          fontSize: 16,
+          flexShrink: 0,
         }}
       >
+        {isDoctor ? "MJ" : "AB"}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="flex items-center gap-3" style={{ marginBottom: 6 }}>
+          <span style={{ color: "#0D3A6F", fontSize: 16, fontWeight: 600 }}>
+            {isDoctor ? "Dr. Marcus Johansson" : PATIENT.name}
+          </span>
+          <span style={{ color: "#4B7BA7", fontSize: 14 }}>
+            {dateStr}, {timeStr}
+          </span>
+        </div>
         <div
           style={{
-            maxWidth: 960,
-            margin: "0 auto",
-            padding: "16px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
+            background: isDoctor ? "#F0F9FF" : "#EDF2F7",
+            border: `1px solid ${isDoctor ? "#D1E9F6" : "#D1E9F6"}`,
+            borderRadius: 4,
+            padding: 16,
           }}
         >
-          <Link
-            href="/smith6"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.15)",
-              color: "white",
-              textDecoration: "none",
-            }}
-          >
-            <ChevronLeft size={22} />
-          </Link>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>Meddelanden</div>
-            <div style={{ fontSize: 13, opacity: 0.8 }}>
-              Dr. Marcus Johansson - Din Precura-lakare
-            </div>
-          </div>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <User size={22} color="white" />
-          </div>
+          <p style={{ color: "#0D3A6F", fontSize: 16, lineHeight: 1.6, margin: 0 }}>
+            {msg.text}
+          </p>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* View toggle */}
-        <div
-          style={{
-            maxWidth: 960,
-            margin: "0 auto",
-            padding: "0 20px 12px",
-            display: "flex",
-            gap: 0,
-          }}
-        >
-          <button
-            onClick={() => setActiveView("messages")}
-            style={{
-              flex: 1,
-              padding: "8px 16px",
-              fontSize: 14,
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-              borderRadius: "8px 0 0 8px",
-              background:
-                activeView === "messages"
-                  ? "white"
-                  : "rgba(255,255,255,0.15)",
-              color:
-                activeView === "messages" ? HEALTHCARE_BLUE : "white",
-              transition: "all 0.2s",
-            }}
-          >
-            Meddelanden
-          </button>
-          <button
-            onClick={() => setActiveView("notes")}
-            style={{
-              flex: 1,
-              padding: "8px 16px",
-              fontSize: 14,
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-              borderRadius: "0 8px 8px 0",
-              background:
-                activeView === "notes"
-                  ? "white"
-                  : "rgba(255,255,255,0.15)",
-              color:
-                activeView === "notes" ? HEALTHCARE_BLUE : "white",
-              transition: "all 0.2s",
-            }}
-          >
-            Lakaranteckningar
-          </button>
-        </div>
-      </header>
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
 
-      {activeView === "messages" ? (
-        <>
-          {/* Message thread */}
+export default function MeddelandenPage() {
+  return (
+    <>
+      <h1 style={{ color: "#0D3A6F", fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
+        Meddelanden (Messages)
+      </h1>
+      <p style={{ color: "#4B7BA7", fontSize: 16, margin: "0 0 32px" }}>
+        Secure messages with your Precura doctor. All communication is encrypted and stored in your health record.
+      </p>
+
+      {/* Message thread */}
+      <Section title="Conversation with Dr. Johansson" subtitle="Regarding blood test results, March 2026">
+        <Card style={{ padding: 24 }}>
+          {MESSAGES.map((msg) => (
+            <MessageBubble key={msg.id} msg={msg} />
+          ))}
+
+          {/* Reply box (placeholder) */}
           <div
             style={{
-              flex: 1,
-              maxWidth: 960,
-              margin: "0 auto",
-              width: "100%",
-              padding: "20px 20px 0",
-            }}
-          >
-            {/* Doctor info card */}
-            <div
-              style={{
-                background: CARD_BG,
-                border: `1px solid ${BORDER_COLOR}`,
-                borderRadius: 12,
-                padding: "16px 20px",
-                marginBottom: 20,
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: "50%",
-                  background: HEALTHCARE_BLUE_LIGHT,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <User size={26} color={HEALTHCARE_BLUE} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 17,
-                    fontWeight: 600,
-                    color: TEXT_PRIMARY,
-                  }}
-                >
-                  Dr. Marcus Johansson
-                </div>
-                <div style={{ fontSize: 14, color: TEXT_SECONDARY }}>
-                  Allmanmedicin - Din Precura-lakare
-                </div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#16a34a",
-                    marginTop: 2,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "#16a34a",
-                    }}
-                  />
-                  Svarar normalt inom 24 timmar
-                </div>
-              </div>
-            </div>
-
-            {/* Messages */}
-            {Object.entries(messagesByDate).map(([dateKey, msgs]) => (
-              <div key={dateKey}>
-                <div
-                  style={{
-                    textAlign: "center" as const,
-                    padding: "12px 0",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: TEXT_MUTED,
-                  }}
-                >
-                  {formatFullDate(dateKey)}
-                </div>
-
-                {msgs.map((msg) => {
-                  const isDoctor = msg.from === "doctor";
-                  return (
-                    <div
-                      key={msg.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: isDoctor ? "flex-start" : "flex-end",
-                        marginBottom: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          maxWidth: "80%",
-                        }}
-                      >
-                        {isDoctor && (
-                          <div
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: HEALTHCARE_BLUE,
-                              marginBottom: 4,
-                              paddingLeft: 4,
-                            }}
-                          >
-                            Dr. Johansson
-                          </div>
-                        )}
-                        <div
-                          style={{
-                            padding: "14px 18px",
-                            borderRadius: isDoctor
-                              ? "4px 16px 16px 16px"
-                              : "16px 4px 16px 16px",
-                            background: isDoctor
-                              ? CARD_BG
-                              : HEALTHCARE_BLUE,
-                            color: isDoctor ? TEXT_PRIMARY : "white",
-                            border: isDoctor
-                              ? `1px solid ${BORDER_COLOR}`
-                              : "none",
-                            fontSize: 15,
-                            lineHeight: 1.6,
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                          }}
-                        >
-                          {msg.text}
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                            justifyContent: isDoctor ? "flex-start" : "flex-end",
-                            padding: "4px 6px 0",
-                          }}
-                        >
-                          <span
-                            style={{ fontSize: 12, color: TEXT_MUTED }}
-                          >
-                            {formatTime(msg.date)}
-                          </span>
-                          {!isDoctor && (
-                            <CheckCheck size={14} color={HEALTHCARE_BLUE} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
-          {/* Message input */}
-          <div
-            style={{
-              position: "sticky",
-              bottom: 0,
-              background: CARD_BG,
-              borderTop: `1px solid ${BORDER_COLOR}`,
-              padding: "12px 20px",
-              paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
+              marginTop: 16,
+              paddingTop: 16,
+              borderTop: "1px solid #D1E9F6",
             }}
           >
             <div
               style={{
-                maxWidth: 960,
-                margin: "0 auto",
-                display: "flex",
-                alignItems: "flex-end",
-                gap: 10,
+                background: "#EDF2F7",
+                border: "1px solid #D1E9F6",
+                borderRadius: 4,
+                padding: 16,
+                minHeight: 80,
+                color: "#4B7BA7",
+                fontSize: 16,
               }}
             >
+              Write a message to Dr. Johansson...
+            </div>
+            <div className="flex justify-end" style={{ marginTop: 12 }}>
               <button
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  border: `1px solid ${BORDER_COLOR}`,
-                  background: "#f8fafc",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Paperclip size={20} color={TEXT_MUTED} />
-              </button>
-              <div
-                style={{
-                  flex: 1,
-                  position: "relative",
-                }}
-              >
-                <textarea
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Skriv ett meddelande till din lakare..."
-                  rows={1}
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    borderRadius: 22,
-                    border: `1px solid ${BORDER_COLOR}`,
-                    background: "#f8fafc",
-                    fontSize: 15,
-                    color: TEXT_PRIMARY,
-                    resize: "none",
-                    outline: "none",
-                    lineHeight: 1.4,
-                    fontFamily: "inherit",
-                  }}
-                />
-              </div>
-              <button
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
+                  padding: "12px 24px",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: "#FFFFFF",
+                  background: "#0891B2",
                   border: "none",
-                  background: messageText.trim()
-                    ? HEALTHCARE_BLUE
-                    : "#e2e8f0",
-                  cursor: messageText.trim() ? "pointer" : "default",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "background 0.2s",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  minHeight: 48,
                 }}
               >
-                <Send
-                  size={20}
-                  color={messageText.trim() ? "white" : TEXT_MUTED}
-                />
+                Send message
               </button>
             </div>
           </div>
-        </>
-      ) : (
-        /* Doctor notes view */
-        <div
-          style={{
-            maxWidth: 960,
-            margin: "0 auto",
-            padding: "20px 20px 80px",
-            width: "100%",
-          }}
-        >
-          <div
-            style={{
-              background: HEALTHCARE_BLUE_LIGHT,
-              border: `1px solid ${HEALTHCARE_BLUE}33`,
-              borderRadius: 12,
-              padding: "14px 18px",
-              marginBottom: 20,
-              fontSize: 15,
-              color: HEALTHCARE_BLUE_DARK,
-              lineHeight: 1.5,
-            }}
-          >
-            Lakaranteckningar ar formella journalnoteringar fran dina
-            Precura-konsultationer. De ar en del av din journal.
-          </div>
+        </Card>
+      </Section>
 
-          {DOCTOR_NOTES.map((note, i) => (
-            <div
-              key={note.date}
-              style={{
-                background: CARD_BG,
-                border: `1px solid ${BORDER_COLOR}`,
-                borderRadius: 12,
-                padding: "20px",
-                marginBottom: 16,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 12,
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 600,
-                      color: TEXT_PRIMARY,
-                    }}
-                  >
-                    {note.type}
-                  </div>
-                  <div style={{ fontSize: 14, color: TEXT_MUTED, marginTop: 2 }}>
-                    {formatDate(note.date)} - {note.author}
-                  </div>
-                </div>
+      {/* Doctor notes */}
+      <Section title="Doctor's notes (journalanteckningar)" subtitle="Clinical notes from your Precura consultations">
+        {DOCTOR_NOTES.map((note, i) => (
+          <Card key={i} style={{ padding: 24, marginBottom: i < DOCTOR_NOTES.length - 1 ? 16 : 0 }}>
+            <div className="flex items-start justify-between flex-wrap gap-2" style={{ marginBottom: 16 }}>
+              <div className="flex items-start gap-3">
                 <div
                   style={{
                     width: 40,
                     height: 40,
-                    borderRadius: 10,
-                    background: HEALTHCARE_BLUE_LIGHT,
+                    borderRadius: 4,
+                    background: "#D1E9F6",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    color: "#0D3A6F",
+                    fontWeight: 600,
+                    fontSize: 16,
+                    flexShrink: 0,
                   }}
                 >
-                  <FileText size={20} color={HEALTHCARE_BLUE} />
+                  MJ
+                </div>
+                <div>
+                  <p style={{ color: "#0D3A6F", fontSize: 18, fontWeight: 600, margin: 0 }}>
+                    {note.author}
+                  </p>
+                  <p style={{ color: "#4B7BA7", fontSize: 16, margin: "2px 0 0" }}>
+                    {note.type}
+                  </p>
                 </div>
               </div>
+              <span style={{ color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>
+                {new Date(note.date).toLocaleDateString("sv-SE")}
+              </span>
+            </div>
 
-              <div
+            {/* Render note paragraphs */}
+            {note.note.split("\n\n").map((paragraph, pi) => (
+              <p
+                key={pi}
                 style={{
-                  fontSize: 15,
-                  color: TEXT_SECONDARY,
+                  color: "#0D3A6F",
+                  fontSize: 16,
                   lineHeight: 1.7,
-                  whiteSpace: "pre-wrap",
+                  margin: pi === 0 ? 0 : "16px 0 0",
                 }}
               >
-                {note.note}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+                {paragraph}
+              </p>
+            ))}
+          </Card>
+        ))}
+      </Section>
+
+      {/* Contact information */}
+      <Section title="Contact information">
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <tbody>
+              {[
+                { label: "Your Precura doctor", value: "Dr. Marcus Johansson" },
+                { label: "Response time", value: "Within 24 hours on weekdays" },
+                { label: "Emergency", value: "Call 112 or visit your nearest emergency room" },
+                { label: "1177 Vardguiden", value: "Call 1177 for medical advice (24/7)" },
+                { label: "Primary care center", value: PATIENT.vardcentral },
+              ].map((row, i, arr) => (
+                <tr key={i} style={{ borderBottom: i < arr.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 500, width: "40%" }}>{row.label}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+    </>
   );
 }

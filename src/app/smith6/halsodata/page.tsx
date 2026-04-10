@@ -1,884 +1,327 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import React from "react";
 import {
-  ChevronLeft, Pill, Syringe, AlertTriangle, Heart,
-  Activity, Scale, ChevronDown, ChevronUp, CheckCircle,
-  XCircle, Clock,
-} from "lucide-react";
-import {
-  PATIENT, CONDITIONS, MEDICATIONS, MEDICATION_HISTORY,
-  VACCINATIONS, ALLERGIES, BIOMETRICS_HISTORY, FAMILY_HISTORY,
+  CONDITIONS,
+  MEDICATIONS,
+  MEDICATION_HISTORY,
+  VACCINATIONS,
+  ALLERGIES,
+  DOCTOR_VISITS,
+  BIOMETRICS_HISTORY,
+  FAMILY_HISTORY,
+  PATIENT,
 } from "@/lib/v2/mock-patient";
 
-const HEALTHCARE_BLUE = "#1862a5";
-const HEALTHCARE_BLUE_LIGHT = "#e8f0fb";
-const HEALTHCARE_BLUE_DARK = "#0f4c81";
-const WARM_BG = "#f7f8fa";
-const CARD_BG = "#ffffff";
-const TEXT_PRIMARY = "#1a1a2e";
-const TEXT_SECONDARY = "#4a5568";
-const TEXT_MUTED = "#718096";
-const BORDER_COLOR = "#e2e8f0";
-const SUCCESS_GREEN = "#16a34a";
-const WARNING_AMBER = "#d97706";
-const RISK_RED = "#dc2626";
+/* ------------------------------------------------------------------ */
+/* Reusable building blocks                                            */
+/* ------------------------------------------------------------------ */
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("sv-SE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatShortDate(d: string) {
-  return new Date(d).toLocaleDateString("sv-SE", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-// Section tab type
-type TabId = "diagnoser" | "lakemedel" | "vaccinationer" | "allergier" | "biometri" | "arftlighet";
-
-export default function Smith6Halsodata() {
-  const [activeTab, setActiveTab] = useState<TabId>("diagnoser");
-  const [showPastMeds, setShowPastMeds] = useState(false);
-
-  const tabs: { id: TabId; label: string; count?: number }[] = [
-    { id: "diagnoser", label: "Diagnoser", count: CONDITIONS.length },
-    { id: "lakemedel", label: "Lakemedel", count: MEDICATIONS.length },
-    { id: "vaccinationer", label: "Vaccinationer", count: VACCINATIONS.length },
-    { id: "allergier", label: "Allergier", count: ALLERGIES.length },
-    { id: "biometri", label: "Biometri", count: BIOMETRICS_HISTORY.length },
-    { id: "arftlighet", label: "Arftlighet", count: FAMILY_HISTORY.length },
-  ];
-
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: WARM_BG, minHeight: "100vh" }}>
-      {/* Header */}
-      <header
-        style={{
-          background: HEALTHCARE_BLUE,
-          color: "white",
-          padding: "16px 20px",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 960,
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <Link
-            href="/smith6"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.15)",
-              color: "white",
-              textDecoration: "none",
-            }}
-          >
-            <ChevronLeft size={22} />
-          </Link>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>Halsodata</div>
-            <div style={{ fontSize: 13, opacity: 0.8 }}>
-              Din samlade medicinska information
-            </div>
-          </div>
-        </div>
-      </header>
+    <section style={{ marginBottom: 32 }}>
+      <h2 style={{ color: "#0D3A6F", fontSize: 22, fontWeight: 700, marginBottom: subtitle ? 4 : 16 }}>{title}</h2>
+      {subtitle && <p style={{ color: "#4B7BA7", fontSize: 16, margin: "0 0 16px" }}>{subtitle}</p>}
+      {children}
+    </section>
+  );
+}
 
-      <main
-        style={{
-          maxWidth: 960,
-          margin: "0 auto",
-          padding: "20px 20px 80px",
-        }}
-      >
-        {/* Tab navigation */}
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            overflowX: "auto",
-            paddingBottom: 4,
-            marginBottom: 20,
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 20,
-                border: `2px solid ${
-                  activeTab === tab.id ? HEALTHCARE_BLUE : BORDER_COLOR
-                }`,
-                background:
-                  activeTab === tab.id ? HEALTHCARE_BLUE : CARD_BG,
-                color:
-                  activeTab === tab.id ? "white" : TEXT_SECONDARY,
-                fontWeight: activeTab === tab.id ? 700 : 500,
-                fontSize: 14,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              {tab.label}
-              {tab.count !== undefined && (
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    background:
-                      activeTab === tab.id
-                        ? "rgba(255,255,255,0.25)"
-                        : "#f1f5f9",
-                    padding: "1px 7px",
-                    borderRadius: 10,
-                  }}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        background: "#FFFFFF",
+        border: "1px solid #D1E9F6",
+        borderRadius: 4,
+        boxShadow: "0 1px 2px rgba(13,58,111,0.08)",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
-        {/* Diagnoser */}
-        {activeTab === "diagnoser" && (
-          <div
-            style={{
-              background: CARD_BG,
-              border: `1px solid ${BORDER_COLOR}`,
-              borderRadius: 12,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "16px 20px",
-                fontSize: 13,
-                fontWeight: 600,
-                color: TEXT_MUTED,
-                textTransform: "uppercase" as const,
-                letterSpacing: 0.5,
-                borderBottom: `1px solid ${BORDER_COLOR}`,
-              }}
-            >
-              Registrerade diagnoser
-            </div>
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
 
-            {CONDITIONS.map((c, i) => (
-              <div
-                key={c.name}
-                style={{
-                  padding: "18px 20px",
-                  borderBottom:
-                    i < CONDITIONS.length - 1
-                      ? `1px solid ${BORDER_COLOR}`
-                      : "none",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "space-between",
-                    marginBottom: 8,
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 17,
-                        fontWeight: 600,
-                        color: TEXT_PRIMARY,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: 14, color: TEXT_MUTED }}>
-                      ICD-10: {c.icd10}
-                    </div>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color:
-                        c.status === "active"
-                          ? HEALTHCARE_BLUE
-                          : SUCCESS_GREEN,
-                      background:
-                        c.status === "active"
-                          ? HEALTHCARE_BLUE_LIGHT
-                          : "#ecfdf5",
-                      padding: "4px 12px",
-                      borderRadius: 10,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    {c.status === "active" ? (
-                      <Clock size={13} />
-                    ) : (
-                      <CheckCircle size={13} />
-                    )}
-                    {c.status === "active" ? "Aktiv" : "Utlakt"}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: TEXT_SECONDARY,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <div>Diagnostiserad: {formatDate(c.diagnosedDate)}</div>
-                  <div>Av: {c.treatedBy}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+export default function HalsodataPage() {
+  return (
+    <>
+      <h1 style={{ color: "#0D3A6F", fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
+        Halsodata (Health data)
+      </h1>
+      <p style={{ color: "#4B7BA7", fontSize: 16, margin: "0 0 32px" }}>
+        Complete health record for {PATIENT.name}, personnummer {PATIENT.personnummer}. Data from 1177 Journalen and Precura.
+      </p>
 
-        {/* Lakemedel */}
-        {activeTab === "lakemedel" && (
-          <div>
-            {/* Active meds */}
-            <div
-              style={{
-                background: CARD_BG,
-                border: `1px solid ${BORDER_COLOR}`,
-                borderRadius: 12,
-                overflow: "hidden",
-                marginBottom: 16,
-              }}
-            >
-              <div
-                style={{
-                  padding: "16px 20px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: TEXT_MUTED,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: 0.5,
-                  borderBottom: `1px solid ${BORDER_COLOR}`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: SUCCESS_GREEN,
-                  }}
-                />
-                Aktuella lakemedel
-              </div>
-
-              {MEDICATIONS.filter((m) => m.active).map((m, i) => (
-                <div
-                  key={m.name}
-                  style={{
-                    padding: "18px 20px",
-                    borderBottom:
-                      i < MEDICATIONS.filter((med) => med.active).length - 1
-                        ? `1px solid ${BORDER_COLOR}`
-                        : "none",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 10,
-                        background: "#f0fdf4",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Pill size={22} color={SUCCESS_GREEN} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: 17,
-                          fontWeight: 600,
-                          color: TEXT_PRIMARY,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {m.name} {m.dose}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          color: TEXT_SECONDARY,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {m.frequency} - {m.purpose}
-                      </div>
-                      <div style={{ fontSize: 14, color: TEXT_MUTED, marginTop: 4 }}>
-                        Forskrivet av {m.prescribedBy} - sedan{" "}
-                        {formatDate(m.startDate)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {/* Personal details */}
+      <Section title="Personal details">
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <tbody>
+              {[
+                { label: "Full name", value: PATIENT.name },
+                { label: "Date of birth", value: new Date(PATIENT.dateOfBirth).toLocaleDateString("sv-SE") + ` (${PATIENT.age} years)` },
+                { label: "Personnummer", value: PATIENT.personnummer },
+                { label: "Address", value: PATIENT.address },
+                { label: "Phone", value: PATIENT.phone },
+                { label: "Email", value: PATIENT.email },
+                { label: "Primary care center", value: PATIENT.vardcentral },
+              ].map((row, i, arr) => (
+                <tr key={i} style={{ borderBottom: i < arr.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 500, width: "40%" }}>{row.label}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>{row.value}</td>
+                </tr>
               ))}
-            </div>
+            </tbody>
+          </table>
+        </Card>
+      </Section>
 
-            {/* Past medications */}
-            <button
-              onClick={() => setShowPastMeds(!showPastMeds)}
-              style={{
-                width: "100%",
-                padding: "14px 20px",
-                background: CARD_BG,
-                border: `1px solid ${BORDER_COLOR}`,
-                borderRadius: 12,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: showPastMeds ? 0 : 0,
-                borderBottomLeftRadius: showPastMeds ? 0 : 12,
-                borderBottomRightRadius: showPastMeds ? 0 : 12,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: TEXT_SECONDARY,
-                }}
-              >
-                Tidigare lakemedel ({MEDICATION_HISTORY.length})
-              </span>
-              {showPastMeds ? (
-                <ChevronUp size={20} color={TEXT_MUTED} />
-              ) : (
-                <ChevronDown size={20} color={TEXT_MUTED} />
-              )}
-            </button>
-
-            {showPastMeds && (
-              <div
-                style={{
-                  background: CARD_BG,
-                  border: `1px solid ${BORDER_COLOR}`,
-                  borderTop: "none",
-                  borderBottomLeftRadius: 12,
-                  borderBottomRightRadius: 12,
-                  overflow: "hidden",
-                }}
-              >
-                {MEDICATION_HISTORY.map((m, i) => (
-                  <div
-                    key={m.name + m.startDate}
-                    style={{
-                      padding: "16px 20px",
-                      borderBottom:
-                        i < MEDICATION_HISTORY.length - 1
-                          ? `1px solid ${BORDER_COLOR}`
-                          : "none",
-                      opacity: 0.75,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: TEXT_PRIMARY,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {m.name} {m.dose}
-                    </div>
-                    <div style={{ fontSize: 14, color: TEXT_SECONDARY }}>
-                      {m.frequency} - {m.purpose}
-                    </div>
-                    <div style={{ fontSize: 13, color: TEXT_MUTED, marginTop: 4 }}>
-                      {formatDate(m.startDate)} - {formatDate(m.endDate!)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Vaccinationer */}
-        {activeTab === "vaccinationer" && (
-          <div
-            style={{
-              background: CARD_BG,
-              border: `1px solid ${BORDER_COLOR}`,
-              borderRadius: 12,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "16px 20px",
-                fontSize: 13,
-                fontWeight: 600,
-                color: TEXT_MUTED,
-                textTransform: "uppercase" as const,
-                letterSpacing: 0.5,
-                borderBottom: `1px solid ${BORDER_COLOR}`,
-              }}
-            >
-              Vaccinationshistorik
-            </div>
-
-            {VACCINATIONS.map((v, i) => (
-              <div
-                key={v.name + v.date}
-                style={{
-                  padding: "16px 20px",
-                  borderBottom:
-                    i < VACCINATIONS.length - 1
-                      ? `1px solid ${BORDER_COLOR}`
-                      : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: HEALTHCARE_BLUE_LIGHT,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Syringe size={20} color={HEALTHCARE_BLUE} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: TEXT_PRIMARY,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {v.name}
-                  </div>
-                  <div style={{ fontSize: 14, color: TEXT_MUTED }}>
-                    {formatDate(v.date)} - {v.provider}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Allergier */}
-        {activeTab === "allergier" && (
-          <div
-            style={{
-              background: CARD_BG,
-              border: `1px solid ${BORDER_COLOR}`,
-              borderRadius: 12,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "16px 20px",
-                fontSize: 13,
-                fontWeight: 600,
-                color: TEXT_MUTED,
-                textTransform: "uppercase" as const,
-                letterSpacing: 0.5,
-                borderBottom: `1px solid ${BORDER_COLOR}`,
-              }}
-            >
-              Registrerade allergier
-            </div>
-
-            {(ALLERGIES as Array<{substance: string; reaction: string; severity: string}>).map((a, i) => (
-              <div
-                key={a.substance}
-                style={{
-                  padding: "16px 20px",
-                  borderBottom:
-                    i < ALLERGIES.length - 1
-                      ? `1px solid ${BORDER_COLOR}`
-                      : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: TEXT_PRIMARY,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {a.substance}
-                  </div>
-                  {a.reaction && (
-                    <div style={{ fontSize: 14, color: TEXT_SECONDARY }}>
-                      Reaktion: {a.reaction}
-                    </div>
-                  )}
-                </div>
-                {a.severity !== "none" && (
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color:
-                        a.severity === "mild"
-                          ? WARNING_AMBER
-                          : a.severity === "moderate"
-                          ? "#ea580c"
-                          : RISK_RED,
-                      background:
-                        a.severity === "mild"
-                          ? "#fffbeb"
-                          : a.severity === "moderate"
-                          ? "#fff7ed"
-                          : "#fef2f2",
-                      padding: "4px 12px",
-                      borderRadius: 10,
-                    }}
-                  >
-                    {a.severity === "mild"
-                      ? "Mild"
-                      : a.severity === "moderate"
-                      ? "Mattlig"
-                      : "Allvarlig"}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Biometri */}
-        {activeTab === "biometri" && (
-          <div>
-            {/* Latest measurements */}
-            <div
-              style={{
-                background: CARD_BG,
-                border: `1px solid ${BORDER_COLOR}`,
-                borderRadius: 12,
-                padding: "20px",
-                marginBottom: 16,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: TEXT_MUTED,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: 0.5,
-                  marginBottom: 16,
-                }}
-              >
-                Senaste matning - {formatShortDate(BIOMETRICS_HISTORY[0].date)}
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                {[
-                  {
-                    label: "Vikt (weight)",
-                    value: `${BIOMETRICS_HISTORY[0].weight} kg`,
-                    icon: <Scale size={18} color={HEALTHCARE_BLUE} />,
-                  },
-                  {
-                    label: "BMI",
-                    value: `${BIOMETRICS_HISTORY[0].bmi}`,
-                    icon: <Activity size={18} color={HEALTHCARE_BLUE} />,
-                  },
-                  {
-                    label: "Midjematt (waist)",
-                    value: `${BIOMETRICS_HISTORY[0].waist} cm`,
-                    icon: <Activity size={18} color={HEALTHCARE_BLUE} />,
-                  },
-                  {
-                    label: "Blodtryck (blood pressure)",
-                    value: BIOMETRICS_HISTORY[0].bloodPressure,
-                    icon: <Heart size={18} color={HEALTHCARE_BLUE} />,
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    style={{
-                      padding: "14px",
-                      borderRadius: 10,
-                      background: "#f8fafc",
-                      border: `1px solid ${BORDER_COLOR}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {item.icon}
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: TEXT_MUTED,
-                        }}
-                      >
-                        {item.label}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 22,
-                        fontWeight: 700,
-                        color: TEXT_PRIMARY,
-                      }}
-                    >
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Historical table */}
-            <div
-              style={{
-                background: CARD_BG,
-                border: `1px solid ${BORDER_COLOR}`,
-                borderRadius: 12,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  padding: "16px 20px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: TEXT_MUTED,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: 0.5,
-                  borderBottom: `1px solid ${BORDER_COLOR}`,
-                }}
-              >
-                Historik
-              </div>
-
-              {/* Table header */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr 1fr 1fr 1fr 1.2fr",
-                  padding: "10px 20px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: TEXT_MUTED,
-                  borderBottom: `1px solid ${BORDER_COLOR}`,
-                  background: "#f8fafc",
-                }}
-              >
-                <div>Datum</div>
-                <div>Vikt</div>
-                <div>BMI</div>
-                <div>Midja</div>
-                <div>Blodtryck</div>
-              </div>
-
-              {BIOMETRICS_HISTORY.map((b, i) => (
-                <div
-                  key={b.date}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "2fr 1fr 1fr 1fr 1.2fr",
-                    padding: "12px 20px",
-                    fontSize: 14,
-                    color: TEXT_PRIMARY,
-                    borderBottom:
-                      i < BIOMETRICS_HISTORY.length - 1
-                        ? `1px solid ${BORDER_COLOR}`
-                        : "none",
-                    background: i === 0 ? HEALTHCARE_BLUE_LIGHT + "44" : "transparent",
-                  }}
-                >
-                  <div style={{ fontWeight: i === 0 ? 600 : 400 }}>
-                    {formatShortDate(b.date)}
-                  </div>
-                  <div>{b.weight} kg</div>
-                  <div>{b.bmi}</div>
-                  <div>{b.waist} cm</div>
-                  <div>{b.bloodPressure}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Arftlighet (Family history) */}
-        {activeTab === "arftlighet" && (
-          <div>
-            <div
-              style={{
-                background: "#fffbeb",
-                border: "1px solid #fde68a",
-                borderRadius: 12,
-                padding: "14px 18px",
-                marginBottom: 16,
-                fontSize: 15,
-                color: "#92400e",
-                lineHeight: 1.5,
-                display: "flex",
-                gap: 12,
-                alignItems: "flex-start",
-              }}
-            >
-              <AlertTriangle size={20} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div>
-                Din arftlighet visar att diabetes och hjart-karlsjukdom
-                forekommit i familjen. Det okar din risk, men livsstilsforandringar
-                kan gora stor skillnad. Din lakare bevakar detta.
-              </div>
-            </div>
-
-            <div
-              style={{
-                background: CARD_BG,
-                border: `1px solid ${BORDER_COLOR}`,
-                borderRadius: 12,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  padding: "16px 20px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: TEXT_MUTED,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: 0.5,
-                  borderBottom: `1px solid ${BORDER_COLOR}`,
-                }}
-              >
-                Familjehistorik
-              </div>
-
-              {FAMILY_HISTORY.map((f, i) => (
-                <div
-                  key={f.relative}
-                  style={{
-                    padding: "18px 20px",
-                    borderBottom:
-                      i < FAMILY_HISTORY.length - 1
-                        ? `1px solid ${BORDER_COLOR}`
-                        : "none",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: TEXT_PRIMARY,
-                      }}
-                    >
-                      {f.relative}
-                    </div>
+      {/* Conditions */}
+      <Section title="Conditions (diagnoser)" subtitle={`${CONDITIONS.length} recorded conditions`}>
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #D1E9F6" }}>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Condition</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>ICD-10</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Diagnosed</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Status</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Provider</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CONDITIONS.map((c, i) => (
+                <tr key={i} style={{ borderBottom: i < CONDITIONS.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>{c.name}</td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16, fontFamily: '"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace' }}>{c.icd10}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{new Date(c.diagnosedDate).toLocaleDateString("sv-SE")}</td>
+                  <td style={{ padding: "14px 24px" }}>
                     <span
                       style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: TEXT_MUTED,
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: c.status === "active" ? "#0891B2" : "#059669",
+                        background: c.status === "active" ? "#E0F7FA" : "#F0FDF4",
+                        padding: "2px 10px",
+                        borderRadius: 4,
                       }}
                     >
-                      Diagnostiserad vid {f.ageAtDiagnosis} ars alder
+                      {c.status === "active" ? "Active" : "Resolved"}
                     </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      color: TEXT_SECONDARY,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {f.condition}
-                  </div>
-                  <div style={{ fontSize: 14, color: TEXT_MUTED }}>
-                    Status: {f.status}
-                  </div>
-                </div>
+                  </td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16 }}>{c.treatedBy}</td>
+                </tr>
               ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+
+      {/* Current medications */}
+      <Section title="Current medications (lakemedel)" subtitle={`${MEDICATIONS.filter(m => m.active).length} active medications`}>
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #D1E9F6" }}>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Medication</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Dose</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Frequency</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Purpose</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Since</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Prescribed by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MEDICATIONS.filter(m => m.active).map((m, i, arr) => (
+                <tr key={i} style={{ borderBottom: i < arr.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 600 }}>{m.name}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{m.dose}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{m.frequency}</td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16 }}>{m.purpose}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{new Date(m.startDate).toLocaleDateString("sv-SE")}</td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16 }}>{m.prescribedBy}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+
+      {/* Past medications */}
+      <Section title="Past medications" subtitle="Previously prescribed, no longer active">
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #D1E9F6" }}>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Medication</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Dose / Frequency</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Purpose</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Period</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MEDICATION_HISTORY.map((m, i) => (
+                <tr key={i} style={{ borderBottom: i < MEDICATION_HISTORY.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>{m.name}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{m.dose}, {m.frequency}</td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16 }}>{m.purpose}</td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16 }}>
+                    {new Date(m.startDate).toLocaleDateString("sv-SE")} to {new Date(m.endDate).toLocaleDateString("sv-SE")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+
+      {/* Allergies */}
+      <Section title="Allergies (allergier)">
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #D1E9F6" }}>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Substance</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Reaction</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Severity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ALLERGIES.map((a, i) => (
+                <tr key={i} style={{ borderBottom: i < ALLERGIES.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>{a.substance}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{a.reaction || "-"}</td>
+                  <td style={{ padding: "14px 24px" }}>
+                    {a.severity !== "none" ? (
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: a.severity === "mild" ? "#F59E0B" : "#EF4444",
+                          background: a.severity === "mild" ? "#FEF3C7" : "#FEE2E2",
+                          padding: "2px 10px",
+                          borderRadius: 4,
+                        }}
+                      >
+                        {a.severity.charAt(0).toUpperCase() + a.severity.slice(1)}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#4B7BA7", fontSize: 16 }}>-</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+
+      {/* Vaccinations */}
+      <Section title="Vaccinations (vaccinationer)" subtitle={`${VACCINATIONS.length} recorded vaccinations`}>
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #D1E9F6" }}>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Vaccination</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Date</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Provider</th>
+              </tr>
+            </thead>
+            <tbody>
+              {VACCINATIONS.map((v, i) => (
+                <tr key={i} style={{ borderBottom: i < VACCINATIONS.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>{v.name}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{new Date(v.date).toLocaleDateString("sv-SE")}</td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16 }}>{v.provider}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+
+      {/* Family history */}
+      <Section title="Family history (hereditet)" subtitle="Relevant genetic risk factors">
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #D1E9F6" }}>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Relative</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Condition</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "right" }}>Age at diagnosis</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {FAMILY_HISTORY.map((f, i) => (
+                <tr key={i} style={{ borderBottom: i < FAMILY_HISTORY.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 600 }}>{f.relative}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16 }}>{f.condition}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 700, textAlign: "right" }}>{f.ageAtDiagnosis}</td>
+                  <td style={{ padding: "14px 24px", color: "#4B7BA7", fontSize: 16 }}>{f.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+
+      {/* Biometrics history */}
+      <Section title="Biometrics over time (kropp)" subtitle={`${BIOMETRICS_HISTORY.length} measurements from ${BIOMETRICS_HISTORY[BIOMETRICS_HISTORY.length - 1].date.slice(0, 4)} to ${BIOMETRICS_HISTORY[0].date.slice(0, 4)}`}>
+        <Card style={{ padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #D1E9F6" }}>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "left" }}>Date</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "right" }}>Weight (kg)</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "right" }}>Waist (cm)</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "right" }}>BMI</th>
+                <th style={{ padding: "10px 24px", color: "#4B7BA7", fontSize: 16, fontWeight: 600, textAlign: "right" }}>Blood pressure</th>
+              </tr>
+            </thead>
+            <tbody>
+              {BIOMETRICS_HISTORY.map((b, i) => (
+                <tr key={i} style={{ borderBottom: i < BIOMETRICS_HISTORY.length - 1 ? "1px solid #D1E9F6" : "none" }}>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>
+                    {new Date(b.date).toLocaleDateString("sv-SE")}
+                  </td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 600, textAlign: "right" }}>{b.weight}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, textAlign: "right" }}>{b.waist}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, textAlign: "right" }}>{b.bmi}</td>
+                  <td style={{ padding: "14px 24px", color: "#0D3A6F", fontSize: 16, fontWeight: 600, textAlign: "right" }}>{b.bloodPressure}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </Section>
+
+      {/* Doctor visits timeline */}
+      <Section title="Doctor visits (besok)" subtitle={`${DOCTOR_VISITS.length} visits recorded`}>
+        {DOCTOR_VISITS.map((visit, i) => (
+          <Card key={i} style={{ padding: 24, marginBottom: i < DOCTOR_VISITS.length - 1 ? 12 : 0 }}>
+            <div className="flex items-start justify-between flex-wrap gap-2" style={{ marginBottom: 8 }}>
+              <div>
+                <h3 style={{ color: "#0D3A6F", fontSize: 18, fontWeight: 600, margin: 0 }}>
+                  {visit.type}
+                </h3>
+                <p style={{ color: "#4B7BA7", fontSize: 16, margin: "4px 0 0" }}>{visit.provider}</p>
+              </div>
+              <span style={{ color: "#0D3A6F", fontSize: 16, fontWeight: 500 }}>
+                {new Date(visit.date).toLocaleDateString("sv-SE")}
+              </span>
             </div>
-          </div>
-        )}
-      </main>
-    </div>
+            <p style={{ color: "#0D3A6F", fontSize: 16, lineHeight: 1.6, margin: 0 }}>
+              {visit.summary}
+            </p>
+          </Card>
+        ))}
+      </Section>
+    </>
   );
 }

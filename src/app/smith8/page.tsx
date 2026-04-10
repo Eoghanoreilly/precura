@@ -1,955 +1,572 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import {
-  CheckCircle2,
-  Lock,
-  ChevronRight,
-  Flame,
-  Star,
-  Calendar,
-  MapPin,
-  Heart,
-  Dumbbell,
-  MessageCircle,
-  Sparkles,
-  Award,
-  TrendingUp,
-} from "lucide-react";
-import {
-  PATIENT,
-  TRAINING_PLAN,
-  BLOOD_TEST_HISTORY,
-  RISK_ASSESSMENTS,
-  MESSAGES,
-} from "@/lib/v2/mock-patient";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { PATIENT, TRAINING_PLAN } from "@/lib/v2/mock-patient";
 
-// ============================================================================
-// SMITH 8 - GUIDED HEALTH JOURNEY
-// Philosophy: Progressive disclosure. One thing at a time. A coached program.
-// Showing Anna at Week 10 of her ~16-week journey.
-// ============================================================================
-
-const GREEN = "#2d7a3a";
-const GREEN_LIGHT = "#e8f5e9";
-const GREEN_BG = "#f0fdf4";
+/* =====================================================================
+   JOURNEY MAP - Vertical Duolingo-style path
+   Anna is at Week 10, Stage 7 of 10
+   ===================================================================== */
 
 interface Stage {
-  id: number;
+  num: number;
   title: string;
   subtitle: string;
   status: "done" | "current" | "locked";
-  icon: React.ReactNode;
+  icon: string;
   weekRange: string;
-  summary?: string;
-  achievement?: string;
+  completedDate?: string;
 }
 
 const STAGES: Stage[] = [
   {
-    id: 1,
+    num: 1,
     title: "Risk Assessment",
-    subtitle: "FINDRISC screening and health questionnaires",
+    subtitle: "FINDRISC screening, family history, lifestyle review",
     status: "done",
-    icon: <MapPin size={18} />,
+    icon: "clipboard",
     weekRange: "Week 1",
-    summary: "Completed FINDRISC (score: 12/26, moderate risk), PHQ-9, GAD-7, and AUDIT-C screenings.",
-    achievement: "Baseline established",
+    completedDate: "Jan 20",
   },
   {
-    id: 2,
-    title: "Understanding Your Results",
-    subtitle: "What your screening scores mean for you",
+    num: 2,
+    title: "Understanding Results",
+    subtitle: "Your risk profile explained in plain language",
     status: "done",
-    icon: <Sparkles size={18} />,
+    icon: "lightbulb",
+    weekRange: "Week 1",
+    completedDate: "Jan 22",
+  },
+  {
+    num: 3,
+    title: "First Blood Test",
+    subtitle: "Comprehensive panel at Karolinska lab",
+    status: "done",
+    icon: "droplet",
     weekRange: "Week 2",
-    summary: "Learned about your moderate diabetes risk, how family history plays a role, and which factors you can change.",
-    achievement: "Knowledge unlocked",
+    completedDate: "Jan 27",
   },
   {
-    id: 3,
-    title: "Your First Blood Test",
-    subtitle: "Ordering, booking, and getting blood drawn",
+    num: 4,
+    title: "Results + Review",
+    subtitle: "Doctor review of your blood work and health data",
     status: "done",
-    icon: <Heart size={18} />,
-    weekRange: "Week 3",
-    summary: "Comprehensive blood panel ordered by Dr. Johansson. Blood drawn at Karolinska University Laboratory.",
-    achievement: "First test complete",
+    icon: "stethoscope",
+    weekRange: "Week 2-3",
+    completedDate: "Feb 3",
   },
   {
-    id: 4,
-    title: "Blood Test Results + Doctor Review",
-    subtitle: "Dr. Johansson reviewed your results personally",
+    num: 5,
+    title: "Starting Training",
+    subtitle: "Your first 4 weeks of personalized exercise",
     status: "done",
-    icon: <MessageCircle size={18} />,
-    weekRange: "Week 4",
-    summary: "Fasting glucose 5.8 mmol/L (borderline), HbA1c (long-term blood sugar) 38 mmol/mol (normal). Doctor flagged the 5-year rising trend.",
-    achievement: "Full picture revealed",
+    icon: "dumbbell",
+    weekRange: "Weeks 1-4",
+    completedDate: "Feb 17",
   },
   {
-    id: 5,
-    title: "Starting Your Training Plan",
-    subtitle: "Your personalized Metabolic Health Program begins",
-    status: "done",
-    icon: <Dumbbell size={18} />,
-    weekRange: "Weeks 5-6",
-    summary: "Started 3x/week training: upper body, lower body + core, full body + cardio. Designed for insulin sensitivity.",
-    achievement: "First 6 workouts done",
-  },
-  {
-    id: 6,
+    num: 6,
     title: "Building Habits",
-    subtitle: "Making exercise and nutrition stick",
+    subtitle: "Consistency, post-meal walks, routine forming",
     status: "done",
-    icon: <Flame size={18} />,
-    weekRange: "Weeks 7-8",
-    summary: "Completed 12 more sessions. Added post-dinner walks for blood sugar regulation. Started Vitamin D supplementation.",
-    achievement: "Habit streak: 4 weeks",
+    icon: "repeat",
+    weekRange: "Weeks 5-8",
+    completedDate: "Mar 17",
   },
   {
-    id: 7,
-    title: "Deepening Your Practice",
-    subtitle: "Weeks 9-12 of your training program",
+    num: 7,
+    title: "Deepening Practice",
+    subtitle: "Progressive overload, nutrition tweaks, marker tracking",
     status: "current",
-    icon: <TrendingUp size={18} />,
-    weekRange: "Weeks 9-12 (you are here)",
-    summary: "Week 10 of 12. 28 sessions completed. Focus: increasing intensity, refining form, building consistency for the long term.",
+    icon: "trending-up",
+    weekRange: "Weeks 9-12",
   },
   {
-    id: 8,
-    title: "Your 6-Month Check-In",
-    subtitle: "Second blood test to measure your progress",
+    num: 8,
+    title: "6-Month Check-In",
+    subtitle: "Second blood test, compare with baseline",
     status: "locked",
-    icon: <Calendar size={18} />,
-    weekRange: "September 2026",
+    icon: "calendar",
+    weekRange: "Month 6",
   },
   {
-    id: 9,
+    num: 9,
     title: "Measuring Progress",
-    subtitle: "Compare your before and after numbers",
+    subtitle: "Full before/after analysis, updated risk scores",
     status: "locked",
-    icon: <TrendingUp size={18} />,
-    weekRange: "After blood test",
+    icon: "bar-chart",
+    weekRange: "Month 7",
   },
   {
-    id: 10,
-    title: "Your Year In Review",
-    subtitle: "A full picture of how far you have come",
+    num: 10,
+    title: "Year Review",
+    subtitle: "Annual review with Dr. Johansson, plan next year",
     status: "locked",
-    icon: <Award size={18} />,
-    weekRange: "January 2027",
+    icon: "award",
+    weekRange: "Month 12",
   },
 ];
 
-// Today's micro-tasks for Week 10
-const TODAY_TASKS = [
-  {
-    id: "t1",
-    label: "Wednesday workout: Lower Body + Core",
-    detail: "Squats, lunges, glute bridges, dead bugs",
-    type: "workout" as const,
-    done: false,
-  },
-  {
-    id: "t2",
-    label: "Take your Vitamin D supplement",
-    detail: "2000 IU D3, as recommended by Dr. Johansson",
-    type: "supplement" as const,
-    done: true,
-  },
-  {
-    id: "t3",
-    label: "Post-dinner walk (20 min)",
-    detail: "Helps your body regulate blood sugar after eating",
-    type: "habit" as const,
-    done: false,
-  },
-  {
-    id: "t4",
-    label: "Daily lesson: Why insulin sensitivity matters",
-    detail: "3-min read about how exercise changes your cells",
-    type: "learn" as const,
-    done: false,
-  },
-];
+function StageIcon({ icon, status }: { icon: string; status: string }) {
+  const color = status === "done" ? "#FFFFFF" : status === "current" ? "#FFFFFF" : "#D4C5E0";
+  const size = 22;
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-export default function Smith8Home() {
-  const [tasks, setTasks] = useState(TODAY_TASKS);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const completedTasks = tasks.filter((t) => t.done).length;
-  const totalTasks = tasks.length;
-  const todayProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-  const toggleTask = (id: string) => {
-    setTasks((prev) => {
-      const updated = prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
-      const allDone = updated.every((t) => t.done);
-      if (allDone && !showCelebration) {
-        setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 4000);
-      }
-      return updated;
-    });
+  const icons: Record<string, React.ReactNode> = {
+    clipboard: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+      </svg>
+    ),
+    lightbulb: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 18h6M10 22h4" />
+        <path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z" />
+      </svg>
+    ),
+    droplet: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
+      </svg>
+    ),
+    stethoscope: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4.8 2.3A.3.3 0 105 2H4a2 2 0 00-2 2v5a6 6 0 0012 0V4a2 2 0 00-2-2h-1a.2.2 0 10.3.3" />
+        <path d="M8 15v1a6 6 0 006 6 6 6 0 006-6v-4" />
+        <circle cx="20" cy="10" r="2" />
+      </svg>
+    ),
+    dumbbell: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6.5 6.5h11M6 12h12" />
+        <path d="M17.5 17.5h-11" />
+        <rect x="2" y="8" width="4" height="8" rx="1" />
+        <rect x="18" y="8" width="4" height="8" rx="1" />
+      </svg>
+    ),
+    repeat: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="17 1 21 5 17 9" />
+        <path d="M3 11V9a4 4 0 014-4h14" />
+        <polyline points="7 23 3 19 7 15" />
+        <path d="M21 13v2a4 4 0 01-4 4H3" />
+      </svg>
+    ),
+    "trending-up": (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+        <polyline points="17 6 23 6 23 12" />
+      </svg>
+    ),
+    calendar: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+    ),
+    "bar-chart": (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="20" x2="12" y2="10" />
+        <line x1="18" y1="20" x2="18" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="16" />
+      </svg>
+    ),
+    award: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="7" />
+        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+      </svg>
+    ),
   };
 
-  const completedStages = STAGES.filter((s) => s.status === "done").length;
+  return <>{icons[icon] || icons.clipboard}</>;
+}
+
+function Checkmark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M3 7L6 10L11 4" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D4C5E0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0110 0v4" />
+    </svg>
+  );
+}
+
+export default function JourneyMapPage() {
+  const router = useRouter();
+  const [expandedDone, setExpandedDone] = useState<number | null>(null);
+
+  const completedCount = STAGES.filter((s) => s.status === "done").length;
   const currentStage = STAGES.find((s) => s.status === "current");
 
-  if (!mounted) return null;
-
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-      {/* Top bar */}
+    <div style={{ paddingTop: 24 }}>
+      {/* Greeting card */}
       <div
         style={{
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--bg-card)",
+          background: "#FFFFFF",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          boxShadow: "0 2px 6px rgba(183,148,246,0.12)",
+          padding: "24px 20px",
+          marginBottom: 24,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              background: GREEN,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            P
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 18, color: "var(--text)" }}>Precura</span>
-        </div>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: GREEN_LIGHT,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: GREEN,
-            fontWeight: 600,
-            fontSize: 14,
-          }}
-        >
-          AB
-        </div>
-      </div>
+        <p style={{ color: "#8B7B95", fontSize: 14, fontWeight: 500, margin: 0 }}>
+          Week {TRAINING_PLAN.currentWeek} of your journey
+        </p>
+        <h1 style={{ color: "#3D2645", fontSize: 24, fontWeight: 700, margin: "6px 0 10px", letterSpacing: -0.3 }}>
+          Hi, {PATIENT.firstName}
+        </h1>
+        <p style={{ color: "#8B7B95", fontSize: 15, margin: 0, lineHeight: 1.5 }}>
+          You've completed {completedCount} of 10 stages. You're in{" "}
+          <span style={{ color: "#B794F6", fontWeight: 600 }}>{currentStage?.title}</span>{" "}
+          right now.
+        </p>
 
-      <div style={{ maxWidth: 448, margin: "0 auto", padding: "0 20px 80px" }}>
-        {/* Greeting + streak */}
-        <div style={{ padding: "24px 0 4px" }}>
-          <div style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 4 }}>
-            Week 10 of your health journey
+        {/* Mini progress bar */}
+        <div style={{ marginTop: 16 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+            <span style={{ color: "#8B7B95", fontSize: 12, fontWeight: 500 }}>Journey progress</span>
+            <span style={{ color: "#B794F6", fontSize: 12, fontWeight: 600 }}>{completedCount * 10}%</span>
           </div>
-          <h1
-            style={{
-              fontSize: 26,
-              fontWeight: 700,
-              color: "var(--text)",
-              margin: 0,
-              lineHeight: 1.2,
-            }}
-          >
-            Good morning, {PATIENT.firstName}
-          </h1>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginTop: 8,
-              fontSize: 14,
-              color: GREEN,
-              fontWeight: 600,
-            }}
-          >
-            <Flame size={16} />
-            <span>28-day streak</span>
-            <span style={{ color: "var(--text-muted)", fontWeight: 400, marginLeft: 4 }}>
-              / {TRAINING_PLAN.totalCompleted} workouts completed
-            </span>
-          </div>
-        </div>
-
-        {/* Today's focus card */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            overflow: "hidden",
-          }}
-          className="animate-fade-in"
-        >
-          <div
-            style={{
-              padding: "16px 20px 12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>
-                TODAY'S FOCUS
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginTop: 2 }}>
-                {completedTasks} of {totalTasks} tasks done
-              </div>
-            </div>
-            <Link
-              href="/smith8/today"
-              style={{
-                fontSize: 13,
-                color: GREEN,
-                fontWeight: 600,
-                textDecoration: "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              View all <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          {/* Progress bar */}
-          <div style={{ padding: "0 20px 16px" }}>
+          <div style={{ height: 6, borderRadius: 3, background: "#F3EAFF" }}>
             <div
               style={{
                 height: 6,
                 borderRadius: 3,
-                background: "#eee",
-                overflow: "hidden",
+                background: "linear-gradient(90deg, #B794F6, #9F7AEA)",
+                width: `${completedCount * 10}%`,
+                transition: "width 0.6s ease",
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Today's focus card */}
+      <div
+        onClick={() => router.push("/smith8/stage")}
+        style={{
+          background: "linear-gradient(135deg, #B794F6, #9F7AEA)",
+          borderRadius: 20,
+          padding: "20px",
+          marginBottom: 32,
+          cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(183,148,246,0.3)",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Today's focus
+            </p>
+            <p style={{ color: "#FFFFFF", fontSize: 18, fontWeight: 700, margin: "6px 0 4px" }}>
+              Wednesday Lower Body
+            </p>
+            <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, margin: 0 }}>
+              4 exercises / ~35 min
+            </p>
+          </div>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 16,
+              background: "rgba(255,255,255,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Journey path - vertical Duolingo style */}
+      <h2 style={{ color: "#3D2645", fontSize: 18, fontWeight: 700, marginBottom: 20, letterSpacing: -0.2 }}>
+        Your Journey
+      </h2>
+
+      <div style={{ position: "relative", paddingLeft: 28 }}>
+        {/* Vertical line */}
+        <div
+          style={{
+            position: "absolute",
+            left: 20,
+            top: 0,
+            bottom: 0,
+            width: 3,
+            background: "#EFE6F8",
+            borderRadius: 2,
+          }}
+        />
+        {/* Filled portion of line */}
+        <div
+          style={{
+            position: "absolute",
+            left: 20,
+            top: 0,
+            width: 3,
+            borderRadius: 2,
+            background: "linear-gradient(180deg, #B794F6, #9F7AEA)",
+            height: `${((completedCount + 0.5) / STAGES.length) * 100}%`,
+            transition: "height 0.6s ease",
+          }}
+        />
+
+        {STAGES.map((stage, idx) => {
+          const isDone = stage.status === "done";
+          const isCurrent = stage.status === "current";
+          const isLocked = stage.status === "locked";
+          const isExpanded = expandedDone === stage.num;
+
+          return (
+            <div
+              key={stage.num}
+              style={{
+                position: "relative",
+                marginBottom: idx === STAGES.length - 1 ? 0 : 8,
               }}
             >
+              {/* Node circle on the line */}
               <div
                 style={{
-                  height: "100%",
-                  width: `${todayProgress}%`,
-                  borderRadius: 3,
-                  background: `linear-gradient(90deg, ${GREEN}, #4caf50)`,
-                  transition: "width 0.5s ease",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Task list */}
-          <div style={{ padding: "0 12px 12px" }}>
-            {tasks.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => toggleTask(task.id)}
-                style={{
+                  position: "absolute",
+                  left: -28,
+                  top: 18,
+                  width: isCurrent ? 40 : 40,
+                  height: isCurrent ? 40 : 40,
                   display: "flex",
-                  alignItems: "flex-start",
-                  gap: 12,
-                  padding: "10px 8px",
-                  width: "100%",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  borderRadius: 12,
-                  transition: "background 0.2s",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 2,
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "var(--bg-elevated)")
-                }
-                onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
               >
                 <div
                   style={{
-                    width: 22,
-                    height: 22,
+                    width: isDone ? 28 : isCurrent ? 36 : 28,
+                    height: isDone ? 28 : isCurrent ? 36 : 28,
                     borderRadius: "50%",
-                    border: task.done ? "none" : "2px solid var(--border)",
-                    background: task.done ? GREEN : "transparent",
+                    background: isDone
+                      ? "#B794F6"
+                      : isCurrent
+                      ? "linear-gradient(135deg, #B794F6, #9F7AEA)"
+                      : "#F3EAFF",
+                    border: isCurrent ? "3px solid #B794F6" : "none",
+                    boxShadow: isCurrent
+                      ? "0 0 0 6px rgba(183,148,246,0.2), 0 2px 8px rgba(183,148,246,0.3)"
+                      : "none",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    flexShrink: 0,
-                    marginTop: 1,
-                    transition: "all 0.2s",
                   }}
                 >
-                  {task.done && <CheckCircle2 size={14} color="#fff" />}
+                  {isDone ? (
+                    <Checkmark />
+                  ) : isLocked ? (
+                    <LockIcon />
+                  ) : (
+                    <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 14 }}>{stage.num}</span>
+                  )}
                 </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: task.done ? "var(--text-muted)" : "var(--text)",
-                      textDecoration: task.done ? "line-through" : "none",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {task.label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--text-muted)",
-                      marginTop: 2,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {task.detail}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+              </div>
 
-        {/* All-day celebration overlay */}
-        {showCelebration && (
-          <div
-            className="animate-scale-in"
-            style={{
-              marginTop: 16,
-              background: `linear-gradient(135deg, ${GREEN_LIGHT}, #fff)`,
-              borderRadius: 20,
-              border: `2px solid ${GREEN}`,
-              padding: "20px",
-              textAlign: "center",
-            }}
-          >
-            <Star size={32} color={GREEN} style={{ marginBottom: 8 }} />
-            <div style={{ fontSize: 18, fontWeight: 700, color: GREEN }}>
-              All tasks complete!
-            </div>
-            <div style={{ fontSize: 14, color: "var(--text-secondary)", marginTop: 4 }}>
-              Another step forward on your health journey.
-            </div>
-          </div>
-        )}
-
-        {/* Current stage card */}
-        {currentStage && (
-          <Link
-            href="/smith8/stage?id=7"
-            style={{ textDecoration: "none" }}
-          >
-            <div
-              style={{
-                marginTop: 20,
-                background: `linear-gradient(135deg, ${GREEN}, #3a9748)`,
-                borderRadius: 20,
-                padding: "20px",
-                color: "#fff",
-                boxShadow: "0 4px 20px rgba(45,122,58,0.25)",
-              }}
-              className="animate-fade-in stagger-1"
-            >
+              {/* Stage card */}
               <div
+                onClick={() => {
+                  if (isCurrent) router.push("/smith8/stage");
+                  else if (isDone) setExpandedDone(isExpanded ? null : stage.num);
+                }}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  marginLeft: 24,
+                  background: isCurrent ? "#FFFFFF" : isDone ? "#FFFFFF" : "#FDFBFF",
+                  borderRadius: 20,
+                  border: isCurrent
+                    ? "2px solid #B794F6"
+                    : "1px solid #EFE6F8",
+                  boxShadow: isCurrent
+                    ? "0 4px 12px rgba(183,148,246,0.15)"
+                    : "0 2px 6px rgba(183,148,246,0.08)",
+                  padding: "16px 18px",
+                  cursor: isLocked ? "default" : "pointer",
+                  opacity: isLocked ? 0.55 : 1,
+                  transition: "all 0.2s ease",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    opacity: 0.8,
-                  }}
-                >
-                  Current Stage
-                </div>
-                <div
-                  style={{
-                    background: "rgba(255,255,255,0.2)",
-                    borderRadius: 12,
-                    padding: "4px 10px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Stage {currentStage.id} of {STAGES.length}
-                </div>
-              </div>
-              <h2
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  margin: "12px 0 4px",
-                  lineHeight: 1.2,
-                }}
-              >
-                {currentStage.title}
-              </h2>
-              <p
-                style={{
-                  fontSize: 14,
-                  opacity: 0.85,
-                  margin: 0,
-                  lineHeight: 1.5,
-                }}
-              >
-                {currentStage.summary}
-              </p>
+                <div className="flex items-start justify-between">
+                  <div style={{ flex: 1 }}>
+                    <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
+                      <span
+                        style={{
+                          color: isCurrent ? "#B794F6" : isDone ? "#81C995" : "#D4C5E0",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {stage.weekRange}
+                      </span>
+                      {isDone && (
+                        <span
+                          style={{
+                            background: "#E8F8EC",
+                            color: "#81C995",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: 8,
+                          }}
+                        >
+                          Complete
+                        </span>
+                      )}
+                      {isCurrent && (
+                        <span
+                          style={{
+                            background: "#F3EAFF",
+                            color: "#B794F6",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: 8,
+                          }}
+                        >
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <h3
+                      style={{
+                        color: isLocked ? "#D4C5E0" : "#3D2645",
+                        fontSize: 16,
+                        fontWeight: 600,
+                        margin: "2px 0 4px",
+                      }}
+                    >
+                      {stage.title}
+                    </h3>
+                    <p
+                      style={{
+                        color: isLocked ? "#D4C5E0" : "#8B7B95",
+                        fontSize: 13,
+                        margin: 0,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {stage.subtitle}
+                    </p>
 
-              {/* Stage progress within */}
-              <div style={{ marginTop: 16 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 12,
-                    opacity: 0.8,
-                    marginBottom: 6,
-                  }}
-                >
-                  <span>Week 10 of 12</span>
-                  <span>{TRAINING_PLAN.completedThisWeek}/3 workouts this week</span>
-                </div>
-                <div
-                  style={{
-                    height: 6,
-                    borderRadius: 3,
-                    background: "rgba(255,255,255,0.2)",
-                    overflow: "hidden",
-                  }}
-                >
+                    {/* Expanded done details */}
+                    {isDone && isExpanded && (
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #EFE6F8" }}>
+                        <p style={{ color: "#81C995", fontSize: 13, fontWeight: 500, margin: 0 }}>
+                          Completed {stage.completedDate}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Current stage CTA */}
+                    {isCurrent && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          color: "#B794F6",
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        View current tasks
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M6 4L10 8L6 12" stroke="#B794F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right side icon */}
                   <div
                     style={{
-                      height: "100%",
-                      width: "50%",
-                      borderRadius: 3,
-                      background: "rgba(255,255,255,0.8)",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 14,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  opacity: 0.9,
-                }}
-              >
-                Continue your stage <ChevronRight size={14} />
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {/* Journey map preview */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            overflow: "hidden",
-          }}
-          className="animate-fade-in stagger-2"
-        >
-          <div
-            style={{
-              padding: "16px 20px 12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
-              Your Journey
-            </div>
-            <Link
-              href="/smith8/journey"
-              style={{
-                fontSize: 13,
-                color: GREEN,
-                fontWeight: 600,
-                textDecoration: "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              Full map <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          {/* Mini journey path */}
-          <div style={{ padding: "0 20px 16px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0,
-                position: "relative",
-              }}
-            >
-              {STAGES.map((stage, idx) => (
-                <div
-                  key={stage.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    flex: idx < STAGES.length - 1 ? 1 : "none",
-                  }}
-                >
-                  {/* Node */}
-                  <div
-                    style={{
-                      width: stage.status === "current" ? 28 : 20,
-                      height: stage.status === "current" ? 28 : 20,
-                      borderRadius: "50%",
-                      background:
-                        stage.status === "done"
-                          ? GREEN
-                          : stage.status === "current"
-                          ? GREEN
-                          : "#e0e0e0",
+                      width: 40,
+                      height: 40,
+                      borderRadius: 14,
+                      background: isDone
+                        ? "#E8F8EC"
+                        : isCurrent
+                        ? "linear-gradient(135deg, #B794F6, #9F7AEA)"
+                        : "#F3EAFF",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
-                      border:
-                        stage.status === "current"
-                          ? `3px solid ${GREEN_LIGHT}`
-                          : "none",
-                      boxShadow:
-                        stage.status === "current"
-                          ? `0 0 0 2px ${GREEN}`
-                          : "none",
-                      transition: "all 0.3s",
-                      zIndex: 2,
+                      marginLeft: 12,
                     }}
                   >
-                    {stage.status === "done" ? (
-                      <CheckCircle2 size={12} color="#fff" />
-                    ) : stage.status === "current" ? (
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: "#fff",
-                        }}
-                      />
+                    {isDone ? (
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M4 9L7.5 12.5L14 5.5" stroke="#81C995" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     ) : (
-                      <Lock size={10} color="#aaa" />
+                      <StageIcon icon={stage.icon} status={stage.status} />
                     )}
                   </div>
-
-                  {/* Connector line */}
-                  {idx < STAGES.length - 1 && (
-                    <div
-                      style={{
-                        flex: 1,
-                        height: 3,
-                        background:
-                          stage.status === "done" ? GREEN : "#e0e0e0",
-                        minWidth: 4,
-                      }}
-                    />
-                  )}
                 </div>
-              ))}
+              </div>
             </div>
+          );
+        })}
+      </div>
 
-            {/* Labels for start, current, end */}
+      {/* Quick links at bottom */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ color: "#3D2645", fontSize: 18, fontWeight: 700, marginBottom: 16, letterSpacing: -0.2 }}>
+          Quick Access
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "Training Plan", desc: "Week 10 of 12", path: "/smith8/training", emoji: "💪" },
+            { label: "Blood Results", desc: "Mar 27, 2026", path: "/smith8/results", emoji: "🩸" },
+            { label: "Messages", desc: "Dr. Johansson", path: "/smith8/messages", emoji: "💬" },
+            { label: "Stage Details", desc: "Deepening Practice", path: "/smith8/stage", emoji: "📋" },
+          ].map((item) => (
             <div
+              key={item.label}
+              onClick={() => router.push(item.path)}
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: 8,
-                fontSize: 11,
-                color: "var(--text-muted)",
+                background: "#FFFFFF",
+                borderRadius: 20,
+                border: "1px solid #EFE6F8",
+                boxShadow: "0 2px 6px rgba(183,148,246,0.08)",
+                padding: "16px",
+                cursor: "pointer",
               }}
             >
-              <span>Start</span>
-              <span style={{ color: GREEN, fontWeight: 600 }}>You are here</span>
-              <span>Year review</span>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>{item.emoji}</div>
+              <p style={{ color: "#3D2645", fontSize: 15, fontWeight: 600, margin: "0 0 2px" }}>
+                {item.label}
+              </p>
+              <p style={{ color: "#8B7B95", fontSize: 12, margin: 0 }}>
+                {item.desc}
+              </p>
             </div>
-          </div>
-        </div>
-
-        {/* This week's insight */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-3"
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 12,
-            }}
-          >
-            <Sparkles size={16} color={GREEN} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: GREEN, textTransform: "uppercase", letterSpacing: 0.5 }}>
-              This week's lesson
-            </span>
-          </div>
-          <h3
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "var(--text)",
-              margin: "0 0 8px",
-              lineHeight: 1.3,
-            }}
-          >
-            Why your muscles are your best medicine
-          </h3>
-          <p
-            style={{
-              fontSize: 14,
-              color: "var(--text-secondary)",
-              margin: 0,
-              lineHeight: 1.6,
-            }}
-          >
-            Muscle tissue absorbs glucose from your blood without needing insulin. The more muscle you build,
-            the better your body handles blood sugar. This is especially important for you, given your fasting
-            glucose trend (5.0 to 5.8 over 5 years) and your family history of type 2 diabetes.
-          </p>
-          <Link
-            href="/smith8/today"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              marginTop: 12,
-              fontSize: 13,
-              fontWeight: 600,
-              color: GREEN,
-              textDecoration: "none",
-            }}
-          >
-            Read the full lesson <ChevronRight size={14} />
-          </Link>
-        </div>
-
-        {/* Recent achievements */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-4"
-        >
-          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 14 }}>
-            Recent achievements
-          </div>
-          {STAGES.filter((s) => s.status === "done")
-            .slice(-3)
-            .reverse()
-            .map((stage) => (
-              <div
-                key={stage.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "10px 0",
-                  borderBottom: "1px solid var(--divider)",
-                }}
-              >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: GREEN_LIGHT,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: GREEN,
-                    flexShrink: 0,
-                  }}
-                >
-                  {stage.icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                    Stage {stage.id}: {stage.title}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    {stage.achievement}
-                  </div>
-                </div>
-                <CheckCircle2 size={18} color={GREEN} />
-              </div>
-            ))}
-        </div>
-
-        {/* Doctor message preview */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-5"
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: "#e3f2fd",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 14,
-                fontWeight: 600,
-                color: "#1565c0",
-              }}
-            >
-              MJ
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                Dr. Marcus Johansson
-              </div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                Your Precura doctor
-              </div>
-            </div>
-          </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "var(--text-secondary)",
-              lineHeight: 1.6,
-              background: "var(--bg-elevated)",
-              borderRadius: 14,
-              padding: "12px 14px",
-            }}
-          >
-            &quot;Your concern is completely understandable given your family history.
-            Beyond the training plan, I'd suggest getting your daily steps up -
-            even a 20-minute walk after dinner helps blood sugar regulation...&quot;
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "var(--text-muted)",
-              marginTop: 8,
-            }}
-          >
-            {formatDate(MESSAGES[MESSAGES.length - 1].date.split("T")[0])}
-          </div>
-        </div>
-
-        {/* Coming up next */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-6"
-        >
-          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>
-            Coming up next
-          </div>
-          <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 14 }}>
-            After you finish Stage 7
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 14px",
-              background: "var(--bg-elevated)",
-              borderRadius: 14,
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: "#f5f5f5",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#bbb",
-                flexShrink: 0,
-              }}
-            >
-              <Lock size={18} />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>
-                Stage 8: Your 6-Month Check-In
-              </div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                Second blood test scheduled for {formatDate(PATIENT.nextBloodTest)}
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

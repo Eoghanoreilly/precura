@@ -1,429 +1,464 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Shield, ChevronRight, ChevronDown, ChevronUp,
-  Droplet, TrendingUp, AlertTriangle, CheckCircle, Info,
-  Stethoscope, Calendar,
-} from "lucide-react";
-import {
-  BLOOD_TEST_HISTORY, DOCTOR_NOTES, getMarkerHistory, getLatestMarker,
-  type BloodMarker,
+  BLOOD_TEST_HISTORY,
+  DOCTOR_NOTES,
+  getMarkerHistory,
 } from "@/lib/v2/mock-patient";
+import {
+  ArrowLeft,
+  FileText,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Stethoscope,
+} from "lucide-react";
 
-function statusColor(status: string) {
-  if (status === "normal") return { bg: "var(--green-bg)", text: "var(--green-text)", dot: "var(--green)", label: "Normal" };
-  if (status === "borderline") return { bg: "var(--amber-bg)", text: "var(--amber-text)", dot: "var(--amber)", label: "Borderline" };
-  return { bg: "var(--red-bg)", text: "var(--red-text)", dot: "var(--red)", label: "High" };
-}
-
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-}
-
-function formatDateShort(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-// Contextual interpretation for each marker
-function getInterpretation(marker: BloodMarker): string {
-  const map: Record<string, string> = {
-    "HbA1c": "This measures your average blood sugar over the past 2-3 months. At 38 mmol/mol, you're within the normal range (under 42). But combined with your rising fasting glucose, it's worth monitoring closely.",
-    "f-Glucose": "Your fasting blood sugar is at the upper edge of the normal range. It's been rising gradually over 5 years. This is the pattern that often leads to pre-diabetes if nothing changes. The good news: lifestyle changes work.",
-    "TC": "Your total cholesterol is slightly above the recommended limit. On its own this isn't alarming, but combined with your family history of heart disease, it's worth managing through diet and activity.",
-    "HDL": "This is your 'good' cholesterol, and yours is healthy. HDL helps remove other forms of cholesterol from your bloodstream. Keep it up.",
-    "LDL": "Your 'bad' cholesterol is within the recommended range. LDL builds up in artery walls, so keeping it controlled is important given your father's heart history.",
-    "TG": "Your blood fats are normal. High triglycerides are linked to heart disease and can indicate metabolic issues. Yours look good.",
-    "TSH": "Your thyroid function is normal. TSH controls your metabolism, energy, and weight regulation.",
-    "Vit D": "Your vitamin D is slightly below the optimal level (50+ nmol/L). This is very common in Sweden, especially after winter. Dr. Johansson recommends a D3 supplement, 2000 IU daily.",
-    "Crea": "Your kidney function is normal. Creatinine is a waste product filtered by your kidneys. Normal levels mean your kidneys are working well.",
-    "f-Insulin": "Your fasting insulin level is normal. This measures how much insulin your body needs to control blood sugar. Rising insulin can be an early sign of insulin resistance, even before glucose goes up.",
-  };
-  return map[marker.shortName] || `Your ${marker.plainName.toLowerCase()} is ${marker.status}.`;
-}
-
-// Zone bar visualization
-function ZoneBar({ marker }: { marker: BloodMarker }) {
-  const { refLow, refHigh, value, unit } = marker;
+function RangeBar({
+  value,
+  refLow,
+  refHigh,
+  unit,
+  status,
+}: {
+  value: number;
+  refLow: number;
+  refHigh: number;
+  unit: string;
+  status: string;
+}) {
   const range = refHigh - refLow;
-  const extendLow = refLow - range * 0.3;
-  const extendHigh = refHigh + range * 0.3;
-  const totalRange = extendHigh - extendLow;
+  const padding = range * 0.4;
+  const displayMin = Math.max(0, refLow - padding);
+  const displayMax = refHigh + padding;
+  const displayRange = displayMax - displayMin;
 
-  // Clamp position
-  const pos = Math.max(0, Math.min(1, (value - extendLow) / totalRange));
-  const normalStart = (refLow - extendLow) / totalRange;
-  const normalEnd = (refHigh - extendLow) / totalRange;
+  const normalStart = ((refLow - displayMin) / displayRange) * 100;
+  const normalWidth = (range / displayRange) * 100;
+  const markerPos = Math.min(
+    100,
+    Math.max(0, ((value - displayMin) / displayRange) * 100)
+  );
 
-  const sc = statusColor(marker.status);
+  const statusColors: Record<string, string> = {
+    normal: "#10B981",
+    borderline: "#F59E0B",
+    abnormal: "#EF4444",
+  };
 
   return (
-    <div style={{ padding: "4px 0" }}>
-      {/* Bar */}
-      <div style={{ position: "relative", height: 12, borderRadius: 6, overflow: "hidden", background: "var(--bg-elevated)" }}>
-        {/* Low zone */}
-        <div style={{
-          position: "absolute", left: 0, top: 0, bottom: 0,
-          width: `${normalStart * 100}%`,
-          background: "var(--amber-bg)",
-          borderRadius: "6px 0 0 6px",
-        }} />
+    <div className="mt-2">
+      <div
+        style={{
+          position: "relative",
+          height: 20,
+          background: "#1F2D42",
+          borderRadius: 4,
+          overflow: "visible",
+        }}
+      >
         {/* Normal zone */}
-        <div style={{
-          position: "absolute", left: `${normalStart * 100}%`, top: 0, bottom: 0,
-          width: `${(normalEnd - normalStart) * 100}%`,
-          background: "var(--green-bg)",
-        }} />
-        {/* High zone */}
-        <div style={{
-          position: "absolute", left: `${normalEnd * 100}%`, top: 0, bottom: 0,
-          right: 0,
-          background: "var(--amber-bg)",
-          borderRadius: "0 6px 6px 0",
-        }} />
-
-        {/* Marker dot */}
-        <div style={{
-          position: "absolute",
-          left: `${pos * 100}%`,
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 14, height: 14, borderRadius: 7,
-          background: sc.dot,
-          border: "2.5px solid var(--bg-card)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-          zIndex: 2,
-        }} />
+        <div
+          style={{
+            position: "absolute",
+            left: `${normalStart}%`,
+            width: `${normalWidth}%`,
+            height: "100%",
+            background: "rgba(16, 185, 129, 0.2)",
+            borderRadius: 4,
+          }}
+        />
+        {/* Marker */}
+        <div
+          style={{
+            position: "absolute",
+            left: `${markerPos}%`,
+            top: -4,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "6px solid transparent",
+              borderRight: "6px solid transparent",
+              borderTop: `8px solid ${statusColors[status] || "#10B981"}`,
+            }}
+          />
+          <div
+            style={{
+              width: 2,
+              height: 20,
+              background: statusColors[status] || "#10B981",
+              marginLeft: 5,
+            }}
+          />
+        </div>
       </div>
-
       {/* Labels */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{refLow} {unit}</span>
-        <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{refHigh} {unit}</span>
+      <div className="flex justify-between mt-1">
+        <span
+          style={{
+            color: "#B8C5D6",
+            fontSize: 10,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+          }}
+        >
+          {refLow} {unit}
+        </span>
+        <span
+          style={{
+            color: "#B8C5D6",
+            fontSize: 10,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+          }}
+        >
+          {refHigh} {unit}
+        </span>
       </div>
     </div>
   );
 }
 
-// Mini trend sparkline
-function MiniTrend({ shortName, color }: { shortName: string; color: string }) {
+function TrendChart({ shortName }: { shortName: string }) {
   const data = getMarkerHistory(shortName);
   if (data.length < 2) return null;
-  const vals = data.map((d) => d.value);
-  const min = Math.min(...vals) * 0.98;
-  const max = Math.max(...vals) * 1.02;
-  const w = 60;
-  const h = 20;
 
-  const points = vals.map((v, i) => {
-    const x = (i / (vals.length - 1)) * w;
-    const y = h - ((v - min) / (max - min)) * h;
-    return `${x},${y}`;
+  const minVal = Math.min(...data.map((d) => d.value)) - 0.5;
+  const maxVal = Math.max(...data.map((d) => d.value)) + 0.5;
+  const width = 280;
+  const height = 80;
+  const pad = 20;
+
+  const points = data.map((d, i) => {
+    const x = pad + (i / (data.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((d.value - minVal) / (maxVal - minVal)) * (height - pad * 2);
+    return { x, y, value: d.value, date: d.date };
   });
 
-  const last = vals[vals.length - 1];
-  const lx = w;
-  const ly = h - ((last - min) / (max - min)) * h;
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaD = pathD + ` L ${points[points.length - 1].x} ${height - pad} L ${points[0].x} ${height - pad} Z`;
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
-      <polyline points={points.join(" ")} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lx} cy={ly} r={2.5} fill={color} />
+    <svg width={width} height={height + 16} style={{ display: "block", margin: "8px 0" }}>
+      <defs>
+        <linearGradient id={`trendGrad-${shortName}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7C3AED" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="#7C3AED" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={areaD} fill={`url(#trendGrad-${shortName})`} />
+      <path d={pathD} fill="none" stroke="#7C3AED" strokeWidth={2} />
+      {points.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r={3} fill="#7C3AED" />
+          <text
+            x={p.x}
+            y={p.y - 8}
+            textAnchor="middle"
+            style={{
+              fontSize: 9,
+              fill: "#B8C5D6",
+              fontFamily: '-apple-system, system-ui, sans-serif',
+            }}
+          >
+            {p.value}
+          </text>
+          <text
+            x={p.x}
+            y={height + 8}
+            textAnchor="middle"
+            style={{
+              fontSize: 8,
+              fill: "#B8C5D6",
+              fontFamily: '-apple-system, system-ui, sans-serif',
+            }}
+          >
+            {new Date(p.date).getFullYear()}
+          </text>
+        </g>
+      ))}
     </svg>
   );
 }
 
 export default function ResultsPage() {
-  const latest = BLOOD_TEST_HISTORY[0];
-  const latestNote = DOCTOR_NOTES[0];
+  const session = BLOOD_TEST_HISTORY[0];
+  const doctorNote = DOCTOR_NOTES[0];
   const [expandedMarker, setExpandedMarker] = useState<string | null>(null);
-  const [showFullNote, setShowFullNote] = useState(false);
-
-  // Group markers by category
-  const sugarMarkers = latest.results.filter((m) =>
-    ["HbA1c", "f-Glucose", "f-Insulin"].includes(m.shortName)
-  );
-  const lipidMarkers = latest.results.filter((m) =>
-    ["TC", "HDL", "LDL", "TG"].includes(m.shortName)
-  );
-  const otherMarkers = latest.results.filter((m) =>
-    !["HbA1c", "f-Glucose", "f-Insulin", "TC", "HDL", "LDL", "TG"].includes(m.shortName)
-  );
-
-  const categories = [
-    { title: "Blood Sugar", icon: <Droplet size={14} />, markers: sugarMarkers, key: "sugar" },
-    { title: "Cholesterol & Lipids", icon: <TrendingUp size={14} />, markers: lipidMarkers, key: "lipids" },
-    { title: "General Health", icon: <CheckCircle size={14} />, markers: otherMarkers, key: "other" },
-  ];
-
-  const noteLines = latestNote.note.split("\n\n");
-  const truncatedNote = noteLines.slice(0, 1).join("\n\n");
 
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100dvh" }}>
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 80px" }}>
-
-        {/* Top Bar */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          paddingTop: 16, paddingBottom: 12,
-        }}>
-          <Link href="/smith1" style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: "var(--bg-elevated)", display: "flex",
-            alignItems: "center", justifyContent: "center",
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <Link
+          href="/smith1/blood-tests"
+          className="flex items-center gap-1 mb-4"
+          style={{
+            color: "#B8C5D6",
             textDecoration: "none",
-          }}>
-            <ArrowLeft size={16} style={{ color: "var(--text)" }} />
-          </Link>
-          <div>
-            <h1 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: 0 }}>Blood Test Results</h1>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>{formatDate(latest.date)}</p>
-          </div>
+            fontSize: 13,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+          }}
+        >
+          <ArrowLeft size={14} />
+          Blood Tests
+        </Link>
+        <h1
+          style={{
+            color: "#F5F7FA",
+            fontSize: 24,
+            fontWeight: 700,
+            margin: 0,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+          }}
+        >
+          Results - {new Date(session.date).toLocaleDateString("en-SE", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </h1>
+        <p
+          style={{
+            color: "#B8C5D6",
+            fontSize: 14,
+            marginTop: 4,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+          }}
+        >
+          {session.orderedBy} - {session.lab}
+        </p>
+      </div>
+
+      {/* Doctor's note */}
+      <div
+        className="p-5 mb-6"
+        style={{
+          background: "rgba(124, 58, 237, 0.06)",
+          borderRadius: 12,
+          border: "1px solid rgba(124, 58, 237, 0.2)",
+        }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Stethoscope size={18} style={{ color: "#7C3AED" }} />
+          <h2
+            style={{
+              color: "#F5F7FA",
+              fontSize: 16,
+              fontWeight: 600,
+              margin: 0,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            }}
+          >
+            Doctor&apos;s Review
+          </h2>
         </div>
+        <div
+          className="flex items-center gap-2 mb-3"
+          style={{
+            color: "#B8C5D6",
+            fontSize: 12,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+          }}
+        >
+          <span style={{ fontWeight: 500 }}>{doctorNote.author}</span>
+          <span>-</span>
+          <span>{doctorNote.type}</span>
+          <span>-</span>
+          <span>{doctorNote.date}</span>
+        </div>
+        <div
+          style={{
+            color: "#B8C5D6",
+            fontSize: 13,
+            lineHeight: 1.7,
+            whiteSpace: "pre-line",
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+          }}
+        >
+          {doctorNote.note}
+        </div>
+      </div>
 
-        {/* Doctor's Note - THE HERO */}
-        <div className="animate-fade-in" style={{
-          background: "var(--bg-card)", borderRadius: 20,
-          border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
-          padding: 0, marginBottom: 20, overflow: "hidden",
-        }}>
-          {/* Header */}
-          <div style={{
-            background: "linear-gradient(135deg, #e8eaf6 0%, #e3f2fd 100%)",
-            padding: "18px 20px 14px",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: "var(--accent)", display: "flex",
-                alignItems: "center", justifyContent: "center",
-              }}>
-                <Stethoscope size={18} style={{ color: "#fff" }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>
-                  Doctor&apos;s Review
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                  {latestNote.author} - {latestNote.type}
-                </div>
-              </div>
-            </div>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "5px 10px", borderRadius: 8,
-              background: "rgba(255,255,255,0.6)", width: "fit-content",
-            }}>
-              <Shield size={12} style={{ color: "var(--accent)" }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--accent)" }}>
-                Reviewed and signed {formatDateShort(latestNote.date)}
-              </span>
-            </div>
-          </div>
+      {/* Results grid */}
+      <h2
+        style={{
+          color: "#F5F7FA",
+          fontSize: 18,
+          fontWeight: 600,
+          margin: 0,
+          marginBottom: 16,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        }}
+      >
+        All Markers ({session.results.length})
+      </h2>
 
-          {/* Note Content */}
-          <div style={{ padding: "16px 20px 18px" }}>
-            <div style={{
-              fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.7,
-              whiteSpace: "pre-line",
-            }}>
-              {showFullNote ? latestNote.note : truncatedNote}
-            </div>
-            {noteLines.length > 1 && (
+      <div className="flex flex-col gap-3">
+        {session.results.map((marker) => {
+          const isExpanded = expandedMarker === marker.shortName;
+          const history = getMarkerHistory(marker.shortName);
+          const hasHistory = history.length > 1;
+          const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+            normal: { bg: "rgba(16, 185, 129, 0.08)", text: "#10B981", border: "rgba(16, 185, 129, 0.15)" },
+            borderline: { bg: "rgba(245, 158, 11, 0.08)", text: "#F59E0B", border: "rgba(245, 158, 11, 0.15)" },
+            abnormal: { bg: "rgba(239, 68, 68, 0.08)", text: "#EF4444", border: "rgba(239, 68, 68, 0.15)" },
+          };
+          const sc = statusColors[marker.status] || statusColors.normal;
+
+          return (
+            <div
+              key={marker.shortName}
+              style={{
+                background: "#141F2E",
+                borderRadius: 12,
+                border: `1px solid ${sc.border}`,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Header row */}
               <button
-                onClick={() => setShowFullNote(!showFullNote)}
+                onClick={() => setExpandedMarker(isExpanded ? null : marker.shortName)}
+                className="w-full flex items-center justify-between p-4"
                 style={{
-                  marginTop: 10, background: "none", border: "none",
-                  color: "var(--accent)", fontSize: 13, fontWeight: 600,
-                  cursor: "pointer", padding: 0,
-                  display: "flex", alignItems: "center", gap: 4,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
                 }}
               >
-                {showFullNote ? "Show less" : "Read full note"}
-                {showFullNote ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Summary Stats */}
-        <div className="animate-fade-in stagger-1" style={{
-          display: "flex", gap: 8, marginBottom: 20,
-        }}>
-          {[
-            { count: latest.results.filter((r) => r.status === "normal").length, label: "Normal", bg: "var(--green-bg)", color: "var(--green-text)" },
-            { count: latest.results.filter((r) => r.status === "borderline").length, label: "Watch", bg: "var(--amber-bg)", color: "var(--amber-text)" },
-            { count: latest.results.filter((r) => r.status === "abnormal").length, label: "Action", bg: "var(--red-bg)", color: "var(--red-text)" },
-          ].filter((s) => s.count > 0).map((s) => (
-            <div key={s.label} style={{
-              flex: 1, padding: "10px 0", borderRadius: 12,
-              background: s.bg, textAlign: "center",
-            }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.count}</div>
-              <div style={{ fontSize: 11, color: s.color, fontWeight: 500 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Marker Categories */}
-        {categories.map((cat, catIdx) => (
-          <div key={cat.key} className={`animate-fade-in stagger-${catIdx + 2}`} style={{ marginBottom: 20 }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6,
-              marginBottom: 10, paddingLeft: 2,
-            }}>
-              <span style={{ color: "var(--text-muted)" }}>{cat.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "-0.01em" }}>
-                {cat.title}
-              </span>
-              <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
-                {cat.markers.length} markers
-              </span>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {cat.markers.map((marker) => {
-                const sc = statusColor(marker.status);
-                const isExpanded = expandedMarker === marker.shortName;
-                const history = getMarkerHistory(marker.shortName);
-                const prevValue = history.length >= 2 ? history[history.length - 2].value : null;
-                const change = prevValue !== null ? marker.value - prevValue : null;
-
-                return (
-                  <div key={marker.shortName} style={{
-                    background: "var(--bg-card)", borderRadius: 16,
-                    border: "1px solid var(--border)",
-                    boxShadow: "var(--shadow-sm)",
-                    overflow: "hidden",
-                  }}>
-                    {/* Marker Header - always visible */}
-                    <button
-                      onClick={() => setExpandedMarker(isExpanded ? null : marker.shortName)}
+                <div className="flex items-center gap-3">
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      background: sc.text,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div className="text-left">
+                    <div
                       style={{
-                        width: "100%", background: "none", border: "none",
-                        padding: "14px 16px", cursor: "pointer",
-                        display: "flex", alignItems: "center", gap: 12,
+                        color: "#F5F7FA",
+                        fontSize: 14,
+                        fontWeight: 500,
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
                       }}
                     >
-                      {/* Status indicator */}
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        background: sc.bg, display: "flex",
-                        alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                      }}>
-                        {marker.status === "normal" ? (
-                          <CheckCircle size={16} style={{ color: sc.text }} />
-                        ) : (
-                          <AlertTriangle size={16} style={{ color: sc.text }} />
-                        )}
-                      </div>
+                      {marker.plainName}
+                    </div>
+                    <div
+                      style={{
+                        color: "#B8C5D6",
+                        fontSize: 11,
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                      }}
+                    >
+                      {marker.name} ({marker.shortName})
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div
+                      style={{
+                        color: sc.text,
+                        fontSize: 18,
+                        fontWeight: 700,
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                      }}
+                    >
+                      {marker.value}
+                    </div>
+                    <div
+                      style={{
+                        color: "#B8C5D6",
+                        fontSize: 11,
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                      }}
+                    >
+                      {marker.unit}
+                    </div>
+                  </div>
+                  <span
+                    className="px-2 py-0.5"
+                    style={{
+                      background: sc.bg,
+                      color: sc.text,
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                    }}
+                  >
+                    {marker.status}
+                  </span>
+                  {isExpanded ? (
+                    <ChevronUp size={16} style={{ color: "#B8C5D6" }} />
+                  ) : (
+                    <ChevronDown size={16} style={{ color: "#B8C5D6" }} />
+                  )}
+                </div>
+              </button>
 
-                      <div style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                          {marker.plainName}
-                        </div>
-                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          {marker.name}
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: sc.text }}>
-                          {marker.value}
-                          <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)", marginLeft: 2 }}>{marker.unit}</span>
-                        </div>
-                        {change !== null && change !== 0 && (
-                          <div style={{ fontSize: 10, color: sc.text, fontWeight: 500 }}>
-                            {change > 0 ? "+" : ""}{change.toFixed(1)} since last
-                          </div>
-                        )}
-                      </div>
-
-                      <ChevronRight
-                        size={16}
+              {/* Expanded detail */}
+              {isExpanded && (
+                <div
+                  className="px-4 pb-4"
+                  style={{ borderTop: "1px solid #1F2D42" }}
+                >
+                  <div className="pt-4">
+                    {/* Range bar */}
+                    <div className="mb-3">
+                      <div
                         style={{
-                          color: "var(--text-faint)", flexShrink: 0,
-                          transform: isExpanded ? "rotate(90deg)" : "none",
-                          transition: "transform 0.2s",
+                          color: "#B8C5D6",
+                          fontSize: 12,
+                          marginBottom: 4,
+                          fontWeight: 500,
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
                         }}
+                      >
+                        Reference range: {marker.refLow} - {marker.refHigh} {marker.unit}
+                      </div>
+                      <RangeBar
+                        value={marker.value}
+                        refLow={marker.refLow}
+                        refHigh={marker.refHigh}
+                        unit={marker.unit}
+                        status={marker.status}
                       />
-                    </button>
+                    </div>
 
-                    {/* Expanded Detail */}
-                    {isExpanded && (
-                      <div style={{
-                        padding: "0 16px 16px",
-                        borderTop: "1px solid var(--divider)",
-                      }}>
-                        {/* Zone bar */}
-                        <div style={{ padding: "14px 0 10px" }}>
-                          <ZoneBar marker={marker} />
+                    {/* Trend chart */}
+                    {hasHistory && (
+                      <div className="mt-4">
+                        <div
+                          className="flex items-center gap-1 mb-2"
+                          style={{
+                            color: "#B8C5D6",
+                            fontSize: 12,
+                            fontWeight: 500,
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                          }}
+                        >
+                          <TrendingUp size={12} />
+                          Trend over time ({history.length} readings)
                         </div>
-
-                        {/* Interpretation */}
-                        <div style={{
-                          background: "var(--bg-elevated)", borderRadius: 12,
-                          padding: "12px 14px", marginBottom: 12,
-                        }}>
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                            <Info size={14} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
-                            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
-                              {getInterpretation(marker)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Trend sparkline */}
-                        {history.length >= 2 && (
-                          <Link href={`/smith1/marker?m=${marker.shortName}`} style={{ textDecoration: "none" }}>
-                            <div style={{
-                              display: "flex", alignItems: "center", justifyContent: "space-between",
-                              padding: "10px 12px", borderRadius: 10,
-                              background: "var(--bg-elevated)",
-                            }}>
-                              <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}>
-                                  {history.length}-test trend
-                                </div>
-                                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                                  {history[0].value} to {history[history.length - 1].value} {marker.unit}
-                                </div>
-                              </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <MiniTrend shortName={marker.shortName} color={sc.dot} />
-                                <ChevronRight size={14} style={{ color: "var(--text-faint)" }} />
-                              </div>
-                            </div>
-                          </Link>
-                        )}
+                        <TrendChart shortName={marker.shortName} />
                       </div>
                     )}
                   </div>
-                );
-              })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
-
-        {/* Test Info Footer */}
-        <div style={{
-          background: "var(--bg-elevated)", borderRadius: 14,
-          padding: "14px 16px",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Calendar size={13} style={{ color: "var(--text-muted)" }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>Test Details</span>
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.8 }}>
-            Date: {formatDate(latest.date)}<br />
-            Lab: {latest.lab}<br />
-            Ordered by: {latest.orderedBy}<br />
-            Markers tested: {latest.results.length}
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

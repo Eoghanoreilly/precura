@@ -1,28 +1,36 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import Link from "next/link";
+import React, { useState } from "react";
 import {
-  Activity, TestTube, ChevronRight, ChevronDown, ChevronUp,
-  Calendar, Pill, Stethoscope, Syringe, Dumbbell,
-  AlertTriangle, TrendingUp, TrendingDown, Heart, Brain,
-  ArrowLeft, Link2, Eye, Filter, Search, Clock,
-  Minus, Plus, X, ChevronLeft,
-} from "lucide-react";
-import {
-  PATIENT, BLOOD_TEST_HISTORY, RISK_ASSESSMENTS, FAMILY_HISTORY,
-  BIOMETRICS_HISTORY, MESSAGES, DOCTOR_NOTES, TRAINING_PLAN,
-  CONDITIONS, MEDICATIONS, MEDICATION_HISTORY, DOCTOR_VISITS,
-  VACCINATIONS, getMarkerHistory,
+  PATIENT,
+  DOCTOR_VISITS,
+  BLOOD_TEST_HISTORY,
+  BIOMETRICS_HISTORY,
+  MEDICATIONS,
+  MEDICATION_HISTORY,
+  CONDITIONS,
+  VACCINATIONS,
+  TRAINING_PLAN,
+  RISK_ASSESSMENTS,
+  FAMILY_HISTORY,
+  DOCTOR_NOTES,
+  getMarkerHistory,
 } from "@/lib/v2/mock-patient";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type EventType = "blood_test" | "doctor_visit" | "medication_start" | "medication_end" |
-  "condition_diagnosed" | "condition_resolved" | "vaccination" | "biometric" |
-  "training_start" | "precura_join" | "insight";
+type EventType =
+  | "blood-test"
+  | "doctor-visit"
+  | "medication-start"
+  | "medication-end"
+  | "condition-diagnosed"
+  | "condition-resolved"
+  | "vaccination"
+  | "biometric"
+  | "training-start";
 
 interface TimelineEvent {
   id: string;
@@ -30,417 +38,379 @@ interface TimelineEvent {
   type: EventType;
   title: string;
   subtitle: string;
-  detail?: string;
-  icon: EventType;
-  severity: "normal" | "watch" | "alert" | "positive" | "neutral";
-  connections: string[]; // IDs of related events
-  markers?: { name: string; value: string; status: "normal" | "borderline" | "abnormal" }[];
-  expanded?: boolean;
-}
-
-interface Connection {
-  fromId: string;
-  toId: string;
-  label: string;
-  type: "cause_effect" | "correlation" | "temporal" | "improvement";
+  details?: string;
+  markers?: { label: string; value: string; status: "normal" | "borderline" | "abnormal" }[];
+  connectionTo?: string;
+  connectionLabel?: string;
 }
 
 // ============================================================================
-// Build the unified timeline from ALL data sources
+// Build the unified timeline from all data sources
 // ============================================================================
 
-function buildTimeline(): { events: TimelineEvent[]; connections: Connection[] } {
+function buildTimeline(): TimelineEvent[] {
   const events: TimelineEvent[] = [];
-  const connections: Connection[] = [];
 
-  // --- Blood tests ---
-  BLOOD_TEST_HISTORY.forEach((session, idx) => {
-    const borderline = session.results.filter(r => r.status === "borderline");
-    const abnormal = session.results.filter(r => r.status === "abnormal");
-    const severity = abnormal.length > 0 ? "alert" as const : borderline.length > 0 ? "watch" as const : "normal" as const;
-
-    const markers = session.results.map(r => ({
-      name: `${r.plainName} (${r.shortName})`,
+  // Blood tests
+  BLOOD_TEST_HISTORY.forEach((session, i) => {
+    const markers = session.results.map((r) => ({
+      label: `${r.plainName} (${r.shortName})`,
       value: `${r.value} ${r.unit}`,
       status: r.status,
     }));
-
-    const flagged = [...abnormal, ...borderline];
-    const subtitle = flagged.length > 0
-      ? `${flagged.map(r => `${r.plainName} ${r.value} ${r.unit}`).join(", ")}`
-      : `${session.results.length} markers, all normal`;
-
     events.push({
-      id: `blood-${session.date}`,
+      id: `blood-${i}`,
       date: session.date,
-      type: "blood_test",
-      title: "Blood test panel",
-      subtitle,
-      detail: `Ordered by ${session.orderedBy}. Lab: ${session.lab}. ${session.results.length} markers tested.`,
-      icon: "blood_test",
-      severity,
-      connections: [],
+      type: "blood-test",
+      title: "Blood test results",
+      subtitle: `${session.orderedBy} / ${session.lab}`,
       markers,
     });
   });
 
-  // --- Doctor visits ---
-  DOCTOR_VISITS.forEach((visit) => {
+  // Doctor visits
+  DOCTOR_VISITS.forEach((visit, i) => {
     events.push({
-      id: `visit-${visit.date}`,
+      id: `visit-${i}`,
       date: visit.date,
-      type: "doctor_visit",
+      type: "doctor-visit",
       title: visit.type,
       subtitle: visit.provider,
-      detail: visit.summary,
-      icon: "doctor_visit",
-      severity: "neutral",
-      connections: [],
+      details: visit.summary,
     });
   });
 
-  // --- Conditions diagnosed ---
-  CONDITIONS.forEach((cond) => {
+  // Active medications started
+  MEDICATIONS.forEach((med, i) => {
     events.push({
-      id: `cond-${cond.diagnosedDate}`,
-      date: cond.diagnosedDate,
-      type: cond.status === "resolved" ? "condition_resolved" : "condition_diagnosed",
-      title: `Diagnosed: ${cond.name}`,
-      subtitle: `${cond.icd10} - by ${cond.treatedBy}`,
-      detail: cond.status === "resolved" ? "This condition has been resolved." : "Ongoing condition, currently active.",
-      icon: cond.status === "resolved" ? "condition_resolved" : "condition_diagnosed",
-      severity: cond.status === "resolved" ? "normal" : "watch",
-      connections: [],
-    });
-  });
-
-  // --- Medications started ---
-  MEDICATIONS.forEach((med) => {
-    events.push({
-      id: `med-start-${med.name.toLowerCase()}`,
+      id: `med-start-${i}`,
       date: med.startDate,
-      type: "medication_start",
+      type: "medication-start",
       title: `Started ${med.name} ${med.dose}`,
-      subtitle: `${med.frequency} - ${med.purpose}`,
-      detail: `Prescribed by ${med.prescribedBy}. ${med.active ? "Currently active." : "Discontinued."}`,
-      icon: "medication_start",
-      severity: "neutral",
-      connections: [],
+      subtitle: `${med.frequency} for ${med.purpose}`,
+      details: `Prescribed by ${med.prescribedBy}`,
     });
   });
 
-  // --- Medication history (completed) ---
-  MEDICATION_HISTORY.forEach((med) => {
+  // Past medications
+  MEDICATION_HISTORY.forEach((med, i) => {
     events.push({
-      id: `med-hist-start-${med.name.toLowerCase()}`,
+      id: `med-hist-start-${i}`,
       date: med.startDate,
-      type: "medication_start",
+      type: "medication-start",
       title: `Started ${med.name} ${med.dose}`,
-      subtitle: `${med.frequency} - ${med.purpose}`,
-      detail: `Prescribed by ${med.prescribedBy}. Temporary course.`,
-      icon: "medication_start",
-      severity: "neutral",
-      connections: [],
+      subtitle: `${med.frequency} for ${med.purpose}`,
+      details: `Prescribed by ${med.prescribedBy}`,
     });
     if (med.endDate) {
       events.push({
-        id: `med-hist-end-${med.name.toLowerCase()}`,
+        id: `med-hist-end-${i}`,
         date: med.endDate,
-        type: "medication_end",
-        title: `Completed ${med.name}`,
-        subtitle: `Course finished - ${med.purpose}`,
-        icon: "medication_end",
-        severity: "normal",
-        connections: [],
+        type: "medication-end",
+        title: `Stopped ${med.name}`,
+        subtitle: `Completed course for ${med.purpose}`,
       });
     }
   });
 
-  // --- Vaccinations ---
-  VACCINATIONS.forEach((vax) => {
+  // Conditions diagnosed
+  CONDITIONS.forEach((cond, i) => {
     events.push({
-      id: `vax-${vax.date}`,
+      id: `cond-${i}`,
+      date: cond.diagnosedDate,
+      type: "condition-diagnosed",
+      title: `Diagnosed: ${cond.name}`,
+      subtitle: `ICD-10: ${cond.icd10}`,
+      details: `${cond.treatedBy}`,
+    });
+    if (cond.status === "resolved") {
+      events.push({
+        id: `cond-resolved-${i}`,
+        date: cond.diagnosedDate,
+        type: "condition-resolved",
+        title: `Resolved: ${cond.name}`,
+        subtitle: "No longer active",
+      });
+    }
+  });
+
+  // Vaccinations
+  VACCINATIONS.forEach((vax, i) => {
+    events.push({
+      id: `vax-${i}`,
       date: vax.date,
       type: "vaccination",
       title: vax.name,
       subtitle: vax.provider,
-      icon: "vaccination",
-      severity: "positive",
-      connections: [],
     });
   });
 
-  // --- Biometrics (only include a few key inflection points, not every single one) ---
-  BIOMETRICS_HISTORY.forEach((b) => {
-    events.push({
-      id: `bio-${b.date}`,
-      date: b.date,
-      type: "biometric",
-      title: "Biometrics measured",
-      subtitle: `${b.weight}kg / BMI ${b.bmi} / BP ${b.bloodPressure} / Waist ${b.waist}cm`,
-      icon: "biometric",
-      severity: "neutral",
-      connections: [],
-      markers: [
-        { name: "Weight", value: `${b.weight} kg`, status: b.bmi >= 28 ? "borderline" : "normal" },
-        { name: "BMI", value: `${b.bmi}`, status: b.bmi >= 28 ? "borderline" : "normal" },
-        { name: "Blood pressure", value: b.bloodPressure, status: parseInt(b.bloodPressure) >= 140 ? "abnormal" : parseInt(b.bloodPressure) >= 130 ? "borderline" : "normal" },
-        { name: "Waist", value: `${b.waist} cm`, status: b.waist >= 88 ? "abnormal" : b.waist >= 85 ? "borderline" : "normal" },
-      ],
-    });
+  // Biometrics (only add if not same day as blood test or visit)
+  BIOMETRICS_HISTORY.forEach((bio, i) => {
+    const hasSameDayEvent = events.some(
+      (e) => e.date === bio.date && (e.type === "blood-test" || e.type === "doctor-visit")
+    );
+    if (!hasSameDayEvent) {
+      events.push({
+        id: `bio-${i}`,
+        date: bio.date,
+        type: "biometric",
+        title: "Biometric measurement",
+        subtitle: `Weight ${bio.weight}kg / BMI ${bio.bmi} / BP ${bio.bloodPressure}`,
+        markers: [
+          { label: "Weight", value: `${bio.weight} kg`, status: "normal" },
+          { label: "BMI", value: `${bio.bmi}`, status: bio.bmi > 27.5 ? "borderline" : "normal" },
+          { label: "Blood pressure", value: bio.bloodPressure, status: "normal" },
+          { label: "Waist", value: `${bio.waist} cm`, status: bio.waist > 86 ? "borderline" : "normal" },
+        ],
+      });
+    }
   });
 
-  // --- Training plan start ---
+  // Training plan start
   events.push({
     id: "training-start",
     date: TRAINING_PLAN.startDate,
-    type: "training_start",
+    type: "training-start",
     title: `Started: ${TRAINING_PLAN.name}`,
     subtitle: `Created by ${TRAINING_PLAN.createdBy}`,
-    detail: `Goal: ${TRAINING_PLAN.goal}. Currently week ${TRAINING_PLAN.currentWeek} of ${TRAINING_PLAN.totalWeeks}. ${TRAINING_PLAN.totalCompleted} sessions completed.`,
-    icon: "training_start",
-    severity: "positive",
-    connections: [],
+    details: TRAINING_PLAN.goal,
   });
 
-  // --- Precura membership ---
-  events.push({
-    id: "precura-join",
-    date: PATIENT.memberSince,
-    type: "precura_join",
-    title: "Joined Precura",
-    subtitle: "Annual membership - Predictive health monitoring",
-    detail: "Started comprehensive health tracking with Precura. Historical health data imported from 1177.",
-    icon: "precura_join",
-    severity: "positive",
-    connections: [],
-  });
-
-  // ============================================================================
-  // Build connections - THIS IS THE CORE VALUE PROPOSITION
-  // ============================================================================
-
-  // Hypertension diagnosis -> Enalapril start
-  connections.push({
-    fromId: "cond-2022-03-14",
-    toId: "med-start-enalapril",
-    label: "6 days later, started Enalapril 5mg to control blood pressure",
-    type: "cause_effect",
-  });
-
-  // Enalapril start -> BP improvement (2022 BP 142/88 -> 2023 BP 132/84)
-  connections.push({
-    fromId: "med-start-enalapril",
-    toId: "bio-2023-03-10",
-    label: "12 months on Enalapril: BP dropped from 142/88 to 132/84",
-    type: "improvement",
-  });
-
-  // Blood test glucose rising trend across years
-  connections.push({
-    fromId: "blood-2021-04-10",
-    toId: "blood-2026-03-27",
-    label: "Glucose rose from 5.0 to 5.8 over 5 years - nobody flagged this until Precura",
-    type: "correlation",
-  });
-
-  // Weight increase -> glucose rise correlation
-  connections.push({
-    fromId: "bio-2021-04-10",
-    toId: "bio-2024-11-10",
-    label: "Weight increased 74kg to 79kg (+5kg) as glucose steadily climbed",
-    type: "correlation",
-  });
-
-  // Back strain -> medications
-  connections.push({
-    fromId: "cond-2023-09-10",
-    toId: "med-hist-start-naproxen",
-    label: "Back strain treated with 2-week Naproxen + Omeprazol course",
-    type: "cause_effect",
-  });
-
-  // Doctor visit 2023-09-10 -> physiotherapy
-  connections.push({
-    fromId: "visit-2023-09-10",
-    toId: "visit-2023-10-20",
-    label: "Referred to physiotherapy, cleared for light jogging after 6 weeks",
-    type: "temporal",
-  });
-
-  // Precura join -> comprehensive blood test
-  connections.push({
-    fromId: "precura-join",
-    toId: "blood-2026-03-27",
-    label: "Precura ordered comprehensive panel - 10 markers vs typical 3-4 at vardcentral",
-    type: "cause_effect",
-  });
-
-  // Training start -> latest biometrics improvement
-  connections.push({
-    fromId: "training-start",
-    toId: "bio-2026-03-15",
-    label: "After 8 weeks of training: weight stable at 78kg, BP improved to 132/82",
-    type: "improvement",
-  });
-
-  // Cholesterol creeping up alongside glucose
-  connections.push({
-    fromId: "blood-2021-04-10",
-    toId: "blood-2026-03-27",
-    label: "Total cholesterol rose from 4.6 to 5.1 alongside glucose - metabolic pattern",
-    type: "correlation",
-  });
-
-  // BP peak at 2024-11-10 (138/86) coincided with peak weight (79kg)
-  connections.push({
-    fromId: "bio-2024-11-10",
-    toId: "bio-2025-03-15",
-    label: "Peak weight 79kg + BP 138/86 in Nov 2024 - dropped to 77kg + 130/82 by March",
-    type: "correlation",
-  });
-
-  // Sort events by date descending (newest first)
+  // Sort by date descending (newest first)
   events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Assign connection IDs to events
-  connections.forEach(conn => {
-    const fromEvent = events.find(e => e.id === conn.fromId);
-    const toEvent = events.find(e => e.id === conn.toId);
-    if (fromEvent && !fromEvent.connections.includes(conn.toId)) fromEvent.connections.push(conn.toId);
-    if (toEvent && !toEvent.connections.includes(conn.fromId)) toEvent.connections.push(conn.fromId);
-  });
+  // Add connections between related events
+  addConnections(events);
 
-  return { events, connections };
+  return events;
 }
 
-// ============================================================================
-// Formatting helpers
-// ============================================================================
+function addConnections(events: TimelineEvent[]) {
+  // Connection: Enalapril start -> BP improvement
+  const enalaprilStart = events.find((e) => e.id === "med-start-0");
+  const bpFollowup = events.find(
+    (e) => e.type === "doctor-visit" && e.date === "2025-03-15"
+  );
+  if (enalaprilStart && bpFollowup) {
+    enalaprilStart.connectionTo = bpFollowup.id;
+    enalaprilStart.connectionLabel =
+      "3 years on Enalapril: BP dropped from 142/88 to 130/82";
+  }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
+  // Connection: Back strain -> physio
+  const backStrain = events.find(
+    (e) => e.type === "doctor-visit" && e.date === "2023-09-10"
+  );
+  const physio = events.find(
+    (e) => e.type === "doctor-visit" && e.date === "2023-10-20"
+  );
+  if (backStrain && physio) {
+    backStrain.connectionTo = physio.id;
+    backStrain.connectionLabel =
+      "6 weeks later: cleared for light jogging after physio";
+  }
 
-function formatMonth(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-}
+  // Connection: Weight up -> glucose rise
+  const bloodTest2024 = events.find((e) => e.id === "blood-2");
+  const bloodTest2025 = events.find((e) => e.id === "blood-1");
+  if (bloodTest2024 && bloodTest2025) {
+    bloodTest2024.connectionTo = bloodTest2025.id;
+    bloodTest2024.connectionLabel =
+      "Glucose crept from 5.4 to 5.5 as weight held at 77-79kg";
+  }
 
-function formatYear(d: string) {
-  return new Date(d).getFullYear().toString();
-}
+  // Connection: First glucose reading -> latest
+  const firstBlood = events.find((e) => e.id === "blood-5");
+  const latestBlood = events.find((e) => e.id === "blood-0");
+  if (firstBlood && latestBlood) {
+    firstBlood.connectionTo = latestBlood.id;
+    firstBlood.connectionLabel =
+      "5-year trend: glucose 5.0 to 5.8, cholesterol 4.6 to 5.1";
+  }
 
-function yearFromDate(d: string) {
-  return new Date(d).getFullYear();
-}
+  // Connection: Hypertension diagnosis -> medication start
+  const hypertensionDx = events.find((e) => e.id === "cond-0");
+  if (hypertensionDx && enalaprilStart) {
+    hypertensionDx.connectionTo = enalaprilStart.id;
+    hypertensionDx.connectionLabel =
+      "6 days later: started Enalapril 5mg daily";
+  }
 
-function daysBetween(a: string, b: string) {
-  return Math.round(Math.abs(new Date(b).getTime() - new Date(a).getTime()) / (1000 * 60 * 60 * 24));
-}
+  // Connection: Training plan start -> latest blood test
+  const trainingStart = events.find((e) => e.id === "training-start");
+  if (trainingStart && latestBlood) {
+    trainingStart.connectionTo = latestBlood.id;
+    trainingStart.connectionLabel =
+      "10 weeks into metabolic health program at time of latest test";
+  }
 
-// ============================================================================
-// Event config
-// ============================================================================
-
-const EVENT_CONFIG: Record<EventType, { color: string; bgColor: string; label: string }> = {
-  blood_test: { color: "var(--red)", bgColor: "var(--red-bg)", label: "Blood test" },
-  doctor_visit: { color: "var(--blue)", bgColor: "var(--blue-bg)", label: "Doctor visit" },
-  medication_start: { color: "var(--purple)", bgColor: "var(--purple-bg)", label: "Medication started" },
-  medication_end: { color: "var(--teal)", bgColor: "var(--teal-bg)", label: "Medication ended" },
-  condition_diagnosed: { color: "var(--amber)", bgColor: "var(--amber-bg)", label: "Condition" },
-  condition_resolved: { color: "var(--green)", bgColor: "var(--green-bg)", label: "Resolved" },
-  vaccination: { color: "var(--teal)", bgColor: "var(--teal-bg)", label: "Vaccination" },
-  biometric: { color: "var(--blue)", bgColor: "var(--blue-bg)", label: "Biometrics" },
-  training_start: { color: "var(--green)", bgColor: "var(--green-bg)", label: "Training" },
-  precura_join: { color: "var(--accent)", bgColor: "var(--accent-light)", label: "Precura" },
-  insight: { color: "#0f5959", bgColor: "#e0f2f1", label: "Insight" },
-};
-
-function EventIcon({ type }: { type: EventType }) {
-  const size = 16;
-  switch (type) {
-    case "blood_test": return <TestTube size={size} />;
-    case "doctor_visit": return <Stethoscope size={size} />;
-    case "medication_start": return <Pill size={size} />;
-    case "medication_end": return <Pill size={size} />;
-    case "condition_diagnosed": return <AlertTriangle size={size} />;
-    case "condition_resolved": return <Heart size={size} />;
-    case "vaccination": return <Syringe size={size} />;
-    case "biometric": return <Activity size={size} />;
-    case "training_start": return <Dumbbell size={size} />;
-    case "precura_join": return <Brain size={size} />;
-    case "insight": return <Link2 size={size} />;
-    default: return <Calendar size={size} />;
+  // Connection: Precura onboarding -> training start
+  const precuraVisit = events.find(
+    (e) => e.type === "doctor-visit" && e.date === "2026-01-15"
+  );
+  if (precuraVisit && trainingStart) {
+    precuraVisit.connectionTo = trainingStart.id;
+    precuraVisit.connectionLabel =
+      "5 days later: personalized training plan began";
   }
 }
 
-function SeverityIndicator({ severity }: { severity: string }) {
-  if (severity === "alert") return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--red)", marginRight: 6 }} />;
-  if (severity === "watch") return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--amber)", marginRight: 6 }} />;
-  if (severity === "positive") return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--green)", marginRight: 6 }} />;
-  return null;
-}
-
 // ============================================================================
-// Glucose trend sparkline
+// Visual constants
 // ============================================================================
 
-function GlucoseTrend() {
+const TYPE_CONFIG: Record<
+  EventType,
+  { icon: string; color: string; bg: string; label: string }
+> = {
+  "blood-test": {
+    icon: "&#128308;",
+    color: "#C85A54",
+    bg: "rgba(200,90,84,0.08)",
+    label: "Blood test",
+  },
+  "doctor-visit": {
+    icon: "&#128100;",
+    color: "#2D6A4F",
+    bg: "rgba(45,106,79,0.08)",
+    label: "Doctor visit",
+  },
+  "medication-start": {
+    icon: "&#128138;",
+    color: "#5B7AA3",
+    bg: "rgba(91,122,163,0.08)",
+    label: "Medication",
+  },
+  "medication-end": {
+    icon: "&#9898;",
+    color: "#6D6B63",
+    bg: "rgba(109,107,99,0.06)",
+    label: "Medication ended",
+  },
+  "condition-diagnosed": {
+    icon: "&#9888;",
+    color: "#D4A574",
+    bg: "rgba(212,165,116,0.1)",
+    label: "Diagnosis",
+  },
+  "condition-resolved": {
+    icon: "&#9989;",
+    color: "#558B6B",
+    bg: "rgba(85,139,107,0.08)",
+    label: "Resolved",
+  },
+  vaccination: {
+    icon: "&#128137;",
+    color: "#7B8A6E",
+    bg: "rgba(123,138,110,0.08)",
+    label: "Vaccination",
+  },
+  biometric: {
+    icon: "&#128207;",
+    color: "#8B7355",
+    bg: "rgba(139,115,85,0.08)",
+    label: "Measurement",
+  },
+  "training-start": {
+    icon: "&#127947;",
+    color: "#2D6A4F",
+    bg: "rgba(45,106,79,0.08)",
+    label: "Training",
+  },
+};
+
+const STATUS_COLORS = {
+  normal: { color: "#558B6B", bg: "rgba(85,139,107,0.1)" },
+  borderline: { color: "#D4A574", bg: "rgba(212,165,116,0.12)" },
+  abnormal: { color: "#C85A54", bg: "rgba(200,90,84,0.1)" },
+};
+
+// ============================================================================
+// Glucose sparkline
+// ============================================================================
+
+function GlucoseSparkline() {
   const data = getMarkerHistory("f-Glucose");
   if (data.length < 2) return null;
 
-  const w = 260;
+  const min = Math.min(...data.map((d) => d.value)) - 0.3;
+  const max = Math.max(...data.map((d) => d.value)) + 0.3;
+  const w = 280;
   const h = 80;
-  const padX = 30;
-  const padY = 12;
-  const vals = data.map(d => d.value);
-  const min = Math.min(...vals) - 0.3;
-  const max = Math.max(...vals) + 0.3;
+  const padding = 20;
 
   const points = data.map((d, i) => {
-    const x = padX + (i / (data.length - 1)) * (w - padX * 2);
-    const y = padY + (1 - (d.value - min) / (max - min)) * (h - padY * 2);
-    return { x, y, value: d.value, date: d.date };
+    const x = padding + (i / (data.length - 1)) * (w - 2 * padding);
+    const y = h - padding - ((d.value - min) / (max - min)) * (h - 2 * padding);
+    return { x, y, value: d.value, year: d.date.slice(0, 4) };
   });
 
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const pathD = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ");
 
-  // Reference line at 6.0 (upper normal)
-  const refY = padY + (1 - (6.0 - min) / (max - min)) * (h - padY * 2);
+  // Warning zone (above 5.6)
+  const warnY =
+    h - padding - ((5.6 - min) / (max - min)) * (h - 2 * padding);
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
-      {/* Pre-diabetic zone */}
-      <rect x={padX} y={padY} width={w - padX * 2} height={refY - padY} fill="var(--amber-bg)" opacity={0.5} rx={4} />
-
-      {/* Reference line */}
-      <line x1={padX} y1={refY} x2={w - padX} y2={refY} stroke="var(--amber)" strokeWidth={1} strokeDasharray="4,3" opacity={0.6} />
-      <text x={w - padX + 4} y={refY + 4} fill="var(--amber-text)" fontSize={9} fontFamily="var(--font-mono)">6.0</text>
-
-      {/* Gradient fill under line */}
-      <defs>
-        <linearGradient id="glucGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0f5959" stopOpacity={0.15} />
-          <stop offset="100%" stopColor="#0f5959" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <polygon
-        points={`${points[0].x},${h - padY} ${points.map(p => `${p.x},${p.y}`).join(" ")} ${points[points.length - 1].x},${h - padY}`}
-        fill="url(#glucGrad)"
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      {/* Warning zone */}
+      <rect
+        x={padding}
+        y={Math.max(0, warnY)}
+        width={w - 2 * padding}
+        height={h - padding - Math.max(0, warnY)}
+        fill="rgba(212,165,116,0.1)"
+        rx={4}
       />
+      <line
+        x1={padding}
+        y1={warnY}
+        x2={w - padding}
+        y2={warnY}
+        stroke="#D4A574"
+        strokeWidth={1}
+        strokeDasharray="4 3"
+      />
+      <text
+        x={w - padding + 2}
+        y={warnY + 4}
+        fill="#D4A574"
+        style={{ fontSize: 9, fontFamily: "-apple-system, sans-serif" }}
+      >
+        5.6
+      </text>
 
       {/* Line */}
-      <path d={linePath} fill="none" stroke="#0f5959" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={pathD} fill="none" stroke="#C85A54" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
 
-      {/* Data points */}
+      {/* Dots */}
       {points.map((p, i) => (
         <g key={i}>
-          <circle cx={p.x} cy={p.y} r={4} fill="#fff" stroke="#0f5959" strokeWidth={2} />
-          <text x={p.x} y={h - 1} textAnchor="middle" fill="var(--text-muted)" fontSize={8} fontFamily="var(--font-mono)">
-            {new Date(p.date).getFullYear()}
-          </text>
-          <text x={p.x} y={p.y - 8} textAnchor="middle" fill="#0f5959" fontSize={9} fontWeight={600} fontFamily="var(--font-mono)">
+          <circle cx={p.x} cy={p.y} r={i === points.length - 1 ? 5 : 3.5} fill={i === points.length - 1 ? "#C85A54" : "#D4A574"} stroke="#FFFBF5" strokeWidth={2} />
+          <text
+            x={p.x}
+            y={p.y - 10}
+            textAnchor="middle"
+            fill="#3E2723"
+            style={{
+              fontSize: 10,
+              fontWeight: i === points.length - 1 ? 700 : 400,
+              fontFamily: "-apple-system, sans-serif",
+            }}
+          >
             {p.value}
+          </text>
+          <text
+            x={p.x}
+            y={h - 3}
+            textAnchor="middle"
+            fill="#6D6B63"
+            style={{ fontSize: 8, fontFamily: "-apple-system, sans-serif" }}
+          >
+            {p.year}
           </text>
         </g>
       ))}
@@ -449,221 +419,238 @@ function GlucoseTrend() {
 }
 
 // ============================================================================
-// Connection Line Component
+// Connection arrow component
 // ============================================================================
 
-function ConnectionCard({ conn, events }: { conn: Connection; events: TimelineEvent[] }) {
-  const from = events.find(e => e.id === conn.fromId);
-  const to = events.find(e => e.id === conn.toId);
-  if (!from || !to) return null;
-
-  const typeColors: Record<string, { border: string; bg: string; text: string; icon: string }> = {
-    cause_effect: { border: "#0f5959", bg: "#e0f7f5", text: "#0f5959", icon: "var(--teal)" },
-    correlation: { border: "var(--amber)", bg: "var(--amber-bg)", text: "var(--amber-text)", icon: "var(--amber)" },
-    improvement: { border: "var(--green)", bg: "var(--green-bg)", text: "var(--green-text)", icon: "var(--green)" },
-    temporal: { border: "var(--blue)", bg: "var(--blue-bg)", text: "var(--blue-text)", icon: "var(--blue)" },
-  };
-
-  const c = typeColors[conn.type] || typeColors.temporal;
-  const days = daysBetween(from.date, to.date);
-
+function ConnectionBadge({ label }: { label: string }) {
   return (
-    <div style={{
-      padding: "14px 16px",
-      borderRadius: 14,
-      background: c.bg,
-      border: `1.5px solid ${c.border}`,
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Link2 size={14} style={{ color: c.icon, flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: c.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          {conn.type === "cause_effect" ? "Cause / Effect" : conn.type === "correlation" ? "Pattern" : conn.type === "improvement" ? "Improvement" : "Timeline"}
-        </span>
-        <span style={{ fontSize: 10, color: c.text, opacity: 0.7, marginLeft: "auto" }}>
-          {days > 0 ? `${days} days` : "Same day"}
-        </span>
-      </div>
-      <p style={{ fontSize: 13, lineHeight: 1.5, color: c.text, margin: 0 }}>
-        {conn.label}
-      </p>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: c.text, opacity: 0.7 }}>
-        <span>{formatDate(from.date)}</span>
-        <span style={{ color: c.icon }}>-</span>
-        <span>{formatDate(to.date)}</span>
+    <div
+      className="flex items-start gap-2 mt-3 mb-1"
+      style={{
+        paddingLeft: 12,
+        borderLeft: "2px solid #2D6A4F",
+        marginLeft: 6,
+      }}
+    >
+      <div
+        style={{
+          background: "rgba(45,106,79,0.08)",
+          border: "1px solid rgba(45,106,79,0.2)",
+          borderRadius: 8,
+          padding: "6px 10px",
+          fontSize: 12,
+          lineHeight: 1.4,
+          color: "#2D6A4F",
+          fontFamily: "-apple-system, sans-serif",
+          fontWeight: 500,
+          fontStyle: "italic",
+        }}
+      >
+        {label}
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// Event Card Component
+// Event card component
 // ============================================================================
 
-function EventCard({
-  event,
-  connections,
-  allEvents,
-  isHighlighted,
-  onToggle,
-  onHighlight,
-}: {
-  event: TimelineEvent;
-  connections: Connection[];
-  allEvents: TimelineEvent[];
-  isHighlighted: boolean;
-  onToggle: () => void;
-  onHighlight: (id: string | null) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const config = EVENT_CONFIG[event.type];
-
-  const relatedConnections = connections.filter(
-    c => c.fromId === event.id || c.toId === event.id
-  );
+function EventCard({ event, isExpanded, onToggle }: { event: TimelineEvent; isExpanded: boolean; onToggle: () => void }) {
+  const config = TYPE_CONFIG[event.type];
+  const dateObj = new Date(event.date);
+  const day = dateObj.getDate();
+  const month = dateObj.toLocaleDateString("en-US", { month: "short" });
 
   return (
-    <div
-      id={`event-${event.id}`}
-      style={{
-        borderRadius: 16,
-        background: isHighlighted ? config.bgColor : "var(--bg-card)",
-        border: `1px solid ${isHighlighted ? config.color : "var(--border)"}`,
-        boxShadow: isHighlighted ? `0 0 0 3px ${config.bgColor}` : "var(--shadow-sm)",
-        transition: "all 0.3s ease",
-        overflow: "hidden",
-      }}
-      onMouseEnter={() => onHighlight(event.id)}
-      onMouseLeave={() => onHighlight(null)}
-    >
-      {/* Header */}
-      <button
-        onClick={() => { onToggle(); setExpanded(!expanded); }}
-        style={{
-          width: "100%",
-          padding: "14px 16px",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        {/* Icon */}
-        <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: config.bgColor,
-          color: config.color,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          marginTop: 1,
-        }}>
-          <EventIcon type={event.type} />
+    <div id={event.id}>
+      {/* Date + node dot + card row */}
+      <div className="flex items-start gap-0" style={{ position: "relative" }}>
+        {/* Date column */}
+        <div
+          className="flex flex-col items-end shrink-0"
+          style={{ width: 52, paddingRight: 0, paddingTop: 12 }}
+        >
+          <span
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "#3E2723",
+              fontFamily: '"Lora", Georgia, serif',
+              lineHeight: 1,
+            }}
+          >
+            {day}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              color: "#6D6B63",
+              fontFamily: "-apple-system, sans-serif",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            {month}
+          </span>
         </div>
 
-        {/* Content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-            <SeverityIndicator severity={event.severity} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-              {event.title}
-            </span>
-          </div>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>
-            {event.subtitle}
-          </p>
-
-          {/* Connection count badge */}
-          {relatedConnections.length > 0 && (
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              marginTop: 6,
-              padding: "2px 8px",
-              borderRadius: 20,
-              background: "#0f5959",
-              color: "#fff",
-              fontSize: 10,
-              fontWeight: 600,
-            }}>
-              <Link2 size={10} />
-              {relatedConnections.length} connection{relatedConnections.length !== 1 ? "s" : ""}
-            </div>
-          )}
+        {/* Spine dot */}
+        <div
+          className="shrink-0 flex flex-col items-center"
+          style={{ width: 28, position: "relative" }}
+        >
+          <div
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: 7,
+              background: config.color,
+              border: "3px solid #FFFBF5",
+              boxShadow: `0 0 0 2px ${config.color}`,
+              marginTop: 16,
+              position: "relative",
+              zIndex: 2,
+            }}
+          />
         </div>
 
-        {/* Expand chevron */}
-        <div style={{ color: "var(--text-muted)", flexShrink: 0, marginTop: 4 }}>
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </div>
-      </button>
-
-      {/* Expanded content */}
-      {expanded && (
-        <div style={{
-          padding: "0 16px 16px",
-          borderTop: "1px solid var(--divider)",
-          animation: "fadeIn 0.2s ease",
-        }}>
-          {/* Detail text */}
-          {event.detail && (
-            <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)", margin: "12px 0 0" }}>
-              {event.detail}
-            </p>
-          )}
-
-          {/* Markers table */}
-          {event.markers && event.markers.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              {event.markers.map((m, i) => {
-                const statusColor = m.status === "abnormal" ? "var(--red)" : m.status === "borderline" ? "var(--amber)" : "var(--green)";
-                const statusBg = m.status === "abnormal" ? "var(--red-bg)" : m.status === "borderline" ? "var(--amber-bg)" : "var(--green-bg)";
-                return (
-                  <div key={i} style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "6px 0",
-                    borderBottom: i < event.markers!.length - 1 ? "1px solid var(--divider)" : "none",
-                  }}>
-                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{m.name}</span>
-                    <span style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      fontFamily: "var(--font-mono)",
-                      padding: "2px 8px",
-                      borderRadius: 6,
-                      background: statusBg,
-                      color: statusColor,
-                    }}>
-                      {m.value}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Connected insights */}
-          {relatedConnections.length > 0 && (
-            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#0f5959", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Connected dots
+        {/* Card */}
+        <div
+          className="flex-1"
+          style={{ minWidth: 0, paddingTop: 4, paddingBottom: 4 }}
+        >
+          <button
+            onClick={onToggle}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              cursor: "pointer",
+              border: "1px solid #D7CCC8",
+              borderRadius: 10,
+              background: "#FAF8F5",
+              padding: "12px 14px",
+              boxShadow: "0 2px 8px rgba(62,39,35,0.12)",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {/* Type badge */}
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                style={{
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  fontWeight: 600,
+                  color: config.color,
+                  background: config.bg,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  fontFamily: "-apple-system, sans-serif",
+                }}
+              >
+                {config.label}
               </span>
-              {relatedConnections.map((conn, i) => (
-                <ConnectionCard key={i} conn={conn} events={allEvents} />
-              ))}
             </div>
-          )}
+
+            {/* Title */}
+            <div
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: "#3E2723",
+                fontFamily: '"Lora", Georgia, serif',
+                lineHeight: 1.3,
+              }}
+            >
+              {event.title}
+            </div>
+
+            {/* Subtitle */}
+            <div
+              style={{
+                fontSize: 13,
+                color: "#6D6B63",
+                fontFamily: "-apple-system, sans-serif",
+                marginTop: 2,
+                lineHeight: 1.4,
+              }}
+            >
+              {event.subtitle}
+            </div>
+
+            {/* Blood markers (always visible if present) */}
+            {event.markers && event.markers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {event.markers.slice(0, isExpanded ? undefined : 4).map((m, i) => {
+                  const sc = STATUS_COLORS[m.status];
+                  return (
+                    <span
+                      key={i}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: 11,
+                        fontFamily: "-apple-system, sans-serif",
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: sc.bg,
+                        color: sc.color,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {m.label}: {m.value}
+                    </span>
+                  );
+                })}
+                {!isExpanded && event.markers.length > 4 && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#6D6B63",
+                      padding: "3px 8px",
+                      fontFamily: "-apple-system, sans-serif",
+                    }}
+                  >
+                    +{event.markers.length - 4} more
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Expanded details */}
+            {isExpanded && event.details && (
+              <div
+                style={{
+                  marginTop: 10,
+                  paddingTop: 10,
+                  borderTop: "1px solid #D7CCC8",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: "#3E2723",
+                  fontFamily: "-apple-system, sans-serif",
+                }}
+              >
+                {event.details}
+              </div>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Connection line to related event */}
+      {event.connectionLabel && (
+        <div className="flex" style={{ position: "relative" }}>
+          <div style={{ width: 52 }} />
+          <div
+            className="flex flex-col items-center"
+            style={{ width: 28 }}
+          />
+          <div className="flex-1" style={{ paddingLeft: 2 }}>
+            <ConnectionBadge label={event.connectionLabel} />
+          </div>
         </div>
       )}
     </div>
@@ -671,514 +658,546 @@ function EventCard({
 }
 
 // ============================================================================
-// Year separator
-// ============================================================================
-
-function YearMarker({ year }: { year: number }) {
-  return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "8px 0",
-    }}>
-      <div style={{
-        fontSize: 20,
-        fontWeight: 700,
-        color: "#0f5959",
-        letterSpacing: "-0.02em",
-      }}>
-        {year}
-      </div>
-      <div style={{ flex: 1, height: 2, background: "linear-gradient(to right, #0f5959, transparent)", borderRadius: 1 }} />
-    </div>
-  );
-}
-
-// ============================================================================
-// Filter chips
-// ============================================================================
-
-const FILTER_OPTIONS: { type: EventType | "all" | "connections"; label: string; icon?: React.ReactNode }[] = [
-  { type: "all", label: "All events" },
-  { type: "connections", label: "Connections only", icon: <Link2 size={12} /> },
-  { type: "blood_test", label: "Blood tests", icon: <TestTube size={12} /> },
-  { type: "doctor_visit", label: "Visits", icon: <Stethoscope size={12} /> },
-  { type: "medication_start", label: "Medications", icon: <Pill size={12} /> },
-  { type: "biometric", label: "Biometrics", icon: <Activity size={12} /> },
-  { type: "condition_diagnosed", label: "Conditions", icon: <AlertTriangle size={12} /> },
-  { type: "vaccination", label: "Vaccinations", icon: <Syringe size={12} /> },
-];
-
-// ============================================================================
-// Insight Hero - the key narrative
-// ============================================================================
-
-function InsightHero() {
-  return (
-    <div style={{
-      borderRadius: 20,
-      background: "linear-gradient(135deg, #0f5959 0%, #1a7a7a 50%, #0f5959 100%)",
-      padding: "24px 20px",
-      color: "#fff",
-      position: "relative",
-      overflow: "hidden",
-    }}>
-      {/* Decorative elements */}
-      <div style={{
-        position: "absolute", top: -20, right: -20,
-        width: 100, height: 100, borderRadius: "50%",
-        background: "rgba(255,255,255,0.06)",
-      }} />
-      <div style={{
-        position: "absolute", bottom: -30, left: 20,
-        width: 60, height: 60, borderRadius: "50%",
-        background: "rgba(255,255,255,0.04)",
-      }} />
-
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <Link2 size={18} style={{ opacity: 0.8 }} />
-          <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.8 }}>
-            Nobody connected these dots until now
-          </span>
-        </div>
-
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 10px", lineHeight: 1.3 }}>
-          Fasting glucose: 5.0 to 5.8 in 5 years
-        </h2>
-
-        <p style={{ fontSize: 13, lineHeight: 1.6, opacity: 0.85, margin: "0 0 16px" }}>
-          Each individual reading was flagged &quot;normal&quot; by Anna&apos;s vardcentral.
-          But the 5-year trend tells a different story. Combined with family history
-          of diabetes (mother at 58, grandmother at 62) and 4kg weight gain,
-          the metabolic pattern is clear.
-        </p>
-
-        {/* Mini glucose trend */}
-        <div style={{
-          background: "rgba(255,255,255,0.1)",
-          borderRadius: 12,
-          padding: "12px 8px 4px",
-          display: "flex",
-          justifyContent: "center",
-        }}>
-          <GlucoseTrend />
-        </div>
-
-        <div style={{
-          marginTop: 14,
-          padding: "10px 14px",
-          borderRadius: 10,
-          background: "rgba(255,255,255,0.12)",
-          fontSize: 12,
-          lineHeight: 1.5,
-        }}>
-          <strong>10 connections identified</strong> between blood tests, biometrics,
-          medications, and doctor visits. Scroll the timeline to explore each one.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// Stats bar
-// ============================================================================
-
-function StatsBar({ events, connections }: { events: TimelineEvent[]; connections: Connection[] }) {
-  const stats = [
-    { label: "Events", value: events.length, color: "#0f5959" },
-    { label: "Connections", value: connections.length, color: "var(--amber)" },
-    { label: "Blood tests", value: events.filter(e => e.type === "blood_test").length, color: "var(--red)" },
-    { label: "Years tracked", value: 5, color: "var(--blue)" },
-  ];
-
-  return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 8,
-    }}>
-      {stats.map((s, i) => (
-        <div key={i} style={{
-          padding: "10px 8px",
-          borderRadius: 12,
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          textAlign: "center",
-        }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: s.color, fontFamily: "var(--font-mono)" }}>
-            {s.value}
-          </div>
-          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-            {s.label}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ============================================================================
-// Main Page Component
+// Main page component
 // ============================================================================
 
 export default function Smith7Page() {
-  const { events, connections } = useMemo(() => buildTimeline(), []);
-  const [filter, setFilter] = useState<EventType | "all" | "connections">("all");
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-  // Filter events
-  const filteredEvents = useMemo(() => {
-    if (filter === "all") return events;
-    if (filter === "connections") {
-      const connectedIds = new Set<string>();
-      connections.forEach(c => { connectedIds.add(c.fromId); connectedIds.add(c.toId); });
-      return events.filter(e => connectedIds.has(e.id));
-    }
-    // For medication filter, include both start and end
-    if (filter === "medication_start") {
-      return events.filter(e => e.type === "medication_start" || e.type === "medication_end");
-    }
-    // For condition filter, include both diagnosed and resolved
-    if (filter === "condition_diagnosed") {
-      return events.filter(e => e.type === "condition_diagnosed" || e.type === "condition_resolved");
-    }
-    return events.filter(e => e.type === filter);
-  }, [events, connections, filter]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const events = buildTimeline();
 
   // Group events by year
-  const eventsByYear = useMemo(() => {
-    const groups: { year: number; events: TimelineEvent[] }[] = [];
-    let currentYear: number | null = null;
+  const eventsByYear: Record<string, TimelineEvent[]> = {};
+  events.forEach((e) => {
+    const year = e.date.slice(0, 4);
+    if (!eventsByYear[year]) eventsByYear[year] = [];
+    eventsByYear[year].push(e);
+  });
 
-    filteredEvents.forEach(event => {
-      const year = yearFromDate(event.date);
-      if (year !== currentYear) {
-        groups.push({ year, events: [] });
-        currentYear = year;
-      }
-      groups[groups.length - 1].events.push(event);
-    });
-
-    return groups;
-  }, [filteredEvents]);
-
-  // When highlighting an event, also highlight its connections
-  const highlightedIds = useMemo(() => {
-    if (!highlightedId) return new Set<string>();
-    const ids = new Set<string>([highlightedId]);
-    connections.forEach(c => {
-      if (c.fromId === highlightedId) ids.add(c.toId);
-      if (c.toId === highlightedId) ids.add(c.fromId);
-    });
-    return ids;
-  }, [highlightedId, connections]);
-
-  const toggleEvent = (id: string) => {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const years = Object.keys(eventsByYear).sort((a, b) => Number(b) - Number(a));
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      {/* Top bar */}
-      <div style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        background: "rgba(248,249,250,0.92)",
-        backdropFilter: "blur(20px)",
-        borderBottom: "1px solid var(--border)",
-      }}>
-        <div style={{
-          maxWidth: 640,
-          margin: "0 auto",
-          padding: "12px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Link href="/v2/dashboard" style={{ color: "var(--text-muted)", display: "flex" }}>
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 style={{ fontSize: 16, fontWeight: 700, color: "#0f5959", margin: 0, letterSpacing: "-0.02em" }}>
-                Health Timeline
-              </h1>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
-                {PATIENT.name} - {filteredEvents.length} events
-              </p>
-            </div>
+    <div
+      className="min-h-dvh"
+      style={{ background: "#FFFBF5", paddingBottom: 120 }}
+    >
+      {/* ================================================================== */}
+      {/* HEADER */}
+      {/* ================================================================== */}
+      <header
+        className="px-5 pt-12 pb-8"
+        style={{ maxWidth: 640, margin: "0 auto" }}
+      >
+        {/* Precura mark */}
+        <div
+          className="flex items-center gap-2 mb-8"
+          style={{ opacity: 0.7 }}
+        >
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              background: "#2D6A4F",
+            }}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#2D6A4F",
+              fontFamily: "-apple-system, sans-serif",
+            }}
+          >
+            Precura
+          </span>
+        </div>
+
+        {/* Patient name and title */}
+        <h1
+          style={{
+            fontSize: 32,
+            fontWeight: 400,
+            color: "#3E2723",
+            fontFamily: '"Lora", Georgia, serif',
+            lineHeight: 1.2,
+            margin: 0,
+          }}
+        >
+          {PATIENT.name}
+        </h1>
+        <p
+          style={{
+            fontSize: 15,
+            color: "#6D6B63",
+            fontFamily: "-apple-system, sans-serif",
+            marginTop: 4,
+          }}
+        >
+          {PATIENT.age} years / {PATIENT.vardcentral} / Member since{" "}
+          {new Date(PATIENT.memberSince).toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}
+        </p>
+
+        {/* The big insight - what Precura caught */}
+        <div
+          className="mt-6"
+          style={{
+            background: "rgba(200,90,84,0.06)",
+            border: "1px solid rgba(200,90,84,0.2)",
+            borderRadius: 10,
+            padding: "16px 16px 12px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "#C85A54",
+              fontFamily: "-apple-system, sans-serif",
+              marginBottom: 6,
+            }}
+          >
+            Pattern detected
+          </div>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "#3E2723",
+              fontFamily: '"Lora", Georgia, serif',
+              lineHeight: 1.35,
+            }}
+          >
+            Fasting glucose (blood sugar) has risen steadily over 5 years
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: "#6D6B63",
+              fontFamily: "-apple-system, sans-serif",
+              marginTop: 4,
+              lineHeight: 1.5,
+            }}
+          >
+            From 5.0 to 5.8 mmol/L. Each visit looked normal individually.
+            But connected together, the trend points toward pre-diabetes.
+            With family history (mother diagnosed at 58), this matters.
           </div>
 
-          {/* Profile avatar */}
-          <Link href="/v2/profile" style={{
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #0f5959, #1a7a7a)",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 13,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}>
-            AB
-          </Link>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "16px 20px 80px" }}>
-        {/* Hero insight */}
-        <div className="animate-fade-in" style={{ marginBottom: 16 }}>
-          <InsightHero />
+          {/* Sparkline */}
+          <div className="mt-3">
+            <GlucoseSparkline />
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="animate-fade-in stagger-1" style={{ marginBottom: 16 }}>
-          <StatsBar events={events} connections={connections} />
-        </div>
-
-        {/* Filter chips */}
-        <div className="animate-fade-in stagger-2" style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 6,
-          marginBottom: 20,
-          paddingBottom: 12,
-          borderBottom: "1px solid var(--divider)",
-        }}>
-          {FILTER_OPTIONS.map((f) => {
-            const isActive = filter === f.type;
-            return (
-              <button
-                key={f.type}
-                onClick={() => setFilter(f.type)}
+        {/* Risk snapshot */}
+        <div className="flex gap-3 mt-5">
+          {[
+            {
+              label: "Diabetes risk",
+              level: RISK_ASSESSMENTS.diabetes.riskLabel,
+              color: "#D4A574",
+              trend: "Rising",
+            },
+            {
+              label: "Heart risk",
+              level: RISK_ASSESSMENTS.cardiovascular.riskLabel,
+              color: "#558B6B",
+              trend: "Stable",
+            },
+            {
+              label: "Metabolic syndrome",
+              level: `${RISK_ASSESSMENTS.metabolicSyndrome.metCount} of 5 criteria`,
+              color: "#D4A574",
+              trend: "Approaching",
+            },
+          ].map((r, i) => (
+            <div
+              key={i}
+              className="flex-1"
+              style={{
+                background: "#FAF8F5",
+                border: "1px solid #D7CCC8",
+                borderRadius: 10,
+                padding: "10px 12px",
+              }}
+            >
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "6px 12px",
-                  borderRadius: 20,
-                  border: isActive ? "1.5px solid #0f5959" : "1px solid var(--border)",
-                  background: isActive ? "#0f5959" : "var(--bg-card)",
-                  color: isActive ? "#fff" : "var(--text-secondary)",
-                  fontSize: 12,
-                  fontWeight: isActive ? 600 : 500,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "#6D6B63",
+                  fontFamily: "-apple-system, sans-serif",
+                  fontWeight: 500,
                 }}
               >
-                {f.icon}
-                {f.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Timeline */}
-        <div style={{ position: "relative" }}>
-          {/* Vertical line */}
-          <div style={{
-            position: "absolute",
-            left: 17,
-            top: 0,
-            bottom: 0,
-            width: 2,
-            background: "linear-gradient(to bottom, #0f5959, var(--border), transparent)",
-            borderRadius: 1,
-            zIndex: 0,
-          }} />
-
-          {eventsByYear.map((group, gi) => (
-            <div key={group.year} className="animate-fade-in" style={{ animationDelay: `${gi * 0.05}s` }}>
-              {/* Year marker */}
-              <div style={{ position: "relative", zIndex: 1, paddingLeft: 44, marginBottom: 12, marginTop: gi > 0 ? 24 : 0 }}>
-                <YearMarker year={group.year} />
+                {r.label}
               </div>
-
-              {/* Events in this year */}
-              {group.events.map((event, ei) => {
-                const isHighlighted = highlightedIds.has(event.id);
-                const config = EVENT_CONFIG[event.type];
-
-                return (
-                  <div
-                    key={event.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 10,
-                      marginBottom: 10,
-                      position: "relative",
-                    }}
-                  >
-                    {/* Timeline dot */}
-                    <div style={{
-                      width: 36,
-                      display: "flex",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      position: "relative",
-                      zIndex: 1,
-                      paddingTop: 16,
-                    }}>
-                      <div style={{
-                        width: isHighlighted ? 14 : 10,
-                        height: isHighlighted ? 14 : 10,
-                        borderRadius: "50%",
-                        background: config.color,
-                        border: "3px solid var(--bg)",
-                        boxShadow: isHighlighted ? `0 0 0 3px ${config.bgColor}` : "none",
-                        transition: "all 0.2s ease",
-                      }} />
-                    </div>
-
-                    {/* Date label */}
-                    <div style={{
-                      width: 42,
-                      flexShrink: 0,
-                      paddingTop: 16,
-                      textAlign: "right",
-                    }}>
-                      <span style={{
-                        fontSize: 10,
-                        fontFamily: "var(--font-mono)",
-                        color: "var(--text-muted)",
-                        lineHeight: 1.2,
-                      }}>
-                        {formatMonth(event.date)}
-                      </span>
-                    </div>
-
-                    {/* Event card */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <EventCard
-                        event={event}
-                        connections={connections}
-                        allEvents={events}
-                        isHighlighted={isHighlighted}
-                        onToggle={() => toggleEvent(event.id)}
-                        onHighlight={setHighlightedId}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: r.color,
+                  fontFamily: "-apple-system, sans-serif",
+                  marginTop: 2,
+                }}
+              >
+                {r.level}
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#6D6B63",
+                  fontFamily: "-apple-system, sans-serif",
+                  marginTop: 1,
+                }}
+              >
+                {r.trend}
+              </div>
             </div>
           ))}
+        </div>
 
-          {/* Timeline end marker */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 5, paddingTop: 16 }}>
-            <div style={{
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              background: "var(--bg-elevated)",
-              border: "2px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
-              <Clock size={12} style={{ color: "var(--text-muted)" }} />
+        {/* Family history callout */}
+        <div
+          className="mt-5"
+          style={{
+            background: "rgba(45,106,79,0.06)",
+            border: "1px solid rgba(45,106,79,0.15)",
+            borderRadius: 10,
+            padding: "14px 16px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "#2D6A4F",
+              fontFamily: "-apple-system, sans-serif",
+              marginBottom: 8,
+            }}
+          >
+            Family history
+          </div>
+          <div className="flex flex-col gap-2">
+            {FAMILY_HISTORY.map((fh, i) => (
+              <div
+                key={i}
+                className="flex items-baseline justify-between"
+                style={{
+                  fontSize: 13,
+                  fontFamily: "-apple-system, sans-serif",
+                  lineHeight: 1.4,
+                }}
+              >
+                <span style={{ color: "#3E2723", fontWeight: 500 }}>
+                  {fh.relative}
+                </span>
+                <span style={{ color: "#6D6B63", textAlign: "right", marginLeft: 8 }}>
+                  {fh.condition}, age {fh.ageAtDiagnosis}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* ================================================================== */}
+      {/* TIMELINE */}
+      {/* ================================================================== */}
+      <main
+        style={{
+          maxWidth: 640,
+          margin: "0 auto",
+          padding: "0 12px",
+          position: "relative",
+        }}
+      >
+        {/* The green spine line */}
+        <div
+          style={{
+            position: "absolute",
+            left: 65,
+            top: 0,
+            bottom: 0,
+            width: 3,
+            background: "linear-gradient(to bottom, #2D6A4F, rgba(45,106,79,0.15))",
+            borderRadius: 2,
+            zIndex: 0,
+          }}
+        />
+
+        {years.map((year) => (
+          <section key={year} id={`year-${year}`} style={{ position: "relative" }}>
+            {/* Year marker */}
+            <div
+              className="flex items-center gap-0 mb-2"
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
+                paddingTop: 24,
+                paddingBottom: 8,
+              }}
+            >
+              <div
+                className="flex items-center justify-end"
+                style={{ width: 52 }}
+              />
+              <div
+                className="flex items-center justify-center"
+                style={{ width: 28 }}
+              >
+                <div
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    background: "#2D6A4F",
+                    border: "3px solid #FFFBF5",
+                    boxShadow: "0 0 0 2px #2D6A4F",
+                    zIndex: 2,
+                  }}
+                />
+              </div>
+              <div
+                className="flex-1"
+                style={{ paddingLeft: 8 }}
+              >
+                <span
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 700,
+                    color: "#2D6A4F",
+                    fontFamily: '"Lora", Georgia, serif',
+                    lineHeight: 1,
+                    background: "#FFFBF5",
+                    paddingRight: 12,
+                  }}
+                >
+                  {year}
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#6D6B63",
+                    fontFamily: "-apple-system, sans-serif",
+                    marginLeft: 8,
+                  }}
+                >
+                  {eventsByYear[year].length} event{eventsByYear[year].length !== 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Health history begins - 2020
+
+            {/* Events for this year */}
+            <div className="flex flex-col gap-1">
+              {eventsByYear[year].map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  isExpanded={expandedId === event.id}
+                  onToggle={() =>
+                    setExpandedId(expandedId === event.id ? null : event.id)
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {/* Timeline end marker */}
+        <div className="flex items-center gap-0 mt-6 mb-12">
+          <div style={{ width: 52 }} />
+          <div
+            className="flex items-center justify-center"
+            style={{ width: 28 }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                background: "rgba(45,106,79,0.25)",
+                zIndex: 2,
+              }}
+            />
+          </div>
+          <div className="flex-1" style={{ paddingLeft: 8 }}>
+            <span
+              style={{
+                fontSize: 13,
+                color: "#6D6B63",
+                fontFamily: "-apple-system, sans-serif",
+                fontStyle: "italic",
+              }}
+            >
+              Beginning of records
             </span>
           </div>
         </div>
+      </main>
 
-        {/* Bottom CTA */}
-        <div style={{
-          marginTop: 32,
-          padding: "20px",
-          borderRadius: 16,
-          background: "linear-gradient(135deg, #0f5959, #1a7a7a)",
-          color: "#fff",
-          textAlign: "center",
-        }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px" }}>
-            Your next blood test
-          </h3>
-          <p style={{ fontSize: 13, opacity: 0.85, margin: "0 0 14px" }}>
-            Scheduled for {formatDate(PATIENT.nextBloodTest)} - adds new data points to your timeline
-          </p>
-          <Link href="/smith7/marker/f-Glucose" style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "10px 20px",
-            borderRadius: 10,
-            background: "rgba(255,255,255,0.2)",
-            color: "#fff",
+      {/* ================================================================== */}
+      {/* DOCTOR'S NOTES SECTION */}
+      {/* ================================================================== */}
+      <section
+        style={{
+          maxWidth: 640,
+          margin: "0 auto",
+          padding: "0 20px",
+        }}
+      >
+        <div
+          style={{
+            borderTop: "1px solid #D7CCC8",
+            paddingTop: 32,
+            marginBottom: 32,
+          }}
+        >
+          <h2
+            style={{
+              fontSize: 22,
+              fontWeight: 400,
+              color: "#3E2723",
+              fontFamily: '"Lora", Georgia, serif',
+              margin: "0 0 16px 0",
+            }}
+          >
+            Doctor&apos;s notes
+          </h2>
+
+          <div className="flex flex-col gap-4">
+            {DOCTOR_NOTES.map((note, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#FAF8F5",
+                  border: "1px solid #D7CCC8",
+                  borderRadius: 10,
+                  padding: 16,
+                  boxShadow: "0 2px 8px rgba(62,39,35,0.12)",
+                }}
+              >
+                <div className="flex items-baseline justify-between mb-2">
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "#3E2723",
+                      fontFamily: '"Lora", Georgia, serif',
+                    }}
+                  >
+                    {note.type}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#6D6B63",
+                      fontFamily: "-apple-system, sans-serif",
+                    }}
+                  >
+                    {new Date(note.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#2D6A4F",
+                    fontWeight: 500,
+                    fontFamily: "-apple-system, sans-serif",
+                    marginBottom: 8,
+                  }}
+                >
+                  {note.author}
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#3E2723",
+                    fontFamily: "-apple-system, sans-serif",
+                    lineHeight: 1.65,
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {note.note}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* FOOTER */}
+      {/* ================================================================== */}
+      <footer
+        className="px-5 pb-12 pt-8"
+        style={{
+          maxWidth: 640,
+          margin: "0 auto",
+          borderTop: "1px solid #D7CCC8",
+        }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              background: "#2D6A4F",
+            }}
+          />
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "#2D6A4F",
+              fontFamily: "-apple-system, sans-serif",
+            }}
+          >
+            Precura
+          </span>
+        </div>
+        <p
+          style={{
             fontSize: 13,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}>
-            <Eye size={14} />
-            View glucose deep-dive
-            <ChevronRight size={14} />
-          </Link>
-        </div>
-
-        {/* Family history context */}
-        <div style={{
-          marginTop: 16,
-          padding: "16px 18px",
-          borderRadius: 16,
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-        }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0f5959", margin: "0 0 10px" }}>
-            Family history context
-          </h3>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: "0 0 12px" }}>
-            Anna&apos;s timeline must be read with family history in mind.
-            These are the non-modifiable risk factors that make the trends above significant.
-          </p>
-          {FAMILY_HISTORY.map((fh, i) => (
-            <div key={i} style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 0",
-              borderTop: i > 0 ? "1px solid var(--divider)" : "none",
-            }}>
-              <div style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "var(--amber-bg)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}>
-                <Heart size={13} style={{ color: "var(--amber)" }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>
-                  {fh.relative}
-                </span>
-                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                  {" "}- {fh.condition}, age {fh.ageAtDiagnosis}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            color: "#6D6B63",
+            fontFamily: "-apple-system, sans-serif",
+            lineHeight: 1.6,
+            maxWidth: 400,
+          }}
+        >
+          Connecting the dots across years of health data.
+          Individual visits look normal. The trend tells the real story.
+        </p>
+        <p
+          style={{
+            fontSize: 11,
+            color: "#6D6B63",
+            fontFamily: "-apple-system, sans-serif",
+            marginTop: 12,
+            opacity: 0.6,
+          }}
+        >
+          Next blood test: {new Date(PATIENT.nextBloodTest).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+        </p>
+      </footer>
     </div>
   );
 }

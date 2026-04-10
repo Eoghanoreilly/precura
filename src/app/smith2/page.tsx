@@ -1,54 +1,34 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
-  MessageCircle,
-  Send,
-  ChevronRight,
-  Activity,
-  TestTube,
-  Dumbbell,
-  FileText,
-  Calendar,
-  Clock,
-  Heart,
-  CheckCheck,
-  User,
-  TrendingUp,
-  AlertTriangle,
-  Shield,
-  Stethoscope,
-} from "lucide-react";
-import {
   PATIENT,
-  MESSAGES,
   DOCTOR_NOTES,
+  MESSAGES,
   BLOOD_TEST_HISTORY,
-  RISK_ASSESSMENTS,
   TRAINING_PLAN,
-  CONDITIONS,
-  MEDICATIONS,
+  RISK_ASSESSMENTS,
   getMarkerHistory,
 } from "@/lib/v2/mock-patient";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ============================================================================
+// Home - "Your Doctor, Always"
+// The doctor's latest note is the hero. Everything flows from the relationship.
+// ============================================================================
 
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-SE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+function daysSince(dateStr: string): number {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function getGreeting(): string {
@@ -58,638 +38,673 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-// Warm teal/green doctor accent
-const DOC_COLOR = "#0d9488";
-const DOC_BG = "#f0fdfa";
-const DOC_BORDER = "#ccfbf1";
-const DOC_AVATAR = "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&q=80&fit=crop&crop=face";
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
-export default function Smith2Home() {
-  const [msgText, setMsgText] = useState("");
+export default function SmithTwoHome() {
   const latestNote = DOCTOR_NOTES[0];
+  const latestMessage = MESSAGES[MESSAGES.length - 1];
   const latestBlood = BLOOD_TEST_HISTORY[0];
   const glucoseHistory = getMarkerHistory("f-Glucose");
   const latestGlucose = glucoseHistory[glucoseHistory.length - 1];
+  const previousGlucose = glucoseHistory[glucoseHistory.length - 2];
+
+  // Parse doctor note into paragraphs for display
+  const noteParagraphs = latestNote.note.split("\n\n");
 
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100dvh" }}>
-      <div style={{ maxWidth: 448, margin: "0 auto", padding: "0 20px 80px" }}>
-
-        {/* ----------------------------------------------------------------- */}
-        {/* TOP BAR                                                           */}
-        {/* ----------------------------------------------------------------- */}
+    <div
+      style={{
+        background: "#F5F1E8",
+        color: "#2C2416",
+        minHeight: "100dvh",
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+      }}
+    >
+      {/* Top bar */}
+      <div
+        style={{
+          background: "#F5F1E8",
+          borderBottom: "1px solid #E8DFD3",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+        }}
+      >
         <div
+          className="flex items-center justify-between"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingTop: 14,
-            paddingBottom: 10,
+            maxWidth: 640,
+            margin: "0 auto",
+            padding: "14px 20px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: DOC_BG,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Activity size={14} style={{ color: DOC_COLOR }} />
-            </div>
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "var(--text)",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Precura
-            </span>
-          </div>
-          <Link href="/smith2/record">
+          <span
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontSize: 20,
+              fontWeight: 700,
+              color: "#2C2416",
+              letterSpacing: "-0.3px",
+            }}
+          >
+            Precura
+          </span>
+          <div
+            className="flex items-center"
+            style={{ gap: 8 }}
+          >
             <div
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: 12,
-                background: DOC_BG,
+                borderRadius: "50%",
+                background: "#C97D5C",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                color: "#FBF9F6",
                 fontSize: 13,
-                fontWeight: 700,
-                color: DOC_COLOR,
+                fontWeight: 600,
               }}
             >
-              AB
+              {PATIENT.firstName[0]}
             </div>
-          </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div
+        style={{
+          maxWidth: 640,
+          margin: "0 auto",
+          padding: "0 20px 80px",
+        }}
+      >
+        {/* Greeting */}
+        <div style={{ paddingTop: 28, paddingBottom: 4 }}>
+          <p
+            style={{
+              color: "#6B5D52",
+              fontSize: 14,
+              margin: 0,
+              marginBottom: 2,
+            }}
+          >
+            {getGreeting()}, {PATIENT.firstName}
+          </p>
+          <h1
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontSize: 26,
+              fontWeight: 700,
+              color: "#2C2416",
+              margin: 0,
+              lineHeight: 1.2,
+              letterSpacing: "-0.3px",
+            }}
+          >
+            Your Doctor, Always
+          </h1>
         </div>
 
-        {/* ----------------------------------------------------------------- */}
-        {/* DOCTOR HERO CARD                                                  */}
-        {/* The first thing Anna sees: her doctor, his latest note to her     */}
-        {/* ----------------------------------------------------------------- */}
+        {/* ================================================================
+            HERO: Doctor's Latest Note
+            This IS the app. The doctor's thinking, visible to the patient.
+            ================================================================ */}
         <div
-          className="animate-fade-in"
           style={{
-            background: `linear-gradient(135deg, ${DOC_BG} 0%, #ecfdf5 100%)`,
-            borderRadius: 20,
+            background: "#FBF9F6",
+            border: "1px solid #E8DFD3",
+            borderRadius: 8,
             padding: "24px 20px",
-            marginBottom: 16,
-            border: `1px solid ${DOC_BORDER}`,
-            boxShadow: "var(--shadow-md)",
+            marginTop: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           }}
         >
           {/* Doctor identity */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-            <img
-              src={DOC_AVATAR}
-              alt="Dr. Marcus Johansson"
+          <div className="flex items-center" style={{ gap: 12, marginBottom: 16 }}>
+            <div
               style={{
-                width: 56,
-                height: 56,
+                width: 44,
+                height: 44,
                 borderRadius: "50%",
-                objectFit: "cover",
-                border: `3px solid ${DOC_COLOR}`,
+                background: "linear-gradient(135deg, #2C2416 0%, #6B5D52 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#FBF9F6",
+                fontSize: 15,
+                fontWeight: 600,
+                flexShrink: 0,
               }}
-            />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>
+            >
+              MJ
+            </div>
+            <div>
+              <p
+                style={{
+                  fontFamily: 'Georgia, "Times New Roman", serif',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "#2C2416",
+                  margin: 0,
+                  lineHeight: 1.3,
+                }}
+              >
                 Dr. Marcus Johansson
               </p>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 1 }}>
-                Your Precura physician
+              <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 1 }}>
+                {latestNote.type} - {formatDate(latestNote.date)}
               </p>
             </div>
-            <div
-              style={{
-                padding: "4px 10px",
-                borderRadius: 20,
-                background: "#dcfce7",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <div
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                }}
-              />
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#166534" }}>Available</span>
-            </div>
           </div>
 
-          {/* Latest doctor note preview */}
+          {/* Note content - the actual clinical thinking */}
+          <div style={{ marginBottom: 16 }}>
+            {noteParagraphs.map((paragraph, i) => (
+              <p
+                key={i}
+                style={{
+                  fontSize: 15,
+                  lineHeight: 1.65,
+                  color: "#2C2416",
+                  margin: 0,
+                  marginBottom: i < noteParagraphs.length - 1 ? 14 : 0,
+                }}
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
+
+          {/* Action from the note */}
           <div
             style={{
-              background: "rgba(255,255,255,0.8)",
-              borderRadius: 14,
-              padding: "14px 16px",
-              marginBottom: 14,
-              border: "1px solid rgba(255,255,255,0.9)",
+              borderTop: "1px solid #E8DFD3",
+              paddingTop: 14,
+              marginTop: 16,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <FileText size={13} style={{ color: DOC_COLOR }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: DOC_COLOR, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Latest review - {formatDate(latestNote.date)}
-              </span>
-            </div>
-            <p style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.55 }}>
-              {latestNote.note.split("\n")[0].slice(0, 180)}...
-            </p>
             <Link
-              href="/smith2/health"
+              href="/smith2/assessment"
+              className="flex items-center justify-between"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                marginTop: 10,
-                fontSize: 13,
-                fontWeight: 600,
-                color: DOC_COLOR,
-              }}
-            >
-              Read full review <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          {/* Quick actions */}
-          <div style={{ display: "flex", gap: 8 }}>
-            <Link
-              href="/smith2/messages"
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                padding: "10px 0",
-                borderRadius: 12,
-                background: DOC_COLOR,
-                color: "#ffffff",
-                fontSize: 13,
-                fontWeight: 600,
                 textDecoration: "none",
-              }}
-            >
-              <MessageCircle size={15} />
-              Message
-            </Link>
-            <Link
-              href="/smith2/book"
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                padding: "10px 0",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.8)",
-                color: DOC_COLOR,
-                fontSize: 13,
+                color: "#C97D5C",
+                fontSize: 14,
                 fontWeight: 600,
-                border: `1px solid ${DOC_BORDER}`,
-                textDecoration: "none",
               }}
             >
-              <Calendar size={15} />
-              Book visit
+              <span>View Dr. Johansson's full assessment</span>
+              <span style={{ fontSize: 18 }}>&rsaquo;</span>
             </Link>
           </div>
         </div>
 
-        {/* ----------------------------------------------------------------- */}
-        {/* DOCTOR'S ATTENTION ITEMS                                          */}
-        {/* What Dr. Johansson wants Anna to know about right now             */}
-        {/* ----------------------------------------------------------------- */}
-        <div style={{ marginBottom: 20 }}>
-          <p
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "var(--text-muted)",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              marginBottom: 10,
-              paddingLeft: 2,
-            }}
-          >
-            Dr. Johansson's priorities for you
+        {/* ================================================================
+            GLUCOSE SPOTLIGHT
+            The one number that matters most right now, in context.
+            ================================================================ */}
+        <div
+          style={{
+            background: "#FBF9F6",
+            border: "1px solid #E8DFD3",
+            borderRadius: 8,
+            padding: "20px",
+            marginTop: 14,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p style={{ fontSize: 12, color: "#6B5D52", margin: 0, marginBottom: 4, textTransform: "uppercase" as const, letterSpacing: "0.5px", fontWeight: 600 }}>
+                Key marker
+              </p>
+              <p style={{ fontSize: 14, color: "#2C2416", margin: 0, fontWeight: 600 }}>
+                Fasting Glucose (blood sugar)
+              </p>
+            </div>
+            <div
+              style={{
+                background: "#FFF3E0",
+                color: "#E8A856",
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "3px 8px",
+                borderRadius: 4,
+              }}
+            >
+              WATCH
+            </div>
+          </div>
+
+          {/* Trend visualization - simple inline sparkline */}
+          <div className="flex items-end" style={{ gap: 16, marginTop: 16, marginBottom: 8 }}>
+            <div>
+              <p
+                style={{
+                  fontFamily: 'Georgia, "Times New Roman", serif',
+                  fontSize: 36,
+                  fontWeight: 700,
+                  color: "#2C2416",
+                  margin: 0,
+                  lineHeight: 1,
+                }}
+              >
+                {latestGlucose?.value}
+              </p>
+              <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 2 }}>
+                mmol/L
+              </p>
+            </div>
+
+            {/* Mini trend line */}
+            <div className="flex items-end" style={{ gap: 3, flex: 1, height: 48 }}>
+              {glucoseHistory.map((point, i) => {
+                const minVal = 4.8;
+                const maxVal = 6.2;
+                const heightPct = ((point.value - minVal) / (maxVal - minVal)) * 100;
+                const isLast = i === glucoseHistory.length - 1;
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center"
+                    style={{ flex: 1 }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        maxWidth: 28,
+                        height: `${Math.max(heightPct, 10)}%`,
+                        minHeight: 6,
+                        background: isLast ? "#E8A856" : "#E8DFD3",
+                        borderRadius: 3,
+                        transition: "height 0.3s ease",
+                      }}
+                    />
+                    <p style={{ fontSize: 10, color: isLast ? "#E8A856" : "#6B5D52", margin: 0, marginTop: 4 }}>
+                      {point.value}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, lineHeight: 1.5 }}>
+            Rising from {glucoseHistory[0]?.value} to {latestGlucose?.value} over 5 years.
+            Still within normal range (3.9-6.0) but trending toward the upper limit.
+            {previousGlucose && ` Up ${(latestGlucose.value - previousGlucose.value).toFixed(1)} since last test.`}
           </p>
 
-          {/* Glucose attention item */}
-          <div
-            className="animate-fade-in stagger-1"
+          <Link
+            href="/smith2/assessment"
             style={{
-              background: "var(--bg-card)",
-              borderRadius: 16,
-              padding: "14px 16px",
-              marginBottom: 10,
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 12,
+              display: "inline-block",
+              marginTop: 12,
+              fontSize: 13,
+              color: "#C97D5C",
+              fontWeight: 600,
+              textDecoration: "none",
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "var(--amber-bg)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <TrendingUp size={16} style={{ color: "var(--amber-text)" }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
-                Blood sugar (fasting glucose) trending up
-              </p>
-              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                5.0 to 5.8 over 5 years. Still in normal range, but Dr. Johansson is tracking this closely given your family history.
-              </p>
-              <Link
-                href="/smith2/blood-results"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 3,
-                  marginTop: 8,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: DOC_COLOR,
-                }}
-              >
-                View blood results <ChevronRight size={13} />
-              </Link>
-            </div>
-          </div>
-
-          {/* Vitamin D item */}
-          <div
-            className="animate-fade-in stagger-2"
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: 16,
-              padding: "14px 16px",
-              marginBottom: 10,
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "var(--blue-bg)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Shield size={16} style={{ color: "var(--blue-text)" }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
-                Start Vitamin D supplement
-              </p>
-              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                Dr. Johansson recommends D3 2000 IU daily. Your level is 48 nmol/L (target is above 50).
-              </p>
-            </div>
-          </div>
-
-          {/* Next test reminder */}
-          <div
-            className="animate-fade-in stagger-3"
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: 16,
-              padding: "14px 16px",
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: DOC_BG,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <TestTube size={16} style={{ color: DOC_COLOR }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
-                Next blood test: September 2026
-              </p>
-              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                Dr. Johansson ordered a retest in 6 months to check if lifestyle changes are improving your glucose trend.
-              </p>
-            </div>
-          </div>
+            See all blood markers &rsaquo;
+          </Link>
         </div>
 
-        {/* ----------------------------------------------------------------- */}
-        {/* LATEST MESSAGE PREVIEW                                            */}
-        {/* ----------------------------------------------------------------- */}
-        <Link href="/smith2/messages" style={{ textDecoration: "none" }}>
-          <div
-            className="animate-fade-in stagger-4"
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: 16,
-              padding: "16px",
-              marginBottom: 20,
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <img
-                src={DOC_AVATAR}
-                alt=""
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                }}
-              />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-                  Dr. Johansson
-                </p>
-                <p style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  {formatDate(MESSAGES[MESSAGES.length - 1].date)}
-                </p>
-              </div>
-              <ChevronRight size={16} style={{ color: "var(--text-faint)" }} />
-            </div>
+        {/* ================================================================
+            LATEST MESSAGE - Quick peek at the conversation
+            ================================================================ */}
+        <div
+          style={{
+            background: "#FBF9F6",
+            border: "1px solid #E8DFD3",
+            borderRadius: 8,
+            padding: "20px",
+            marginTop: 14,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
             <p
               style={{
-                fontSize: 13,
-                color: "var(--text-secondary)",
-                lineHeight: 1.55,
-                display: "-webkit-box",
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
+                fontFamily: 'Georgia, "Times New Roman", serif',
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#2C2416",
+                margin: 0,
               }}
             >
-              {MESSAGES[MESSAGES.length - 1].text}
+              Messages
             </p>
+            <p style={{ fontSize: 12, color: "#6B5D52", margin: 0 }}>
+              {formatDate(latestMessage.date.split("T")[0])}
+            </p>
+          </div>
+
+          <div className="flex items-start" style={{ gap: 10 }}>
             <div
               style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: latestMessage.from === "doctor"
+                  ? "linear-gradient(135deg, #2C2416 0%, #6B5D52 100%)"
+                  : "#C97D5C",
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
-                marginTop: 10,
+                justifyContent: "center",
+                color: "#FBF9F6",
+                fontSize: 11,
+                fontWeight: 600,
+                flexShrink: 0,
+                marginTop: 2,
               }}
             >
-              <MessageCircle size={13} style={{ color: DOC_COLOR }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: DOC_COLOR }}>
-                Continue conversation
-              </span>
+              {latestMessage.from === "doctor" ? "MJ" : PATIENT.firstName[0]}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#6B5D52", margin: 0, marginBottom: 3 }}>
+                {latestMessage.from === "doctor" ? "Dr. Johansson" : "You"}
+              </p>
+              <p
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  color: "#2C2416",
+                  margin: 0,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical" as const,
+                  overflow: "hidden",
+                }}
+              >
+                {latestMessage.text}
+              </p>
             </div>
           </div>
-        </Link>
 
-        {/* ----------------------------------------------------------------- */}
-        {/* YOUR CARE                                                         */}
-        {/* Navigation cards to sub-pages                                     */}
-        {/* ----------------------------------------------------------------- */}
-        <p
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            marginBottom: 10,
-            paddingLeft: 2,
-          }}
-        >
-          Your care with Dr. Johansson
-        </p>
+          <Link
+            href="/smith2/messages"
+            className="flex items-center justify-between"
+            style={{
+              marginTop: 14,
+              paddingTop: 14,
+              borderTop: "1px solid #E8DFD3",
+              textDecoration: "none",
+              color: "#C97D5C",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            <span>Message Dr. Johansson</span>
+            <span style={{ fontSize: 18 }}>&rsaquo;</span>
+          </Link>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-          {/* Health overview */}
-          <Link href="/smith2/health" style={{ textDecoration: "none" }}>
+        {/* ================================================================
+            NAVIGATION THROUGH THE DOCTOR
+            Not tabs. Contextual links that frame everything as the doctor's work.
+            ================================================================ */}
+        <div style={{ marginTop: 24 }}>
+          <p
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontSize: 18,
+              fontWeight: 700,
+              color: "#2C2416",
+              margin: 0,
+              marginBottom: 12,
+            }}
+          >
+            Your care
+          </p>
+
+          {/* Assessment card */}
+          <Link
+            href="/smith2/assessment"
+            style={{ textDecoration: "none" }}
+          >
             <div
-              className="card-hover animate-fade-in stagger-4"
               style={{
-                background: "var(--bg-card)",
-                borderRadius: 16,
-                padding: "16px 14px",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-sm)",
-                height: "100%",
+                background: "#FBF9F6",
+                border: "1px solid #E8DFD3",
+                borderRadius: 8,
+                padding: "18px 20px",
+                marginBottom: 10,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
               }}
             >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "var(--teal-bg)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 10,
-                }}
-              >
-                <Heart size={16} style={{ color: "var(--teal-text)" }} />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: "#2C2416", margin: 0 }}>
+                    Dr. Johansson's assessment
+                  </p>
+                  <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 3 }}>
+                    Blood markers, risk factors, health trajectory
+                  </p>
+                </div>
+                <div className="flex items-center" style={{ gap: 8 }}>
+                  {/* Risk badges */}
+                  <div
+                    style={{
+                      background: "#FFF3E0",
+                      color: "#E8A856",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    {RISK_ASSESSMENTS.diabetes.riskLabel}
+                  </div>
+                  <span style={{ color: "#6B5D52", fontSize: 18 }}>&rsaquo;</span>
+                </div>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
-                Health overview
-              </p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
-                Doctor's assessment of your risks and progress
-              </p>
             </div>
           </Link>
 
-          {/* Blood results */}
-          <Link href="/smith2/blood-results" style={{ textDecoration: "none" }}>
+          {/* Prescription (training) card */}
+          <Link
+            href="/smith2/prescription"
+            style={{ textDecoration: "none" }}
+          >
             <div
-              className="card-hover animate-fade-in stagger-5"
               style={{
-                background: "var(--bg-card)",
-                borderRadius: 16,
-                padding: "16px 14px",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-sm)",
-                height: "100%",
+                background: "#FBF9F6",
+                border: "1px solid #E8DFD3",
+                borderRadius: 8,
+                padding: "18px 20px",
+                marginBottom: 10,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
               }}
             >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "var(--purple-bg)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 10,
-                }}
-              >
-                <TestTube size={16} style={{ color: "var(--purple-text)" }} />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: "#2C2416", margin: 0 }}>
+                    Dr. Johansson's prescription
+                  </p>
+                  <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 3 }}>
+                    {TRAINING_PLAN.name} - week {TRAINING_PLAN.currentWeek} of {TRAINING_PLAN.totalWeeks}
+                  </p>
+                </div>
+                <div className="flex items-center" style={{ gap: 8 }}>
+                  <div
+                    style={{
+                      background: "#E8F5E9",
+                      color: "#7FA876",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    {TRAINING_PLAN.completedThisWeek}/{TRAINING_PLAN.weeklySchedule.length} this week
+                  </div>
+                  <span style={{ color: "#6B5D52", fontSize: 18 }}>&rsaquo;</span>
+                </div>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
-                Blood results
-              </p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
-                {latestBlood.results.length} markers tested on {formatDate(latestBlood.date)}
-              </p>
             </div>
           </Link>
 
-          {/* Training plan */}
-          <Link href="/smith2/training" style={{ textDecoration: "none" }}>
+          {/* History card */}
+          <Link
+            href="/smith2/history"
+            style={{ textDecoration: "none" }}
+          >
             <div
-              className="card-hover animate-fade-in stagger-5"
               style={{
-                background: "var(--bg-card)",
-                borderRadius: 16,
-                padding: "16px 14px",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-sm)",
-                height: "100%",
+                background: "#FBF9F6",
+                border: "1px solid #E8DFD3",
+                borderRadius: 8,
+                padding: "18px 20px",
+                marginBottom: 10,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
               }}
             >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "var(--green-bg)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 10,
-                }}
-              >
-                <Dumbbell size={16} style={{ color: "var(--green-text)" }} />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: "#2C2416", margin: 0 }}>
+                    Your health history
+                  </p>
+                  <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 3 }}>
+                    {BLOOD_TEST_HISTORY.length} blood tests, {8} visits over 5 years
+                  </p>
+                </div>
+                <span style={{ color: "#6B5D52", fontSize: 18 }}>&rsaquo;</span>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
-                Training plan
-              </p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
-                Week {TRAINING_PLAN.currentWeek}/{TRAINING_PLAN.totalWeeks} - reviewed by Dr. Johansson
-              </p>
-            </div>
-          </Link>
-
-          {/* Medical record */}
-          <Link href="/smith2/record" style={{ textDecoration: "none" }}>
-            <div
-              className="card-hover animate-fade-in stagger-6"
-              style={{
-                background: "var(--bg-card)",
-                borderRadius: 16,
-                padding: "16px 14px",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-sm)",
-                height: "100%",
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "var(--amber-bg)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 10,
-                }}
-              >
-                <FileText size={16} style={{ color: "var(--amber-text)" }} />
-              </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
-                Medical record
-              </p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
-                Conditions, medications, visits, family history
-              </p>
             </div>
           </Link>
         </div>
 
-        {/* ----------------------------------------------------------------- */}
-        {/* MEMBERSHIP FOOTER                                                 */}
-        {/* ----------------------------------------------------------------- */}
-        <div
-          className="animate-fade-in stagger-6"
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: 16,
-            padding: "14px 16px",
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-              Annual membership
-            </p>
-            <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Member since {new Date(PATIENT.memberSince).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
-            </p>
-          </div>
-          <div
+        {/* ================================================================
+            NEXT STEPS - What the doctor has planned
+            ================================================================ */}
+        <div style={{ marginTop: 24 }}>
+          <p
             style={{
-              padding: "5px 12px",
-              borderRadius: 20,
-              background: DOC_BG,
-              fontSize: 12,
-              fontWeight: 600,
-              color: DOC_COLOR,
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontSize: 18,
+              fontWeight: 700,
+              color: "#2C2416",
+              margin: 0,
+              marginBottom: 12,
             }}
           >
-            Active
+            Coming up
+          </p>
+
+          <div
+            style={{
+              background: "#FBF9F6",
+              border: "1px solid #E8DFD3",
+              borderRadius: 8,
+              padding: "18px 20px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            }}
+          >
+            <div className="flex flex-col" style={{ gap: 16 }}>
+              {/* Next blood test */}
+              <div className="flex items-start" style={{ gap: 14 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: "#F5F1E8",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>&#128300;</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#2C2416", margin: 0 }}>
+                    Next blood test
+                  </p>
+                  <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 2 }}>
+                    September 2026 - ordered by Dr. Johansson to recheck glucose trend
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px solid #E8DFD3" }} />
+
+              {/* Vitamin D */}
+              <div className="flex items-start" style={{ gap: 14 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: "#F5F1E8",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>&#9728;&#65039;</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#2C2416", margin: 0 }}>
+                    Vitamin D supplement
+                  </p>
+                  <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 2 }}>
+                    Dr. Johansson recommends D3 2000 IU daily - your level is slightly low (48, target is 50+)
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px solid #E8DFD3" }} />
+
+              {/* Training plan ending */}
+              <div className="flex items-start" style={{ gap: 14 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: "#F5F1E8",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>&#127947;&#65039;</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#2C2416", margin: 0 }}>
+                    Training plan review
+                  </p>
+                  <p style={{ fontSize: 13, color: "#6B5D52", margin: 0, marginTop: 2 }}>
+                    {TRAINING_PLAN.totalWeeks - TRAINING_PLAN.currentWeek} weeks remaining -
+                    Dr. Johansson will review progress and update your program
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* ================================================================
+            MEMBERSHIP FOOTER
+            ================================================================ */}
+        <div
+          style={{
+            marginTop: 32,
+            padding: "16px 0",
+            textAlign: "center" as const,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "#6B5D52", margin: 0 }}>
+            Precura member since {formatDate(PATIENT.memberSince)}
+          </p>
+          <p style={{ fontSize: 12, color: "#6B5D52", margin: 0, marginTop: 2 }}>
+            Annual plan - {PATIENT.membershipPrice.toLocaleString()} SEK/year
+          </p>
         </div>
       </div>
     </div>

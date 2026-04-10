@@ -1,786 +1,635 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
-  CheckCircle2,
-  ChevronRight,
-  Dumbbell,
-  TrendingUp,
-  Calendar,
-  Heart,
-  Sparkles,
-  MessageCircle,
-  Clock,
-  Target,
-  Award,
-  BarChart3,
-} from "lucide-react";
-import {
-  PATIENT,
   TRAINING_PLAN,
   BLOOD_TEST_HISTORY,
   RISK_ASSESSMENTS,
-  MESSAGES,
-  DOCTOR_NOTES,
+  BIOMETRICS_HISTORY,
   getMarkerHistory,
 } from "@/lib/v2/mock-patient";
 
-// ============================================================================
-// STAGE DETAIL - Deep view of current stage (Stage 7: Deepening Your Practice)
-// Shows training progress, blood marker context, upcoming milestones
-// ============================================================================
+/* =====================================================================
+   STAGE 7: DEEPENING PRACTICE (Weeks 9-12)
+   Current active stage - daily tasks, weekly goals, health markers
+   ===================================================================== */
 
-const GREEN = "#2d7a3a";
-const GREEN_LIGHT = "#e8f5e9";
-
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+interface DailyTask {
+  id: string;
+  label: string;
+  description: string;
+  type: "exercise" | "habit" | "track" | "learn";
+  completed: boolean;
 }
 
-// Mini sparkline
-function Sparkline({ data, color }: { data: { value: number }[]; color: string }) {
-  if (data.length < 2) return null;
-  const vals = data.map((d) => d.value);
-  const min = Math.min(...vals) * 0.97;
-  const max = Math.max(...vals) * 1.03;
-  const w = 100;
-  const h = 32;
-  const points = vals.map((v, i) => {
-    const x = (i / (vals.length - 1)) * w;
-    const y = h - ((v - min) / (max - min)) * h;
-    return `${x},${y}`;
-  });
-  const last = vals[vals.length - 1];
-  const lx = w;
-  const ly = h - ((last - min) / (max - min)) * h;
+const TODAY_TASKS: DailyTask[] = [
+  {
+    id: "t1",
+    label: "Lower Body + Core Workout",
+    description: "4 exercises: squats, lunges, glute bridges, dead bugs",
+    type: "exercise",
+    completed: false,
+  },
+  {
+    id: "t2",
+    label: "Post-dinner walk",
+    description: "20 min walk after your evening meal - helps blood sugar regulation",
+    type: "habit",
+    completed: false,
+  },
+  {
+    id: "t3",
+    label: "Log today's weight",
+    description: "Quick morning weigh-in for your weekly trend",
+    type: "track",
+    completed: true,
+  },
+  {
+    id: "t4",
+    label: "Take Vitamin D3",
+    description: "2000 IU daily - your level was slightly low (48, target is 50+)",
+    type: "habit",
+    completed: true,
+  },
+];
 
+const WEEK_GOALS = [
+  { label: "Complete 3 training sessions", progress: 2, total: 3 },
+  { label: "Post-meal walks (5 of 7 days)", progress: 4, total: 5 },
+  { label: "Log weight 3 times", progress: 2, total: 3 },
+  { label: "Take Vitamin D daily", progress: 6, total: 7 },
+];
+
+const TYPE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+  exercise: { bg: "#F3EAFF", text: "#B794F6", icon: "dumbbell" },
+  habit: { bg: "#E8F8EC", text: "#81C995", icon: "repeat" },
+  track: { bg: "#FFF8E6", text: "#F4D47C", icon: "chart" },
+  learn: { bg: "#EDE9FE", text: "#9F7AEA", icon: "book" },
+};
+
+function TaskIcon({ type }: { type: string }) {
+  const color = TYPE_COLORS[type]?.text || "#B794F6";
+  if (type === "exercise") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6.5 6.5h11M6 12h12M17.5 17.5h-11" />
+        <rect x="2" y="8" width="4" height="8" rx="1" />
+        <rect x="18" y="8" width="4" height="8" rx="1" />
+      </svg>
+    );
+  }
+  if (type === "habit") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="17 1 21 5 17 9" />
+        <path d="M3 11V9a4 4 0 014-4h14" />
+        <polyline points="7 23 3 19 7 15" />
+        <path d="M21 13v2a4 4 0 01-4 4H3" />
+      </svg>
+    );
+  }
+  if (type === "track") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="20" x2="12" y2="10" />
+        <line x1="18" y1="20" x2="18" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="16" />
+      </svg>
+    );
+  }
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
-      <defs>
-        <linearGradient id={`sg-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.15} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <polygon
-        points={`0,${h} ${points.join(" ")} ${w},${h}`}
-        fill={`url(#sg-${color.replace("#", "")})`}
-      />
-      <polyline
-        points={points.join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx={lx} cy={ly} r={3.5} fill="#fff" stroke={color} strokeWidth={2} />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
     </svg>
   );
 }
 
-function StageContent() {
-  const searchParams = useSearchParams();
-  const stageId = parseInt(searchParams.get("id") || "7", 10);
+function MiniSparkline({ values, color }: { values: number[]; color: string }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const h = 32;
+  const w = 80;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 4) - 2;
+    return `${x},${y}`;
+  });
+  const lastPoint = points[points.length - 1].split(",");
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={lastPoint[0]} cy={lastPoint[1]} r="3" fill={color} />
+    </svg>
+  );
+}
+
+export default function StageDetailPage() {
+  const router = useRouter();
+  const [tasks, setTasks] = useState(TODAY_TASKS);
+
+  const toggleTask = (id: string) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  };
+
+  const completedToday = tasks.filter((t) => t.completed).length;
+  const totalToday = tasks.length;
 
   const glucoseHistory = getMarkerHistory("f-Glucose");
   const hba1cHistory = getMarkerHistory("HbA1c");
-  const latestGlucose = BLOOD_TEST_HISTORY[0].results.find((r) => r.shortName === "f-Glucose");
-  const latestHba1c = BLOOD_TEST_HISTORY[0].results.find((r) => r.shortName === "HbA1c");
-
-  const sessionsCompleted = TRAINING_PLAN.totalCompleted;
-  const sessionsTotal = TRAINING_PLAN.totalWeeks * 3;
-  const sessionsProgress = Math.round((sessionsCompleted / sessionsTotal) * 100);
-
-  const weekProgress = Math.round(
-    (TRAINING_PLAN.completedThisWeek / 3) * 100
-  );
+  const latestBio = BIOMETRICS_HISTORY[0];
 
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-      {/* Top bar */}
+    <div style={{ paddingTop: 24 }}>
+      {/* Stage header */}
       <div
         style={{
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          borderBottom: "1px solid var(--border)",
-          background: "var(--bg-card)",
+          background: "#FFFFFF",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          boxShadow: "0 2px 6px rgba(183,148,246,0.12)",
+          padding: "24px 20px",
+          marginBottom: 20,
         }}
       >
-        <Link
-          href="/smith8"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "var(--bg-elevated)",
-            color: "var(--text)",
-            textDecoration: "none",
-          }}
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
-            Stage 7: Deepening Your Practice
+        <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
+          <span
+            style={{
+              background: "#F3EAFF",
+              color: "#B794F6",
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "3px 10px",
+              borderRadius: 8,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Stage 7 of 10
+          </span>
+          <span style={{ color: "#8B7B95", fontSize: 12 }}>Weeks 9-12</span>
+        </div>
+        <h1 style={{ color: "#3D2645", fontSize: 22, fontWeight: 700, margin: "4px 0 8px", letterSpacing: -0.3 }}>
+          Deepening Practice
+        </h1>
+        <p style={{ color: "#8B7B95", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+          You've built the foundation. Now we increase intensity, fine-tune nutrition, and start seeing how your markers respond to the work you've put in.
+        </p>
+
+        {/* Stage progress */}
+        <div style={{ marginTop: 16 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+            <span style={{ color: "#8B7B95", fontSize: 12, fontWeight: 500 }}>Week 10 of 12</span>
+            <span style={{ color: "#B794F6", fontSize: 12, fontWeight: 600 }}>~75%</span>
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            Weeks 9-12 / You are in week 10
+          <div style={{ height: 6, borderRadius: 3, background: "#F3EAFF" }}>
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: "linear-gradient(90deg, #B794F6, #9F7AEA)",
+                width: "75%",
+              }}
+            />
           </div>
         </div>
       </div>
 
-      <div style={{ maxWidth: 448, margin: "0 auto", padding: "0 20px 80px" }}>
-        {/* Stage hero */}
-        <div
-          style={{
-            marginTop: 20,
-            background: `linear-gradient(135deg, ${GREEN}, #3a9748)`,
-            borderRadius: 20,
-            padding: "24px 20px",
-            color: "#fff",
-          }}
-          className="animate-fade-in"
-        >
-          <div
+      {/* Today's tasks */}
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          boxShadow: "0 2px 6px rgba(183,148,246,0.12)",
+          padding: "20px",
+          marginBottom: 20,
+        }}
+      >
+        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+          <h2 style={{ color: "#3D2645", fontSize: 17, fontWeight: 700, margin: 0 }}>
+            Today's Tasks
+          </h2>
+          <span
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 12,
+              color: completedToday === totalToday ? "#81C995" : "#B794F6",
+              fontSize: 13,
               fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-              opacity: 0.8,
-              marginBottom: 10,
             }}
           >
-            <TrendingUp size={14} />
-            Current Stage
-          </div>
-          <h1
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              margin: "0 0 8px",
-              lineHeight: 1.2,
-            }}
-          >
-            Deepening Your Practice
-          </h1>
-          <p
-            style={{
-              fontSize: 14,
-              opacity: 0.85,
-              margin: 0,
-              lineHeight: 1.6,
-            }}
-          >
-            You are in the home stretch of your initial 12-week program.
-            Focus now is on increasing intensity, perfecting form, and
-            building the habits that will last a lifetime.
-          </p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 12,
-              marginTop: 20,
-            }}
-          >
-            <div
-              style={{
-                background: "rgba(255,255,255,0.15)",
-                borderRadius: 12,
-                padding: "12px",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: 24, fontWeight: 700 }}>
-                {sessionsCompleted}
-              </div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>
-                sessions done
-              </div>
-            </div>
-            <div
-              style={{
-                background: "rgba(255,255,255,0.15)",
-                borderRadius: 12,
-                padding: "12px",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: 24, fontWeight: 700 }}>
-                {sessionsTotal - sessionsCompleted}
-              </div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>
-                sessions left
-              </div>
-            </div>
-          </div>
+            {completedToday}/{totalToday}
+          </span>
         </div>
 
-        {/* This week's training */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-1"
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 14,
-            }}
-          >
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
-              This week&apos;s training
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: GREEN,
-              }}
-            >
-              {TRAINING_PLAN.completedThisWeek}/3 done
-            </div>
-          </div>
-
-          {/* Week progress bar */}
-          <div
-            style={{
-              height: 6,
-              borderRadius: 3,
-              background: "#eee",
-              overflow: "hidden",
-              marginBottom: 16,
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${weekProgress}%`,
-                borderRadius: 3,
-                background: `linear-gradient(90deg, ${GREEN}, #4caf50)`,
-              }}
-            />
-          </div>
-
-          {TRAINING_PLAN.weeklySchedule.map((workout, idx) => {
-            const isDone = idx < TRAINING_PLAN.completedThisWeek;
-            const isNext = idx === TRAINING_PLAN.completedThisWeek;
-
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {tasks.map((task) => {
+            const typeStyle = TYPE_COLORS[task.type];
             return (
               <div
-                key={workout.day}
+                key={task.id}
+                onClick={() => {
+                  if (task.type === "exercise" && !task.completed) {
+                    router.push("/smith8/training");
+                  } else {
+                    toggleTask(task.id);
+                  }
+                }}
                 style={{
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "flex-start",
                   gap: 12,
-                  padding: "12px 0",
-                  borderBottom:
-                    idx < TRAINING_PLAN.weeklySchedule.length - 1
-                      ? "1px solid var(--divider)"
-                      : "none",
+                  padding: "14px 16px",
+                  borderRadius: 16,
+                  background: task.completed ? "#FDFBFF" : "#FFFFFF",
+                  border: task.completed ? "1px solid #EFE6F8" : "1px solid #EFE6F8",
+                  cursor: "pointer",
+                  opacity: task.completed ? 0.7 : 1,
+                  transition: "all 0.2s ease",
                 }}
               >
+                {/* Checkbox */}
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
+                    width: 24,
+                    height: 24,
+                    borderRadius: 8,
+                    border: task.completed ? "none" : `2px solid ${typeStyle.text}`,
+                    background: task.completed ? "#81C995" : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    marginTop: 1,
+                  }}
+                >
+                  {task.completed && (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M3 7L6 10L11 4" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div style={{ flex: 1 }}>
+                  <p
+                    style={{
+                      color: task.completed ? "#8B7B95" : "#3D2645",
+                      fontSize: 15,
+                      fontWeight: 600,
+                      margin: "0 0 3px",
+                      textDecoration: task.completed ? "line-through" : "none",
+                    }}
+                  >
+                    {task.label}
+                  </p>
+                  <p style={{ color: "#8B7B95", fontSize: 13, margin: 0, lineHeight: 1.4 }}>
+                    {task.description}
+                  </p>
+                </div>
+
+                {/* Type icon */}
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
                     borderRadius: 10,
-                    background: isDone
-                      ? GREEN_LIGHT
-                      : isNext
-                      ? "#e3f2fd"
-                      : "var(--bg-elevated)",
+                    background: typeStyle.bg,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  {isDone ? (
-                    <CheckCircle2 size={18} color={GREEN} />
-                  ) : (
-                    <Dumbbell
-                      size={16}
-                      color={isNext ? "#1565c0" : "var(--text-muted)"}
-                    />
-                  )}
+                  <TaskIcon type={task.type} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: isDone ? "var(--text-muted)" : "var(--text)",
-                      textDecoration: isDone ? "line-through" : "none",
-                    }}
-                  >
-                    {workout.day}: {workout.name}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    {workout.exercises.length} exercises
-                  </div>
-                </div>
-                {isNext && (
-                  <Link
-                    href="/smith8/today"
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: "#1565c0",
-                      background: "#e3f2fd",
-                      padding: "4px 10px",
-                      borderRadius: 8,
-                      textDecoration: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    Next up <ChevronRight size={12} />
-                  </Link>
-                )}
               </div>
             );
           })}
         </div>
+      </div>
 
-        {/* Why this matters - context from blood tests */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-2"
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 14,
-            }}
-          >
-            <BarChart3 size={16} color={GREEN} />
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: "var(--text)",
-              }}
-            >
-              Why this training matters
-            </span>
-          </div>
+      {/* Weekly goals */}
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          boxShadow: "0 2px 6px rgba(183,148,246,0.12)",
+          padding: "20px",
+          marginBottom: 20,
+        }}
+      >
+        <h2 style={{ color: "#3D2645", fontSize: 17, fontWeight: 700, margin: "0 0 16px" }}>
+          This Week's Goals
+        </h2>
 
-          <p
-            style={{
-              fontSize: 14,
-              color: "var(--text-secondary)",
-              lineHeight: 1.6,
-              margin: "0 0 16px",
-            }}
-          >
-            Your training program is specifically designed to address what your blood tests
-            and risk assessment showed. Here are the numbers you are working to change:
-          </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {WEEK_GOALS.map((goal) => {
+            const pct = Math.round((goal.progress / goal.total) * 100);
+            const isComplete = goal.progress >= goal.total;
 
-          {/* Glucose trend */}
-          <div
-            style={{
-              padding: "14px",
-              background: "var(--bg-elevated)",
-              borderRadius: 14,
-              marginBottom: 10,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 2 }}>
-                  Fasting glucose (blood sugar, fasting)
-                </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
-                    {latestGlucose?.value}
+            return (
+              <div key={goal.label}>
+                <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                  <span style={{ color: "#3D2645", fontSize: 14, fontWeight: 500 }}>
+                    {goal.label}
                   </span>
-                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                    {latestGlucose?.unit}
+                  <span
+                    style={{
+                      color: isComplete ? "#81C995" : "#B794F6",
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {goal.progress}/{goal.total}
                   </span>
                 </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--amber-text)",
-                    background: "var(--amber-bg)",
-                    display: "inline-block",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    fontWeight: 500,
-                    marginTop: 4,
-                  }}
-                >
-                  Borderline - rising over 5 years
+                <div style={{ height: 6, borderRadius: 3, background: "#F3EAFF" }}>
+                  <div
+                    style={{
+                      height: 6,
+                      borderRadius: 3,
+                      background: isComplete
+                        ? "#81C995"
+                        : "linear-gradient(90deg, #B794F6, #9F7AEA)",
+                      width: `${pct}%`,
+                      transition: "width 0.4s ease",
+                    }}
+                  />
                 </div>
               </div>
-              <Sparkline
-                data={glucoseHistory.map((h) => ({ value: h.value }))}
-                color="#e65100"
-              />
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--text-muted)",
-                marginTop: 8,
-                lineHeight: 1.5,
-              }}
-            >
-              Was 5.0 in 2021, now 5.8. Your training helps muscles absorb glucose
-              without insulin. Goal: stabilize or reverse this trend by September.
-            </div>
-          </div>
+            );
+          })}
+        </div>
+      </div>
 
-          {/* HbA1c */}
-          <div
+      {/* Health markers snapshot */}
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          boxShadow: "0 2px 6px rgba(183,148,246,0.12)",
+          padding: "20px",
+          marginBottom: 20,
+        }}
+      >
+        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+          <h2 style={{ color: "#3D2645", fontSize: 17, fontWeight: 700, margin: 0 }}>
+            Health Markers
+          </h2>
+          <button
+            onClick={() => router.push("/smith8/results")}
             style={{
-              padding: "14px",
-              background: "var(--bg-elevated)",
-              borderRadius: 14,
-              marginBottom: 10,
+              background: "none",
+              border: "none",
+              color: "#B794F6",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              padding: 0,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 2 }}>
-                  HbA1c (long-term blood sugar)
-                </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
-                    {latestHba1c?.value}
-                  </span>
-                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                    {latestHba1c?.unit}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--green-text)",
-                    background: "var(--green-bg)",
-                    display: "inline-block",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    fontWeight: 500,
-                    marginTop: 4,
-                  }}
-                >
-                  Normal - but approaching pre-diabetic (42+)
-                </div>
-              </div>
-              <Sparkline
-                data={hba1cHistory.map((h) => ({ value: h.value }))}
-                color={GREEN}
-              />
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--text-muted)",
-                marginTop: 8,
-                lineHeight: 1.5,
-              }}
-            >
-              This reflects your average blood sugar over 3 months. Currently 38 of
-              a max-normal 42. Exercise and diet are the main levers you have.
-            </div>
-          </div>
-
-          {/* Risk summary */}
-          <div
-            style={{
-              padding: "14px",
-              background: GREEN_LIGHT,
-              borderRadius: 14,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 6,
-              }}
-            >
-              <Target size={16} color={GREEN} />
-              <span style={{ fontSize: 14, fontWeight: 700, color: GREEN }}>
-                Your target for September
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: "var(--text-secondary)",
-                lineHeight: 1.6,
-              }}
-            >
-              Stabilize fasting glucose at or below 5.8 mmol/L. Keep HbA1c (long-term
-              blood sugar) under 42 mmol/mol. Maintain training consistency of 3x/week.
-              These are realistic goals based on your current trajectory.
-            </div>
-          </div>
+            View all
+          </button>
         </div>
 
-        {/* Doctor's note */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-3"
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Glucose sparkline */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              marginBottom: 14,
+              justifyContent: "space-between",
+              padding: "12px 14px",
+              borderRadius: 14,
+              background: "#FDFBFF",
+              border: "1px solid #EFE6F8",
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: "#e3f2fd",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 14,
-                fontWeight: 600,
-                color: "#1565c0",
-              }}
-            >
-              MJ
-            </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                Dr. Marcus Johansson
+              <p style={{ color: "#8B7B95", fontSize: 12, margin: "0 0 2px" }}>Blood sugar (fasting)</p>
+              <div className="flex items-baseline gap-1.5">
+                <span style={{ color: "#3D2645", fontSize: 20, fontWeight: 700 }}>5.8</span>
+                <span style={{ color: "#8B7B95", fontSize: 12 }}>mmol/L</span>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                Note from your last review
-              </div>
+              <span style={{ color: "#F4D47C", fontSize: 11, fontWeight: 600 }}>Borderline</span>
             </div>
+            <MiniSparkline values={glucoseHistory.map((h) => h.value)} color="#F4D47C" />
           </div>
+
+          {/* HbA1c sparkline */}
           <div
             style={{
-              fontSize: 14,
-              color: "var(--text-secondary)",
-              lineHeight: 1.7,
-              background: "var(--bg-elevated)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 14px",
               borderRadius: 14,
-              padding: "14px",
+              background: "#FDFBFF",
+              border: "1px solid #EFE6F8",
             }}
           >
-            &quot;Your metabolic trajectory is concerning given strong family history of type 2
-            diabetes (mother diagnosed at 58) and cardiovascular disease (father, heart
-            attack at 65). Currently meeting 2 of 5 metabolic syndrome criteria with waist
-            circumference approaching the third. Continue current training plan targeting
-            metabolic health. Retest comprehensive panel in 6 months.&quot;
+            <div>
+              <p style={{ color: "#8B7B95", fontSize: 12, margin: "0 0 2px" }}>Long-term blood sugar (HbA1c)</p>
+              <div className="flex items-baseline gap-1.5">
+                <span style={{ color: "#3D2645", fontSize: 20, fontWeight: 700 }}>38</span>
+                <span style={{ color: "#8B7B95", fontSize: 12 }}>mmol/mol</span>
+              </div>
+              <span style={{ color: "#81C995", fontSize: 11, fontWeight: 600 }}>Normal</span>
+            </div>
+            <MiniSparkline values={hba1cHistory.map((h) => h.value)} color="#81C995" />
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
-            {formatDate(DOCTOR_NOTES[0].date)}
+
+          {/* Weight */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 14px",
+              borderRadius: 14,
+              background: "#FDFBFF",
+              border: "1px solid #EFE6F8",
+            }}
+          >
+            <div>
+              <p style={{ color: "#8B7B95", fontSize: 12, margin: "0 0 2px" }}>Weight</p>
+              <div className="flex items-baseline gap-1.5">
+                <span style={{ color: "#3D2645", fontSize: 20, fontWeight: 700 }}>{latestBio.weight}</span>
+                <span style={{ color: "#8B7B95", fontSize: 12 }}>kg</span>
+              </div>
+              <span style={{ color: "#8B7B95", fontSize: 11 }}>BMI {latestBio.bmi}</span>
+            </div>
+            <MiniSparkline
+              values={BIOMETRICS_HISTORY.slice().reverse().map((b) => b.weight)}
+              color="#B794F6"
+            />
           </div>
         </div>
+      </div>
 
-        {/* Milestones ahead */}
-        <div
-          style={{
-            marginTop: 20,
-            background: "var(--bg-card)",
-            borderRadius: 20,
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          className="animate-fade-in stagger-4"
-        >
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "var(--text)",
-              marginBottom: 14,
-            }}
-          >
-            Milestones ahead
-          </div>
+      {/* Risk summary */}
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          boxShadow: "0 2px 6px rgba(183,148,246,0.12)",
+          padding: "20px",
+          marginBottom: 20,
+        }}
+      >
+        <h2 style={{ color: "#3D2645", fontSize: 17, fontWeight: 700, margin: "0 0 16px" }}>
+          Your Risk Profile
+        </h2>
 
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
             {
-              icon: <Dumbbell size={16} />,
-              label: "Complete 12-week program",
-              detail: "2 weeks remaining / 8 sessions left",
-              iconBg: "#e3f2fd",
-              iconColor: "#1565c0",
+              label: "Diabetes risk",
+              level: RISK_ASSESSMENTS.diabetes.riskLabel,
+              color: "#F4D47C",
+              trend: "Glucose rising slowly",
+              trendDir: "up",
             },
             {
-              icon: <Calendar size={16} />,
-              label: "6-month blood test",
-              detail: `Scheduled for ${formatDate(PATIENT.nextBloodTest)}`,
-              iconBg: GREEN_LIGHT,
-              iconColor: GREEN,
+              label: "Cardiovascular risk",
+              level: RISK_ASSESSMENTS.cardiovascular.riskLabel,
+              color: "#81C995",
+              trend: "Stable, BP controlled",
+              trendDir: "flat",
             },
             {
-              icon: <TrendingUp size={16} />,
-              label: "Before vs. after comparison",
-              detail: "Compare all markers side-by-side",
-              iconBg: "#ede7f6",
-              iconColor: "#5e35b1",
+              label: "Bone health risk",
+              level: RISK_ASSESSMENTS.bone.riskLabel,
+              color: "#81C995",
+              trend: "Low risk, Vitamin D improving",
+              trendDir: "flat",
             },
-            {
-              icon: <Award size={16} />,
-              label: "Year in review",
-              detail: "January 2027 - your complete health story",
-              iconBg: "#fff8e1",
-              iconColor: "#e65100",
-            },
-          ].map((m, i) => (
+          ].map((risk) => (
             <div
-              key={i}
+              key={risk.label}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                padding: "10px 0",
-                borderBottom: i < 3 ? "1px solid var(--divider)" : "none",
+                justifyContent: "space-between",
+                padding: "12px 14px",
+                borderRadius: 14,
+                background: "#FDFBFF",
+                border: "1px solid #EFE6F8",
               }}
             >
+              <div>
+                <p style={{ color: "#8B7B95", fontSize: 12, margin: "0 0 2px" }}>{risk.label}</p>
+                <p style={{ color: "#3D2645", fontSize: 15, fontWeight: 600, margin: "0 0 2px" }}>
+                  {risk.level}
+                </p>
+                <p style={{ color: "#8B7B95", fontSize: 12, margin: 0 }}>{risk.trend}</p>
+              </div>
               <div
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  background: m.iconBg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: m.iconColor,
-                  flexShrink: 0,
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: risk.color,
                 }}
-              >
-                {m.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                  {m.label}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  {m.detail}
-                </div>
-              </div>
+              />
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Quick actions */}
-        <div
+      {/* Milestone upcoming */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #F3EAFF, #FDFBFF)",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          padding: "20px",
+          marginBottom: 20,
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: 28, marginBottom: 8 }}>🎯</div>
+        <p style={{ color: "#3D2645", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>
+          Next milestone in 2 weeks
+        </p>
+        <p style={{ color: "#8B7B95", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+          Complete Stage 7 and unlock your 6-month check-in. A new blood test will show how your body has responded to training.
+        </p>
+      </div>
+
+      {/* Doctor note */}
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderRadius: 20,
+          border: "1px solid #EFE6F8",
+          boxShadow: "0 2px 6px rgba(183,148,246,0.12)",
+          padding: "20px",
+        }}
+      >
+        <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 12,
+              background: "#F3EAFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#B794F6",
+              fontWeight: 600,
+              fontSize: 13,
+            }}
+          >
+            MJ
+          </div>
+          <div>
+            <p style={{ color: "#3D2645", fontSize: 14, fontWeight: 600, margin: 0 }}>
+              Dr. Marcus Johansson
+            </p>
+            <p style={{ color: "#8B7B95", fontSize: 12, margin: 0 }}>Latest note - Mar 28</p>
+          </div>
+        </div>
+        <p style={{ color: "#8B7B95", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+          "Your training adherence is strong. The key focus for the next 2 weeks is maintaining consistency and continuing post-meal walks. We'll retest in September to measure progress."
+        </p>
+        <button
+          onClick={() => router.push("/smith8/messages")}
           style={{
-            marginTop: 20,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 10,
+            marginTop: 14,
+            background: "#F3EAFF",
+            border: "none",
+            borderRadius: 12,
+            padding: "10px 16px",
+            color: "#B794F6",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            width: "100%",
           }}
         >
-          <Link
-            href="/smith8/today"
-            style={{
-              background: GREEN,
-              color: "#fff",
-              borderRadius: 14,
-              padding: "16px",
-              textDecoration: "none",
-              textAlign: "center",
-            }}
-          >
-            <Dumbbell size={20} style={{ marginBottom: 6 }} />
-            <div style={{ fontSize: 14, fontWeight: 600 }}>
-              Today&apos;s tasks
-            </div>
-          </Link>
-          <Link
-            href="/smith8/journey"
-            style={{
-              background: "var(--bg-card)",
-              color: "var(--text)",
-              borderRadius: 14,
-              padding: "16px",
-              textDecoration: "none",
-              textAlign: "center",
-              border: "1px solid var(--border)",
-            }}
-          >
-            <Award size={20} style={{ marginBottom: 6, color: GREEN }} />
-            <div style={{ fontSize: 14, fontWeight: 600 }}>
-              Full journey
-            </div>
-          </Link>
-        </div>
+          Message Dr. Johansson
+        </button>
       </div>
     </div>
-  );
-}
-
-export default function StagePage() {
-  return (
-    <Suspense
-      fallback={
-        <div style={{ background: "var(--bg)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ color: "var(--text-muted)" }}>Loading...</div>
-        </div>
-      }
-    >
-      <StageContent />
-    </Suspense>
   );
 }

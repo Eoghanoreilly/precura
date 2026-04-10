@@ -1,571 +1,901 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
-  Activity, TestTube, ChevronRight, TrendingUp,
-  Calendar, Clock, MessageCircle, Dumbbell,
-  AlertTriangle, Droplet, Heart, Shield,
-} from "lucide-react";
-import {
-  PATIENT, BLOOD_TEST_HISTORY, RISK_ASSESSMENTS,
-  DOCTOR_NOTES, MESSAGES, TRAINING_PLAN,
-  getMarkerHistory, getLatestMarker,
+  PATIENT,
+  BLOOD_TEST_HISTORY,
+  RISK_ASSESSMENTS,
+  TRAINING_PLAN,
+  MESSAGES,
+  getMarkerHistory,
+  getLatestMarker,
 } from "@/lib/v2/mock-patient";
+import {
+  Droplets,
+  TrendingUp,
+  Calendar,
+  MessageSquare,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle,
+  Dumbbell,
+  Shield,
+} from "lucide-react";
 
-// Status color mapping
-function statusColor(status: string) {
-  if (status === "normal") return { bg: "var(--green-bg)", text: "var(--green-text)", dot: "var(--green)" };
-  if (status === "borderline") return { bg: "var(--amber-bg)", text: "var(--amber-text)", dot: "var(--amber)" };
-  return { bg: "var(--red-bg)", text: "var(--red-text)", dot: "var(--red)" };
-}
-
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function daysUntil(d: string) {
-  const diff = Math.ceil((new Date(d).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  return diff > 0 ? diff : 0;
-}
-
-// Mini sparkline using SVG
-function Sparkline({ data, color }: { data: { value: number }[]; color: string }) {
+function GlucoseSparkline() {
+  const data = getMarkerHistory("f-Glucose");
   if (data.length < 2) return null;
-  const vals = data.map((d) => d.value);
-  const min = Math.min(...vals) * 0.98;
-  const max = Math.max(...vals) * 1.02;
-  const w = 80;
-  const h = 28;
-  const points = vals.map((v, i) => {
-    const x = (i / (vals.length - 1)) * w;
-    const y = h - ((v - min) / (max - min)) * h;
-    return `${x},${y}`;
+
+  const minVal = Math.min(...data.map((d) => d.value)) - 0.3;
+  const maxVal = Math.max(...data.map((d) => d.value)) + 0.3;
+  const width = 200;
+  const height = 48;
+  const padding = 4;
+
+  const points = data.map((d, i) => {
+    const x = padding + (i / (data.length - 1)) * (width - padding * 2);
+    const y =
+      height -
+      padding -
+      ((d.value - minVal) / (maxVal - minVal)) * (height - padding * 2);
+    return { x, y, value: d.value };
   });
-  const last = vals[vals.length - 1];
-  const lx = w;
-  const ly = h - ((last - min) / (max - min)) * h;
+
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const last = points[points.length - 1];
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
+    <svg width={width} height={height} style={{ display: "block" }}>
       <defs>
-        <linearGradient id={`spark-${color.replace(/[^a-z0-9]/g, "")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.15} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        <linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#F59E0B" />
         </linearGradient>
       </defs>
-      <polygon
-        points={`0,${h} ${points.join(" ")} ${w},${h}`}
-        fill={`url(#spark-${color.replace(/[^a-z0-9]/g, "")})`}
-      />
-      <polyline
-        points={points.join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx={lx} cy={ly} r={3} fill={color} />
+      <path d={pathD} fill="none" stroke="url(#sparkGrad)" strokeWidth={2} />
+      <circle cx={last.x} cy={last.y} r={4} fill="#F59E0B" />
+      <text
+        x={last.x - 8}
+        y={last.y - 8}
+        style={{
+          fontSize: 10,
+          fill: "#F59E0B",
+          fontFamily: '-apple-system, system-ui, sans-serif',
+          fontWeight: 600,
+        }}
+      >
+        {last.value}
+      </text>
     </svg>
   );
 }
 
-export default function Smith1Home() {
-  const latest = BLOOD_TEST_HISTORY[0];
-  const normalCount = latest.results.filter((r) => r.status === "normal").length;
-  const borderlineCount = latest.results.filter((r) => r.status === "borderline").length;
-  const abnormalCount = latest.results.filter((r) => r.status === "abnormal").length;
-  const totalMarkers = latest.results.length;
-  const glucoseHistory = getMarkerHistory("f-Glucose");
-  const latestGlucose = getLatestMarker("f-Glucose");
-  const daysToNext = daysUntil(PATIENT.nextBloodTest);
-  const latestNote = DOCTOR_NOTES[0];
-  const lastMessage = MESSAGES[MESSAGES.length - 1];
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, { bg: string; text: string }> = {
+    normal: { bg: "rgba(16, 185, 129, 0.15)", text: "#10B981" },
+    borderline: { bg: "rgba(245, 158, 11, 0.15)", text: "#F59E0B" },
+    abnormal: { bg: "rgba(239, 68, 68, 0.15)", text: "#EF4444" },
+  };
+  const c = colors[status] || colors.normal;
+  return (
+    <span
+      className="px-2 py-0.5"
+      style={{
+        background: c.bg,
+        color: c.text,
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 600,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+      }}
+    >
+      {status}
+    </span>
+  );
+}
 
-  // Markers that need attention (borderline or abnormal)
-  const flaggedMarkers = latest.results.filter((r) => r.status !== "normal");
-  const goodMarkers = latest.results.filter((r) => r.status === "normal");
+export default function DashboardPage() {
+  const latestSession = BLOOD_TEST_HISTORY[0];
+  const glucose = getLatestMarker("f-Glucose");
+  const hba1c = getLatestMarker("HbA1c");
+  const lastMessage = MESSAGES[MESSAGES.length - 1];
+  const daysToNextTest = Math.ceil(
+    (new Date(PATIENT.nextBloodTest).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+
+  const borderlineCount = latestSession.results.filter(
+    (r) => r.status === "borderline"
+  ).length;
+  const abnormalCount = latestSession.results.filter(
+    (r) => r.status === "abnormal"
+  ).length;
 
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100dvh" }}>
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 80px" }}>
+    <div className="max-w-6xl mx-auto">
+      {/* Page header */}
+      <div className="mb-8">
+        <h1
+          style={{
+            color: "#F5F7FA",
+            fontSize: 28,
+            fontWeight: 700,
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            margin: 0,
+          }}
+        >
+          Welcome back, {PATIENT.firstName}
+        </h1>
+        <p
+          style={{
+            color: "#B8C5D6",
+            fontSize: 14,
+            marginTop: 4,
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+          }}
+        >
+          Your health dashboard - Last updated{" "}
+          {new Date(latestSession.date).toLocaleDateString("en-SE", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </p>
+      </div>
 
-        {/* Top Bar */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          paddingTop: 16, paddingBottom: 12,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: 10,
-              background: "var(--blue-bg)", display: "flex",
-              alignItems: "center", justifyContent: "center",
-            }}>
-              <Activity size={15} style={{ color: "var(--blue-text)" }} />
+      {/* Priority alert */}
+      {borderlineCount > 0 && (
+        <div
+          className="flex items-start gap-3 p-4 mb-6"
+          style={{
+            background: "rgba(245, 158, 11, 0.08)",
+            border: "1px solid rgba(245, 158, 11, 0.2)",
+            borderRadius: 12,
+          }}
+        >
+          <AlertTriangle size={18} style={{ color: "#F59E0B", marginTop: 2, flexShrink: 0 }} />
+          <div>
+            <div
+              style={{
+                color: "#F59E0B",
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              {borderlineCount} marker{borderlineCount > 1 ? "s" : ""} need attention
             </div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>Precura</span>
+            <div
+              style={{
+                color: "#B8C5D6",
+                fontSize: 13,
+                marginTop: 2,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              Your fasting glucose (blood sugar) has been rising steadily over 5 years.
+              Dr. Johansson has reviewed your results and left a note.
+            </div>
           </div>
-          <Link href="/smith1" style={{
-            width: 36, height: 36, borderRadius: 12,
-            background: "var(--accent-light)", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            fontSize: 13, fontWeight: 700, color: "var(--accent)",
-            textDecoration: "none",
-          }}>
-            AB
-          </Link>
+        </div>
+      )}
+
+      {/* Stat cards row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Next blood test */}
+        <div
+          className="p-4"
+          style={{
+            background: "#141F2E",
+            borderRadius: 12,
+            border: "1px solid #1F2D42",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar size={16} style={{ color: "#7C3AED" }} />
+            <span
+              style={{
+                color: "#B8C5D6",
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              Next Blood Test
+            </span>
+          </div>
+          <div
+            style={{
+              color: "#F5F7FA",
+              fontSize: 22,
+              fontWeight: 700,
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            }}
+          >
+            {daysToNextTest > 0 ? `${daysToNextTest} days` : "Due now"}
+          </div>
+          <div
+            style={{
+              color: "#B8C5D6",
+              fontSize: 12,
+              marginTop: 2,
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+            }}
+          >
+            September 15, 2026
+          </div>
         </div>
 
-        {/* Greeting */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{
-            fontSize: 22, fontWeight: 700, color: "var(--text)",
-            letterSpacing: "-0.02em", margin: 0,
-          }}>
-            Hi, {PATIENT.firstName}
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "2px 0 0" }}>
-            Your blood tests, explained.
-          </p>
+        {/* Glucose */}
+        <div
+          className="p-4"
+          style={{
+            background: "#141F2E",
+            borderRadius: 12,
+            border: "1px solid #1F2D42",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Droplets size={16} style={{ color: "#F59E0B" }} />
+            <span
+              style={{
+                color: "#B8C5D6",
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              Fasting Glucose (blood sugar)
+            </span>
+          </div>
+          <div className="flex items-end gap-2">
+            <span
+              style={{
+                color: "#F59E0B",
+                fontSize: 22,
+                fontWeight: 700,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              }}
+            >
+              {glucose?.value}
+            </span>
+            <span
+              style={{
+                color: "#B8C5D6",
+                fontSize: 12,
+                marginBottom: 3,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              {glucose?.unit}
+            </span>
+          </div>
+          <div
+            className="flex items-center gap-1 mt-1"
+            style={{ color: "#F59E0B", fontSize: 12 }}
+          >
+            <TrendingUp size={12} />
+            <span
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              +0.8 over 5 years
+            </span>
+          </div>
         </div>
 
-        {/* Latest Results Summary Card - Hero */}
-        <Link href="/smith1/results" style={{ textDecoration: "none" }}>
-          <div className="animate-fade-in" style={{
-            background: "var(--bg-card)", borderRadius: 20,
-            border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
-            padding: "20px 20px 16px", marginBottom: 14,
-            cursor: "pointer", transition: "box-shadow 0.2s, transform 0.2s",
-          }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <TestTube size={14} style={{ color: "var(--blue-text)" }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--blue-text)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Latest Results</span>
+        {/* Diabetes risk */}
+        <div
+          className="p-4"
+          style={{
+            background: "#141F2E",
+            borderRadius: 12,
+            border: "1px solid #1F2D42",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Shield size={16} style={{ color: "#F59E0B" }} />
+            <span
+              style={{
+                color: "#B8C5D6",
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              Diabetes Risk (10-year)
+            </span>
+          </div>
+          <div
+            style={{
+              color: "#F59E0B",
+              fontSize: 22,
+              fontWeight: 700,
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            }}
+          >
+            {RISK_ASSESSMENTS.diabetes.tenYearRisk}
+          </div>
+          <div
+            style={{
+              color: "#B8C5D6",
+              fontSize: 12,
+              marginTop: 2,
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+            }}
+          >
+            Moderate risk, worsening trend
+          </div>
+        </div>
+
+        {/* Training */}
+        <div
+          className="p-4"
+          style={{
+            background: "#141F2E",
+            borderRadius: 12,
+            border: "1px solid #1F2D42",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Dumbbell size={16} style={{ color: "#10B981" }} />
+            <span
+              style={{
+                color: "#B8C5D6",
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+              }}
+            >
+              Training Plan
+            </span>
+          </div>
+          <div
+            style={{
+              color: "#F5F7FA",
+              fontSize: 22,
+              fontWeight: 700,
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            }}
+          >
+            Week {TRAINING_PLAN.currentWeek}/{TRAINING_PLAN.totalWeeks}
+          </div>
+          <div
+            style={{
+              color: "#10B981",
+              fontSize: 12,
+              marginTop: 2,
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+            }}
+          >
+            {TRAINING_PLAN.completedThisWeek}/3 sessions this week
+          </div>
+        </div>
+      </div>
+
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left column - 2/3 */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* Glucose trend card */}
+          <Link href="/smith1/results" style={{ textDecoration: "none" }}>
+            <div
+              className="p-5"
+              style={{
+                background: "#141F2E",
+                borderRadius: 12,
+                border: "1px solid #1F2D42",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                cursor: "pointer",
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2
+                    style={{
+                      color: "#F5F7FA",
+                      fontSize: 16,
+                      fontWeight: 600,
+                      margin: 0,
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    }}
+                  >
+                    Glucose Trend (blood sugar over time)
+                  </h2>
+                  <p
+                    style={{
+                      color: "#B8C5D6",
+                      fontSize: 13,
+                      margin: 0,
+                      marginTop: 2,
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                    }}
+                  >
+                    5 years of fasting glucose readings
+                  </p>
                 </div>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.02em" }}>
-                  {formatDate(latest.date)}
-                </p>
-                <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
-                  {latest.lab}
-                </p>
+                <ChevronRight size={18} style={{ color: "#B8C5D6" }} />
               </div>
-              <ChevronRight size={18} style={{ color: "var(--text-faint)", marginTop: 4 }} />
+              <GlucoseSparkline />
             </div>
+          </Link>
 
-            {/* Marker count pills */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              <div style={{
-                flex: 1, padding: "10px 0", borderRadius: 12,
-                background: "var(--green-bg)", textAlign: "center",
-              }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--green-text)" }}>{normalCount}</div>
-                <div style={{ fontSize: 11, color: "var(--green-text)", fontWeight: 500 }}>Normal</div>
+          {/* Latest blood test summary */}
+          <Link href="/smith1/results" style={{ textDecoration: "none" }}>
+            <div
+              className="p-5"
+              style={{
+                background: "#141F2E",
+                borderRadius: 12,
+                border: "1px solid #1F2D42",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2
+                    style={{
+                      color: "#F5F7FA",
+                      fontSize: 16,
+                      fontWeight: 600,
+                      margin: 0,
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    }}
+                  >
+                    Latest Blood Test
+                  </h2>
+                  <p
+                    style={{
+                      color: "#B8C5D6",
+                      fontSize: 13,
+                      margin: 0,
+                      marginTop: 2,
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                    }}
+                  >
+                    {new Date(latestSession.date).toLocaleDateString("en-SE", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}{" "}
+                    - {latestSession.orderedBy}
+                  </p>
+                </div>
+                <ChevronRight size={18} style={{ color: "#B8C5D6" }} />
               </div>
-              <div style={{
-                flex: 1, padding: "10px 0", borderRadius: 12,
-                background: "var(--amber-bg)", textAlign: "center",
-              }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--amber-text)" }}>{borderlineCount}</div>
-                <div style={{ fontSize: 11, color: "var(--amber-text)", fontWeight: 500 }}>Watch</div>
+
+              <div className="flex flex-col gap-2">
+                {latestSession.results.slice(0, 5).map((r) => (
+                  <div
+                    key={r.shortName}
+                    className="flex items-center justify-between py-2 px-3"
+                    style={{
+                      background: "rgba(255,255,255,0.02)",
+                      borderRadius: 8,
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          color: "#F5F7FA",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          fontFamily:
+                            '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                        }}
+                      >
+                        {r.plainName}
+                      </span>
+                      <span
+                        style={{
+                          color: "#B8C5D6",
+                          fontSize: 11,
+                          marginLeft: 6,
+                          fontFamily:
+                            '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                        }}
+                      >
+                        ({r.shortName})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        style={{
+                          color: "#F5F7FA",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          fontFamily:
+                            '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                        }}
+                      >
+                        {r.value} {r.unit}
+                      </span>
+                      <StatusBadge status={r.status} />
+                    </div>
+                  </div>
+                ))}
               </div>
-              {abnormalCount > 0 && (
-                <div style={{
-                  flex: 1, padding: "10px 0", borderRadius: 12,
-                  background: "var(--red-bg)", textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "var(--red-text)" }}>{abnormalCount}</div>
-                  <div style={{ fontSize: 11, color: "var(--red-text)", fontWeight: 500 }}>Action</div>
+
+              {latestSession.results.length > 5 && (
+                <div
+                  className="mt-3 text-center"
+                  style={{
+                    color: "#7C3AED",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                  }}
+                >
+                  View all {latestSession.results.length} markers
                 </div>
               )}
             </div>
+          </Link>
 
-            {/* Doctor reviewed badge */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "8px 12px", borderRadius: 10,
-              background: "var(--accent-light)",
-            }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: 8,
-                background: "var(--accent)", display: "flex",
-                alignItems: "center", justifyContent: "center",
-              }}>
-                <Shield size={12} style={{ color: "#fff" }} />
+          {/* Risk overview */}
+          <Link href="/smith1/risk" style={{ textDecoration: "none" }}>
+            <div
+              className="p-5"
+              style={{
+                background: "#141F2E",
+                borderRadius: 12,
+                border: "1px solid #1F2D42",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2
+                  style={{
+                    color: "#F5F7FA",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    margin: 0,
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                  }}
+                >
+                  Risk Overview
+                </h2>
+                <ChevronRight size={18} style={{ color: "#B8C5D6" }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)" }}>Reviewed by {latestNote.author}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Tap to read full analysis</div>
-              </div>
-            </div>
-          </div>
-        </Link>
 
-        {/* Flagged Markers - what needs attention */}
-        {flaggedMarkers.length > 0 && (
-          <div className="animate-fade-in stagger-1" style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, paddingLeft: 2 }}>
-              <AlertTriangle size={13} style={{ color: "var(--amber-text)" }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Needs attention</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {flaggedMarkers.map((marker) => {
-                const sc = statusColor(marker.status);
-                const history = getMarkerHistory(marker.shortName);
-                const trend = history.length >= 2 ? history[history.length - 1].value - history[history.length - 2].value : 0;
-                return (
-                  <Link key={marker.shortName} href={`/smith1/marker?m=${marker.shortName}`} style={{ textDecoration: "none" }}>
-                    <div style={{
-                      background: "var(--bg-card)", borderRadius: 16,
-                      border: "1px solid var(--border)", padding: "14px 16px",
-                      display: "flex", alignItems: "center", gap: 12,
-                      boxShadow: "var(--shadow-sm)",
-                    }}>
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 12,
-                        background: sc.bg, display: "flex",
-                        alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                      }}>
-                        <Droplet size={18} style={{ color: sc.text }} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                          {marker.plainName}
-                        </div>
-                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          {marker.value} {marker.unit}
-                          {trend !== 0 && (
-                            <span style={{ color: sc.text, fontWeight: 600, marginLeft: 6 }}>
-                              {trend > 0 ? "+" : ""}{trend.toFixed(1)} since last
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Sparkline
-                          data={history}
-                          color={sc.dot}
-                        />
-                        <span style={{
-                          fontSize: 10, fontWeight: 600, padding: "3px 8px",
-                          borderRadius: 6, background: sc.bg, color: sc.text,
-                          textTransform: "uppercase",
-                        }}>
-                          {marker.status}
+              <div className="flex flex-col gap-3">
+                {[
+                  {
+                    label: "Diabetes (type 2)",
+                    risk: RISK_ASSESSMENTS.diabetes.tenYearRisk,
+                    level: RISK_ASSESSMENTS.diabetes.riskLevel,
+                    trend: RISK_ASSESSMENTS.diabetes.trend,
+                    color: "#F59E0B",
+                    pct: 45,
+                  },
+                  {
+                    label: "Cardiovascular (heart/stroke)",
+                    risk: RISK_ASSESSMENTS.cardiovascular.tenYearRisk,
+                    level: RISK_ASSESSMENTS.cardiovascular.riskLevel,
+                    trend: RISK_ASSESSMENTS.cardiovascular.trend,
+                    color: "#10B981",
+                    pct: 20,
+                  },
+                  {
+                    label: "Bone health",
+                    risk: RISK_ASSESSMENTS.bone.tenYearRisk,
+                    level: RISK_ASSESSMENTS.bone.riskLevel,
+                    trend: RISK_ASSESSMENTS.bone.trend,
+                    color: "#10B981",
+                    pct: 10,
+                  },
+                ].map((r) => (
+                  <div key={r.label}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span
+                        style={{
+                          color: "#F5F7FA",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          fontFamily:
+                            '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                        }}
+                      >
+                        {r.label}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          style={{
+                            color: r.color,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            fontFamily:
+                              '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                          }}
+                        >
+                          {r.risk}
                         </span>
+                        {r.trend === "worsening" && (
+                          <TrendingUp
+                            size={12}
+                            style={{ color: "#F59E0B" }}
+                          />
+                        )}
                       </div>
                     </div>
+                    <div
+                      style={{
+                        height: 4,
+                        background: "#1F2D42",
+                        borderRadius: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${r.pct}%`,
+                          height: "100%",
+                          background: r.color,
+                          borderRadius: 2,
+                          transition: "width 0.6s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Right column - 1/3 */}
+        <div className="flex flex-col gap-6">
+          {/* Doctor message preview */}
+          <Link href="/smith1/messages" style={{ textDecoration: "none" }}>
+            <div
+              className="p-5"
+              style={{
+                background: "#141F2E",
+                borderRadius: 12,
+                border: "1px solid #1F2D42",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={16} style={{ color: "#7C3AED" }} />
+                  <h3
+                    style={{
+                      color: "#F5F7FA",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      margin: 0,
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    }}
+                  >
+                    Dr. Johansson
+                  </h3>
+                </div>
+                <ChevronRight size={16} style={{ color: "#B8C5D6" }} />
+              </div>
+              <p
+                style={{
+                  color: "#B8C5D6",
+                  fontSize: 13,
+                  margin: 0,
+                  lineHeight: 1.5,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                }}
+              >
+                {lastMessage.text}
+              </p>
+              <div
+                className="mt-2"
+                style={{
+                  color: "#7C3AED",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                }}
+              >
+                {new Date(lastMessage.date).toLocaleDateString("en-SE", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </div>
+            </div>
+          </Link>
+
+          {/* Training this week */}
+          <Link href="/smith1/training" style={{ textDecoration: "none" }}>
+            <div
+              className="p-5"
+              style={{
+                background: "#141F2E",
+                borderRadius: 12,
+                border: "1px solid #1F2D42",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Dumbbell size={16} style={{ color: "#10B981" }} />
+                  <h3
+                    style={{
+                      color: "#F5F7FA",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      margin: 0,
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+                    }}
+                  >
+                    This Week
+                  </h3>
+                </div>
+                <ChevronRight size={16} style={{ color: "#B8C5D6" }} />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {TRAINING_PLAN.weeklySchedule.map((day, i) => {
+                  const done = i < TRAINING_PLAN.completedThisWeek;
+                  return (
+                    <div
+                      key={day.day}
+                      className="flex items-center justify-between py-2 px-3"
+                      style={{
+                        background: done
+                          ? "rgba(16, 185, 129, 0.08)"
+                          : "rgba(255,255,255,0.02)",
+                        borderRadius: 8,
+                      }}
+                    >
+                      <div>
+                        <span
+                          style={{
+                            color: done ? "#10B981" : "#F5F7FA",
+                            fontSize: 13,
+                            fontWeight: 500,
+                            fontFamily:
+                              '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                          }}
+                        >
+                          {day.day}
+                        </span>
+                        <span
+                          style={{
+                            color: "#B8C5D6",
+                            fontSize: 11,
+                            marginLeft: 6,
+                            fontFamily:
+                              '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                          }}
+                        >
+                          {day.name}
+                        </span>
+                      </div>
+                      {done && (
+                        <CheckCircle size={16} style={{ color: "#10B981" }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                className="mt-3"
+                style={{
+                  color: "#B8C5D6",
+                  fontSize: 12,
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                }}
+              >
+                {TRAINING_PLAN.totalCompleted} total sessions completed
+              </div>
+            </div>
+          </Link>
+
+          {/* Quick actions */}
+          <div
+            className="p-5"
+            style={{
+              background: "#141F2E",
+              borderRadius: 12,
+              border: "1px solid #1F2D42",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+            }}
+          >
+            <h3
+              style={{
+                color: "#F5F7FA",
+                fontSize: 14,
+                fontWeight: 600,
+                margin: 0,
+                marginBottom: 12,
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              }}
+            >
+              Quick Actions
+            </h3>
+            <div className="flex flex-col gap-2">
+              {[
+                {
+                  href: "/smith1/blood-tests",
+                  label: "Order Blood Test",
+                  icon: Droplets,
+                  color: "#7C3AED",
+                },
+                {
+                  href: "/smith1/messages",
+                  label: "Message Doctor",
+                  icon: MessageSquare,
+                  color: "#7C3AED",
+                },
+                {
+                  href: "/smith1/chat",
+                  label: "Ask AI Assistant",
+                  icon: Shield,
+                  color: "#7C3AED",
+                },
+              ].map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Link
+                    key={action.href}
+                    href={action.href}
+                    className="flex items-center gap-3 px-3 py-2.5"
+                    style={{
+                      background: "rgba(124, 58, 237, 0.08)",
+                      borderRadius: 8,
+                      textDecoration: "none",
+                      color: "#F5F7FA",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+                    }}
+                  >
+                    <Icon size={16} style={{ color: action.color }} />
+                    <span>{action.label}</span>
                   </Link>
                 );
               })}
             </div>
           </div>
-        )}
-
-        {/* Glucose Trend - the key story */}
-        <Link href="/smith1/marker?m=f-Glucose" style={{ textDecoration: "none" }}>
-          <div className="animate-fade-in stagger-2" style={{
-            background: "var(--bg-card)", borderRadius: 18,
-            border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)",
-            padding: "16px 18px", marginBottom: 14,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}>5-Year Glucose Trend</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                  Blood sugar (fasting): {latestGlucose?.value} {latestGlucose?.unit}
-                </div>
-              </div>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 4,
-                padding: "4px 10px", borderRadius: 8,
-                background: "var(--amber-bg)",
-              }}>
-                <TrendingUp size={12} style={{ color: "var(--amber-text)" }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--amber-text)" }}>Rising</span>
-              </div>
-            </div>
-
-            {/* Trend visualization */}
-            <GlucoseTrendChart data={glucoseHistory} />
-
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0", lineHeight: 1.5 }}>
-              Your fasting glucose has risen from {glucoseHistory[0].value} to {glucoseHistory[glucoseHistory.length - 1].value} mmol/L over 5 years.
-              Your GP noted each result as &quot;normal&quot; individually, but the trend tells a different story.
-            </p>
-          </div>
-        </Link>
-
-        {/* Doctor's Message Preview */}
-        <div className="animate-fade-in stagger-3" style={{
-          background: "var(--bg-card)", borderRadius: 16,
-          border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)",
-          padding: "14px 16px", marginBottom: 14,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 10,
-              background: "var(--accent-light)", display: "flex",
-              alignItems: "center", justifyContent: "center",
-            }}>
-              <MessageCircle size={15} style={{ color: "var(--accent)" }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Dr. Marcus Johansson</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                {formatDate(lastMessage.date.split("T")[0])}
-              </div>
-            </div>
-          </div>
-          <p style={{
-            fontSize: 13, color: "var(--text-secondary)", margin: 0,
-            lineHeight: 1.6, display: "-webkit-box",
-            WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}>
-            {lastMessage.text}
-          </p>
-        </div>
-
-        {/* Quick Actions Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <Link href="/smith1/history" style={{ textDecoration: "none" }}>
-            <div className="card-hover" style={{
-              background: "var(--bg-card)", borderRadius: 16,
-              border: "1px solid var(--border)", padding: "16px 14px",
-              boxShadow: "var(--shadow-sm)",
-            }}>
-              <Clock size={18} style={{ color: "var(--blue-text)", marginBottom: 8 }} />
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>Test History</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{BLOOD_TEST_HISTORY.length} sessions since 2021</div>
-            </div>
-          </Link>
-
-          <Link href="/smith1/tracking" style={{ textDecoration: "none" }}>
-            <div className="card-hover" style={{
-              background: "var(--bg-card)", borderRadius: 16,
-              border: "1px solid var(--border)", padding: "16px 14px",
-              boxShadow: "var(--shadow-sm)",
-            }}>
-              <Calendar size={18} style={{ color: "var(--teal-text)", marginBottom: 8 }} />
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>Next Test</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                {daysToNext > 0 ? `In ${daysToNext} days` : "Schedule now"}
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/smith1/risk" style={{ textDecoration: "none" }}>
-            <div className="card-hover" style={{
-              background: "var(--bg-card)", borderRadius: 16,
-              border: "1px solid var(--border)", padding: "16px 14px",
-              boxShadow: "var(--shadow-sm)",
-            }}>
-              <Heart size={18} style={{ color: "var(--red-text)", marginBottom: 8 }} />
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>Risk Models</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                Diabetes: {RISK_ASSESSMENTS.diabetes.tenYearRisk}
-              </div>
-            </div>
-          </Link>
-
-          <div className="card-hover" style={{
-            background: "var(--bg-card)", borderRadius: 16,
-            border: "1px solid var(--border)", padding: "16px 14px",
-            boxShadow: "var(--shadow-sm)",
-          }}>
-            <Dumbbell size={18} style={{ color: "var(--purple-text)", marginBottom: 8 }} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>Training</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Week {TRAINING_PLAN.currentWeek}/{TRAINING_PLAN.totalWeeks}
-            </div>
-          </div>
-        </div>
-
-        {/* All Normal Markers - collapsed list */}
-        {goodMarkers.length > 0 && (
-          <NormalMarkersSection markers={goodMarkers} />
-        )}
-
-        {/* Next Test Reminder */}
-        <div className="animate-fade-in stagger-5" style={{
-          background: "linear-gradient(135deg, var(--blue-bg) 0%, #e8eaf6 100%)",
-          borderRadius: 16, padding: "16px 18px", marginBottom: 14,
-          border: "1px solid rgba(66, 165, 245, 0.15)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--blue-text)", marginBottom: 2 }}>
-                Next blood test
-              </div>
-              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                {formatDate(PATIENT.nextBloodTest)} - {daysToNext} days away
-              </div>
-            </div>
-            <Link href="/smith1/tracking" style={{
-              padding: "8px 14px", borderRadius: 10,
-              background: "var(--blue-text)", color: "#fff",
-              fontSize: 12, fontWeight: 600, textDecoration: "none",
-            }}>
-              Details
-            </Link>
-          </div>
-        </div>
-
-        {/* Membership */}
-        <div style={{
-          background: "var(--bg-card)", borderRadius: 14,
-          border: "1px solid var(--border)", padding: "12px 16px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>Precura Annual</div>
-            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-              {PATIENT.membershipPrice} kr/year - Member since {formatDate(PATIENT.memberSince)}
-            </div>
-          </div>
-          <div style={{
-            fontSize: 10, fontWeight: 600, padding: "4px 8px",
-            borderRadius: 6, background: "var(--green-bg)", color: "var(--green-text)",
-            textTransform: "uppercase",
-          }}>Active</div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Glucose trend chart component
-function GlucoseTrendChart({ data }: { data: { date: string; value: number }[] }) {
-  const vals = data.map((d) => d.value);
-  const minVal = 4.5;
-  const maxVal = 6.5;
-  const refHigh = 6.0;
-  const refLow = 3.9;
-  const w = 340;
-  const h = 100;
-  const padX = 30;
-  const padY = 10;
-
-  const xScale = (i: number) => padX + (i / (data.length - 1)) * (w - padX * 2);
-  const yScale = (v: number) => padY + ((maxVal - v) / (maxVal - minVal)) * (h - padY * 2);
-
-  const pathD = data.map((d, i) => {
-    const x = xScale(i);
-    const y = yScale(d.value);
-    return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-  }).join(" ");
-
-  // Area under the line
-  const areaD = `${pathD} L ${xScale(data.length - 1)} ${h - padY} L ${xScale(0)} ${h - padY} Z`;
-
-  const refHighY = yScale(refHigh);
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h + 20}`} style={{ overflow: "visible" }}>
-      {/* Borderline zone background */}
-      <rect x={padX} y={yScale(refHigh)} width={w - padX * 2} height={yScale(minVal) - yScale(refHigh)} fill="var(--amber-bg)" opacity={0.4} rx={4} />
-
-      {/* Reference line at 6.0 */}
-      <line x1={padX} y1={refHighY} x2={w - padX} y2={refHighY} stroke="var(--amber)" strokeWidth={1} strokeDasharray="4 3" opacity={0.5} />
-      <text x={w - padX + 4} y={refHighY + 4} fill="var(--amber-text)" fontSize={9} fontWeight={600}>6.0</text>
-
-      {/* Area fill */}
-      <defs>
-        <linearGradient id="glucoseGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--amber)" stopOpacity={0.15} />
-          <stop offset="100%" stopColor="var(--amber)" stopOpacity={0.02} />
-        </linearGradient>
-      </defs>
-      <path d={areaD} fill="url(#glucoseGrad)" />
-
-      {/* Trend line */}
-      <path d={pathD} fill="none" stroke="var(--amber)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-
-      {/* Data points */}
-      {data.map((d, i) => {
-        const x = xScale(i);
-        const y = yScale(d.value);
-        const isLast = i === data.length - 1;
-        return (
-          <g key={d.date}>
-            {isLast && <circle cx={x} cy={y} r={6} fill="var(--amber)" opacity={0.15} />}
-            <circle cx={x} cy={y} r={isLast ? 4 : 2.5} fill={isLast ? "var(--amber)" : "var(--amber-text)"} opacity={isLast ? 1 : 0.6} />
-            <text x={x} y={h + 12} textAnchor="middle" fill="var(--text-muted)" fontSize={9}>
-              {new Date(d.date).getFullYear().toString().slice(2)}
-            </text>
-            <text x={x} y={y - 8} textAnchor="middle" fill={isLast ? "var(--amber-text)" : "var(--text-muted)"} fontSize={isLast ? 11 : 9} fontWeight={isLast ? 700 : 500}>
-              {d.value}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// Collapsible normal markers
-function NormalMarkersSection({ markers }: { markers: typeof BLOOD_TEST_HISTORY[0]["results"] }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className="animate-fade-in stagger-4" style={{ marginBottom: 14 }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          width: "100%", background: "var(--bg-card)",
-          borderRadius: expanded ? "16px 16px 0 0" : 16,
-          border: "1px solid var(--border)", padding: "12px 16px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          cursor: "pointer", boxShadow: "var(--shadow-sm)",
-          borderBottom: expanded ? "none" : "1px solid var(--border)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: 4, background: "var(--green)",
-          }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-            {markers.length} markers in normal range
-          </span>
-        </div>
-        <ChevronRight
-          size={16}
-          style={{
-            color: "var(--text-muted)",
-            transform: expanded ? "rotate(90deg)" : "none",
-            transition: "transform 0.2s",
-          }}
-        />
-      </button>
-      {expanded && (
-        <div style={{
-          background: "var(--bg-card)", borderRadius: "0 0 16px 16px",
-          border: "1px solid var(--border)", borderTop: "none",
-          padding: "4px 0",
-        }}>
-          {markers.map((m, i) => (
-            <Link key={m.shortName} href={`/smith1/marker?m=${m.shortName}`} style={{ textDecoration: "none" }}>
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "10px 16px",
-                borderBottom: i < markers.length - 1 ? "1px solid var(--divider)" : "none",
-              }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>{m.plainName}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{m.name}</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--green-text)" }}>
-                    {m.value} <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}>{m.unit}</span>
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
