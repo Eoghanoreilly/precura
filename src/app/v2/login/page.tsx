@@ -241,6 +241,11 @@ export default function V2LoginPage() {
               { id: 8, name: "Guided Journey", style: "Coaching program", color: "#2d7a3a", bg: "#f0faf1" },
               { id: 9, name: "Full Picture", style: "Data depth", color: "#3730a3", bg: "#eef2ff" },
               { id: 10, name: "The Trajectory", style: "One chart", color: "#c41c1c", bg: "#fff1f0" },
+              { id: 11, name: "Spotify Health", style: "Dark, bold, personal", color: "#1DB954", bg: "#121212" },
+              { id: 12, name: "Airbnb Health", style: "White, airy, cards", color: "#FF385C", bg: "#fff5f5" },
+              { id: 13, name: "Apple Fitness+", style: "Rings, gradients", color: "#FF2D55", bg: "#1C1C1E" },
+              { id: 14, name: "Material You", style: "Google, teal, FAB", color: "#006D3E", bg: "#FAFDFB" },
+              { id: 15, name: "Notion Health", style: "Clean, no cards", color: "#2383E2", bg: "#FAFAF9" },
             ].map((a) => (
               <button
                 key={a.id}
