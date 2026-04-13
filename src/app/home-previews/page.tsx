@@ -14,6 +14,11 @@ import {
   ArrowLeftRight,
   Layers,
   Palette,
+  Wind,
+  LayoutGrid,
+  Sunrise,
+  BookOpen,
+  FlaskConical,
 } from "lucide-react";
 
 const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif';
@@ -21,7 +26,7 @@ const MONO = '"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace'
 
 type Design = {
   n: number;
-  round: 1 | 2;
+  round: 1 | 2 | 3;
   route: string;
   title: string;
   constraint: string;
@@ -33,6 +38,73 @@ type Design = {
 };
 
 const DESIGNS: Design[] = [
+  // Round 3 - 3D refinements on home-6
+  {
+    n: 11,
+    round: 3,
+    route: "/home-11",
+    title: "Minimal Ambient",
+    constraint: "Quiet hero, 3D as background weather",
+    description:
+      "3D terrain lives ambient in the background at low intensity. Cream negative space dominates. Feels like a premium Swiss watch brand.",
+    vibe: "Rauno / Patek / Kinfolk restraint",
+    icon: Wind,
+    accent: "#4A5A4E",
+    tint: "#EEF0EA",
+  },
+  {
+    n: 12,
+    round: 3,
+    route: "/home-12",
+    title: "Split Classical",
+    constraint: "Left text grid / right contained 3D panel",
+    description:
+      "Organized 12-column grid. Left: text hierarchy + CTAs. Right: the 3D terrain in a contained frame. Linear / Vercel / Stripe discipline.",
+    vibe: "Linear / Vercel / Stripe",
+    icon: LayoutGrid,
+    accent: "#2B3340",
+    tint: "#E9EDF3",
+  },
+  {
+    n: 13,
+    round: 3,
+    route: "/home-13",
+    title: "Reveal Hero",
+    constraint: "First viewport text-only, 3D reveals on scroll",
+    description:
+      "Opens with just a massive headline. No 3D. As you scroll, the terrain mounts and animates in dramatically. Deferred complexity.",
+    vibe: "Apple product pages / Stripe Sessions",
+    icon: Sunrise,
+    accent: "#8A4A1B",
+    tint: "#FBEEDE",
+  },
+  {
+    n: 14,
+    round: 3,
+    route: "/home-14",
+    title: "Magazine Cover",
+    constraint: "Editorial type + photo, 3D as accent",
+    description:
+      "Feels like a Kinfolk cover. Big typographic statement + one portrait. 3D is a small precious widget, not the star.",
+    vibe: "Kinfolk / The Gentlewoman / Monocle",
+    icon: BookOpen,
+    accent: "#1E1E1E",
+    tint: "#F1EEE6",
+  },
+  {
+    n: 15,
+    round: 3,
+    route: "/home-15",
+    title: "Research Forward",
+    constraint: "Lead with peer-reviewed science",
+    description:
+      "Hero leads with cited clinical models and research. 3D is contained like a scientific instrument readout. Scientific research carousel as the main interactive section.",
+    vibe: "Nature.com / Function Health / Zoe",
+    icon: FlaskConical,
+    accent: "#0E3A56",
+    tint: "#E3EEF7",
+  },
+
   // Round 2 - cinematic with substance
   {
     n: 6,
@@ -194,7 +266,7 @@ function DesignCard({ d, index }: { d: Design; index: number }) {
             overflow: "hidden",
           }}
         >
-          {d.round === 2 && (
+          {d.round === 3 && (
             <div
               style={{
                 position: "absolute",
@@ -303,6 +375,7 @@ function DesignCard({ d, index }: { d: Design; index: number }) {
 }
 
 export default function HomePreviews() {
+  const round3 = DESIGNS.filter((d) => d.round === 3);
   const round2 = DESIGNS.filter((d) => d.round === 2);
   const round1 = DESIGNS.filter((d) => d.round === 1);
 
@@ -334,7 +407,7 @@ export default function HomePreviews() {
               marginBottom: 18,
             }}
           >
-            10 designs / 2 rounds / Smith home page
+            15 designs / 3 rounds / Smith home page
           </div>
           <h1
             style={{
@@ -346,9 +419,9 @@ export default function HomePreviews() {
               maxWidth: 820,
             }}
           >
-            Ten Precura home pages.
+            Fifteen Precura home pages.
             <br />
-            <span style={{ color: "#6B6B6B" }}>Round 2 is cinematic with substance.</span>
+            <span style={{ color: "#6B6B6B" }}>Round 3 refines the 3D direction you liked.</span>
           </h1>
           <p
             style={{
@@ -359,9 +432,10 @@ export default function HomePreviews() {
               margin: 0,
             }}
           >
-            Round 1 explored 5 different directions. Round 2 doubles down on cinematic motion while hitting all 10
-            required home-page sections - hero, problem, Anna story, how it works, what you get, trust, social proof,
-            pricing, FAQ, final CTA. Each round-2 agent got a different cinematic technique so nothing converges.
+            Round 3 iterates on home-6. Each design keeps the 3D terrain but fixes the noisy hero, adds the full
+            next-level product story (scientific research, biomarkers, personal doctor, active coaching, living
+            profile), adds a clickable carousel, and pulls in the living profile and 2,000 members sections you liked
+            from home-10. Five different hero treatments so they don&apos;t converge.
           </p>
         </motion.div>
 
@@ -382,6 +456,53 @@ export default function HomePreviews() {
                 fontWeight: 600,
                 letterSpacing: "-0.015em",
                 margin: 0,
+              }}
+            >
+              Round 3 / Three Dimensional, refined
+            </h2>
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: MONO,
+                color: "#6B6B6B",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              Home 11 to 15
+            </span>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gap: 20,
+            }}
+          >
+            {round3.map((d, i) => (
+              <DesignCard key={d.n} d={d} index={i} />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 56, marginBottom: 28 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              marginBottom: 20,
+              paddingBottom: 14,
+              borderBottom: "1px solid #E8E4DB",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 22,
+                fontWeight: 600,
+                letterSpacing: "-0.015em",
+                margin: 0,
+                color: "#6B6B6B",
               }}
             >
               Round 2 / Cinematic with substance
