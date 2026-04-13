@@ -69,37 +69,6 @@ export function Hero() {
       >
         {/* LEFT - Copy */}
         <div style={{ maxWidth: 560 }}>
-          {/* Eyebrow pill */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 14px",
-              background: C.paper,
-              border: `1px solid ${C.line}`,
-              borderRadius: 100,
-              fontSize: 13,
-              fontWeight: 500,
-              color: C.inkSoft,
-              marginBottom: 28,
-              boxShadow: C.shadowSoft,
-            }}
-          >
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: C.good,
-              }}
-            />
-            Sweden / Accepting new members
-          </motion.div>
-
           {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -147,7 +116,7 @@ export function Hero() {
             would.
           </motion.p>
 
-          {/* CTAs + pricing */}
+          {/* Single primary CTA */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -155,106 +124,30 @@ export function Hero() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 16,
-              flexWrap: "wrap",
-              marginBottom: 28,
             }}
           >
             <Link
               href="#pricing"
               style={{
                 display: "inline-flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                padding: "14px 26px",
-                background: C.ink,
-                color: C.canvasSoft,
-                borderRadius: 16,
-                textDecoration: "none",
-                boxShadow: C.shadowLift,
-                minWidth: 260,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 16,
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                  marginBottom: 2,
-                }}
-              >
-                Start your membership
-              </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  color: "rgba(251,247,240,0.72)",
-                  fontWeight: 400,
-                }}
-              >
-                2,995 SEK/year / Cancel anytime
-              </span>
-            </Link>
-            <Link
-              href="#how"
-              style={{
-                display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "14px 22px",
-                background: "transparent",
-                color: C.ink,
-                borderRadius: 100,
+                gap: 10,
+                padding: "17px 34px",
+                background: C.terracotta,
+                color: "#FFFFFF",
+                borderRadius: 14,
                 textDecoration: "none",
-                fontSize: 15,
-                fontWeight: 500,
-                border: `1px solid ${C.lineCard}`,
+                fontSize: 16,
+                fontWeight: 600,
+                letterSpacing: "-0.005em",
+                boxShadow:
+                  "0 14px 28px -12px rgba(201,87,58,0.45), 0 2px 6px rgba(201,87,58,0.18)",
               }}
             >
-              See what&apos;s inside
+              Start your membership
             </Link>
           </motion.div>
 
-          {/* Trust row */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.7 }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 24,
-              flexWrap: "wrap",
-            }}
-          >
-            <AvatarStack />
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: C.ink,
-                  letterSpacing: "-0.005em",
-                }}
-              >
-                2,147 members across Sweden
-              </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  color: C.inkMuted,
-                }}
-              >
-                Reviewed by Dr. Marcus Johansson, Karolinska-trained GP
-              </span>
-            </div>
-          </motion.div>
         </div>
 
         {/* RIGHT - Welcome Kit flat lay */}
@@ -270,38 +163,6 @@ export function Hero() {
         }
       `}</style>
     </section>
-  );
-}
-
-// =============================================================================
-// Avatar stack for trust proof
-// =============================================================================
-function AvatarStack() {
-  const avatars = [
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&q=80&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80&auto=format&fit=crop",
-  ];
-  return (
-    <div style={{ display: "flex" }}>
-      {avatars.map((url, i) => (
-        <div
-          key={i}
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: "50%",
-            backgroundImage: `url(${url})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            border: `2px solid ${C.canvas}`,
-            marginLeft: i === 0 ? 0 : -12,
-            boxShadow: C.shadowSoft,
-          }}
-        />
-      ))}
-    </div>
   );
 }
 
@@ -395,7 +256,7 @@ function WelcomeKitVisual() {
               fontWeight: 700,
             }}
           >
-            MJ
+            TK
           </div>
           <div>
             <div
@@ -406,7 +267,7 @@ function WelcomeKitVisual() {
                 letterSpacing: "-0.005em",
               }}
             >
-              Dr. Marcus Johansson
+              Dr. Tomas Kurakovas
             </div>
             <div style={{ fontSize: 9, color: C.inkFaint }}>
               Your Precura GP

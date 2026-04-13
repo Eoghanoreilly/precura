@@ -24,7 +24,7 @@ export function Footer() {
       label: "Science",
       items: [
         { text: "Risk models", href: "#whatyouget" },
-        { text: "Dr. Marcus", href: "#whatyouget" },
+        { text: "Dr. Tomas", href: "#whatyouget" },
         { text: "Biomarkers", href: "#whatyouget" },
         { text: "FAQ", href: "#faq" },
       ],
@@ -282,7 +282,7 @@ export function Footer() {
                 lineHeight: 1.5,
               }}
             >
-              Dr. Marcus Johansson, GP
+              Dr. Tomas Kurakovas, GP
               <br />
               Licensed by Socialstyrelsen
             </div>

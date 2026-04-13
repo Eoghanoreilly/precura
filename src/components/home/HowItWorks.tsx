@@ -14,7 +14,7 @@ export function HowItWorks() {
     {
       num: "Step 01",
       title: "Kit arrives in 3 days.",
-      body: "We ship your welcome kit to your door: a blood sample collection box, your membership card, and a printed welcome note from Dr. Marcus. You drop the sample at any Swedish Post office. Labs within 48 hours.",
+      body: "We ship your welcome kit to your door: a blood sample collection box, your membership card, and a printed welcome note from Dr. Tomas. You drop the sample at any Swedish Post office. Labs within 48 hours.",
       pillImage: (
         <BoxIllustration />
       ),
@@ -23,7 +23,7 @@ export function HowItWorks() {
     {
       num: "Step 02",
       title: "Your profile goes live.",
-      body: "Once results land, we pull your 1177 history and build your living profile. Three validated risk models (FINDRISC, SCORE2, FRAX) plus 22 biomarkers. Dr. Marcus writes you a personal note. Everything in plain English.",
+      body: "Once results land, we pull your 1177 history and build your living profile. Three validated risk models (FINDRISC, SCORE2, FRAX) plus 22 biomarkers. Dr. Tomas writes you a personal note. Everything in plain English.",
       pillImage: <ProfileIllustration />,
       accent: C.sageTint,
     },

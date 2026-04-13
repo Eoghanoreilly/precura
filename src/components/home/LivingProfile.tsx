@@ -279,7 +279,7 @@ export function LivingProfile() {
                         fontWeight: 600,
                       }}
                     >
-                      Note from Dr. Marcus
+                      Note from Dr. Tomas
                     </div>
                   </div>
                   <p

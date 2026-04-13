@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { C, SYSTEM_FONT, IMG } from "./tokens";
 
 /**
- * TRUST & SCIENCE - Dr. Marcus named and imaged. Citations listed as a
+ * TRUST & SCIENCE - Dr. Tomas named and imaged. Citations listed as a
  * neat reference table. Two-column editorial layout.
  */
 export function TrustScience() {
@@ -118,7 +118,7 @@ export function TrustScience() {
                   marginBottom: 4,
                 }}
               >
-                Dr. Marcus Johansson
+                Dr. Tomas Kurakovas
               </div>
               <div
                 style={{
@@ -193,7 +193,7 @@ export function TrustScience() {
                 maxWidth: 620,
               }}
             >
-              Dr. Marcus personally reviews every new member&apos;s baseline
+              Dr. Tomas personally reviews every new member&apos;s baseline
               panel and writes the first note. The risk models we use are the
               same ones Swedish GPs use today, published in peer-reviewed
               journals, referenced below.

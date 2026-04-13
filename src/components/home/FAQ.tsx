@@ -13,15 +13,15 @@ export function FAQ() {
   const questions = [
     {
       q: "Is Precura a replacement for my GP?",
-      a: "No. Precura is a predictive health service, not a diagnostic clinic. We do not diagnose or treat medical conditions. If Dr. Marcus spots something that needs investigation, he refers you to your regular vardcentral or a specialist. Think of us as the layer that catches trajectories early, not the people who treat disease.",
+      a: "No. Precura is a predictive health service, not a diagnostic clinic. We do not diagnose or treat medical conditions. If Dr. Tomas spots something that needs investigation, he refers you to your regular vardcentral or a specialist. Think of us as the layer that catches trajectories early, not the people who treat disease.",
     },
     {
       q: "How is this different from Werlabs or a normal blood test?",
-      a: "Werlabs gives you a snapshot. Precura gives you a trajectory. We pull your 1177 history, connect it to every new panel, and show the 5-year arc. Every result is reviewed by the same Swedish-licensed GP (Dr. Marcus Johansson). And when your numbers change, your training plan changes. A one-off panel cannot do that.",
+      a: "Werlabs gives you a snapshot. Precura gives you a trajectory. We pull your 1177 history, connect it to every new panel, and show the 5-year arc. Every result is reviewed by the same Swedish-licensed GP (Dr. Tomas Kurakovas). And when your numbers change, your training plan changes. A one-off panel cannot do that.",
     },
     {
-      q: "Is Dr. Marcus a real doctor I actually talk to?",
-      a: "Yes. Dr. Marcus Johansson is a Karolinska-trained GP with over 15 years in Swedish primary care, licensed by Socialstyrelsen. He personally reviews every new member's baseline panel, writes the first note, and replies to messages within 24 hours (12 hours on Plus). You see his face, you see his handwriting, you can book a call.",
+      q: "Is Dr. Tomas a real doctor I actually talk to?",
+      a: "Yes. Dr. Tomas Kurakovas is a Karolinska-trained GP with over 15 years in Swedish primary care, licensed by Socialstyrelsen. He personally reviews every new member's baseline panel, writes the first note, and replies to messages within 24 hours (12 hours on Plus). You see his face, you see his handwriting, you can book a call.",
     },
     {
       q: "Is the coaching real coaching or just an AI bot?",

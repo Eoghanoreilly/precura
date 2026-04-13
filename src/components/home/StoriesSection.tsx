@@ -33,7 +33,7 @@ export function StoriesSection() {
     },
     {
       quote:
-        "What I like is the honesty. No miracles. Dr. Marcus actually wrote that my cholesterol was borderline and let&apos;s retest in six months. That&apos;s what I&apos;d expect from a real clinician.",
+        "What I like is the honesty. No miracles. Dr. Tomas actually wrote that my cholesterol was borderline and let&apos;s retest in six months. That&apos;s what I&apos;d expect from a real clinician.",
       name: "Anja B.",
       role: "35 / Gothenburg",
       tag: "Real doctor notes",

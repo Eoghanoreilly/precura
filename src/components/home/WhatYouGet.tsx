@@ -219,7 +219,7 @@ export function WhatYouGet() {
             eyebrowColor={C.terracotta}
             eyebrow="03 / DOCTOR"
             title="Your personal GP."
-            body="Dr. Marcus Johansson, Karolinska-trained, 15 years primary care. Messages answered within 24 hours. He knows your story."
+            body="Dr. Tomas Kurakovas, Karolinska-trained, 15 years primary care. Messages answered within 24 hours. He knows your story."
             image={IMG.doctor}
             border
           />

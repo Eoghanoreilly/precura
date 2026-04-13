@@ -35,7 +35,7 @@ export function Pricing() {
         { text: "Baseline living profile", included: true },
         { text: "AI chat with your data", included: true },
         { text: "Doctor-reviewed first note", included: true },
-        { text: "Ongoing messaging with Dr. Marcus", included: false },
+        { text: "Ongoing messaging with Dr. Tomas", included: false },
         { text: "Personal coach + training plan", included: false },
       ],
     },
@@ -60,7 +60,7 @@ export function Pricing() {
         { text: "4 blood panels per year", included: true },
         { text: "Full living profile + 5-year arcs", included: true },
         { text: "Unlimited AI chat with your data", included: true },
-        { text: "Messaging with Dr. Marcus (24h reply)", included: true },
+        { text: "Messaging with Dr. Tomas (24h reply)", included: true },
         { text: "Personal coach + training plan", included: true },
         { text: "Quarterly trajectory reviews", included: true },
       ],
@@ -87,7 +87,7 @@ export function Pricing() {
         { text: "Priority doctor access (12h reply)", included: true },
         { text: "Extended coaching + nutrition calls", included: true },
         { text: "Living profile + advanced biomarkers", included: true },
-        { text: "Quarterly video review with Dr. Marcus", included: true },
+        { text: "Quarterly video review with Dr. Tomas", included: true },
         { text: "Partner discount on Apple Watch SE", included: true },
       ],
     },
@@ -176,7 +176,7 @@ export function Pricing() {
               paddingBottom: 10,
             }}
           >
-            Every tier includes the living profile and Dr. Marcus review.
+            Every tier includes the living profile and Dr. Tomas review.
             Panels, priority and coaching scale with the plan. Cancel any time.
           </motion.p>
         </div>

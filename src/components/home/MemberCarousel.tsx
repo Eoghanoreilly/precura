@@ -27,7 +27,7 @@ export function MemberCarousel() {
       since: "January 2026",
       activities: [
         "4 blood panels in 12 months",
-        "12 messages with Dr. Marcus",
+        "12 messages with Dr. Tomas",
         "3x/week strength plan",
         "Added Vit D 2000 IU",
       ],
@@ -69,7 +69,7 @@ export function MemberCarousel() {
       since: "March 2025",
       activities: [
         "4 panels, full thyroid profile",
-        "Dr. Marcus adjusted medication",
+        "Dr. Tomas adjusted medication",
         "Restorative training plan",
         "Sleep tracking added",
       ],
