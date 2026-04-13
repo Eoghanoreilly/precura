@@ -12,6 +12,7 @@ import {
   HeartPulse,
   MessageCircle,
   ArrowUpRight,
+  type LucideIcon,
 } from "lucide-react";
 import {
   PATIENT,
@@ -174,7 +175,7 @@ function RiskCard({
   tenYear: string;
   trend: string;
   color: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 }) {
   return (
     <div
@@ -374,7 +375,7 @@ function QuickAction({
   onClick,
 }: {
   label: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   color: string;
   onClick?: () => void;
 }) {

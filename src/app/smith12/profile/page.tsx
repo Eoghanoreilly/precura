@@ -25,6 +25,7 @@ import {
   Bell,
   Download,
   Heart,
+  type LucideIcon,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ function SectionCard({
   children,
 }: {
   title: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   children: React.ReactNode;
 }) {
   return (
@@ -71,7 +72,7 @@ function MenuItem({
   sublabel,
   danger,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   sublabel?: string;
   danger?: boolean;

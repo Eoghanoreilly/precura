@@ -17,6 +17,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Search,
+  type LucideIcon,
 } from "lucide-react";
 
 const FONT =
@@ -26,7 +27,7 @@ interface NavItem {
   id: string;
   label: string;
   href: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   children?: { id: string; label: string; href: string }[];
 }
 

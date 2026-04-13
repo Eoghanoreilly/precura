@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Sun,
   Footprints,
+  type LucideIcon,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -34,7 +35,7 @@ function ActionCard({
   done,
   href,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   title: string;
   description: string;
   due?: string;

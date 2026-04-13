@@ -15,6 +15,7 @@ import {
   LogOut,
   CreditCard,
   Star,
+  type LucideIcon,
 } from "lucide-react";
 import {
   PATIENT,
@@ -122,7 +123,7 @@ function ExpandableSection({
   defaultOpen = false,
 }: {
   title: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   iconColor: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
@@ -221,7 +222,7 @@ function SettingsRow({
   color = "#B3B3B3",
   danger = false,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   value?: string;
   color?: string;

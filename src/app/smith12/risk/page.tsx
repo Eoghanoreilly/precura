@@ -21,6 +21,7 @@ import {
   Heart,
   Activity,
   Bone,
+  type LucideIcon,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -226,7 +227,7 @@ function RiskDetailCard({
   children,
 }: {
   title: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   riskLevel: string;
   riskLabel: string;
   trend: string;
