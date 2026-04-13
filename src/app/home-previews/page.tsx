@@ -19,6 +19,11 @@ import {
   Sunrise,
   BookOpen,
   FlaskConical,
+  ShoppingBag,
+  Gift,
+  Calendar,
+  Compass,
+  LayoutDashboard,
 } from "lucide-react";
 
 const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif';
@@ -26,7 +31,7 @@ const MONO = '"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace'
 
 type Design = {
   n: number;
-  round: 1 | 2 | 3;
+  round: 1 | 2 | 3 | 4;
   route: string;
   title: string;
   constraint: string;
@@ -38,6 +43,73 @@ type Design = {
 };
 
 const DESIGNS: Design[] = [
+  // Round 4 - Airbnb warmth + instant subscription (judged + refined)
+  {
+    n: 16,
+    round: 4,
+    route: "/home-16",
+    title: "The Shopfront",
+    constraint: "Product-detail hero + free risk check",
+    description:
+      "Hero rewritten after judges. Weight-500 editorial type, Werlabs contrast in subhead, 'Start my free risk check / 2 min' as the primary CTA instead of pay-first membership.",
+    vibe: "Monocle meets Airbnb (refined)",
+    icon: ShoppingBag,
+    accent: "#C8412F",
+    tint: "#FBEEE8",
+  },
+  {
+    n: 17,
+    round: 4,
+    route: "/home-17",
+    title: "The Welcome Kit",
+    constraint: "Membership unboxing, problem-first copy",
+    description:
+      "Hero rebuilt: 'See trouble coming. A year before your doctor does.' Single membership card visual with doctor's note peeking out. Member tier bumped to 4 panels to fix the data contradiction.",
+    vibe: "Glossier / Arket warmth",
+    icon: Gift,
+    accent: "#C9573A",
+    tint: "#FBEDE4",
+  },
+  {
+    n: 18,
+    round: 4,
+    route: "/home-18",
+    title: "The Booker",
+    constraint: "Lingon red (ex-Airbnb-palette) + clarity hero",
+    description:
+      "Full palette identity rebuild: rausch -> lingon, #E45A5A -> #B8322C. New hero: 'Know what your blood is telling you, years before it has to shout.' Widget simplified, travel metaphor killed.",
+    vibe: "Swedish clinic + clarity",
+    icon: Calendar,
+    accent: "#B8322C",
+    tint: "#FBEEEC",
+  },
+  {
+    n: 19,
+    round: 4,
+    route: "/home-19",
+    title: "The Guided Tour",
+    constraint: "Static 2x2 preview grid (no autoplay)",
+    description:
+      "Autoplay and tabs killed. Hero now shows all 4 previews at once (Doctor / Panel / Coach / AI). 'First panel free if you cancel in 30 days' trust line under CTA.",
+    vibe: "Linear method + warm cream",
+    icon: Compass,
+    accent: "#C55A3E",
+    tint: "#FBECE2",
+  },
+  {
+    n: 20,
+    round: 4,
+    route: "/home-20",
+    title: "The Catalogue",
+    constraint: "Single-focus hero, catalogue moved to section 2",
+    description:
+      "8-card grid killed from hero. New hero: 'See trouble coming. Years before your doctor can.' Dr. Marcus portrait + Werlabs price contrast overlay. 8 cards relocated after Anna's story.",
+    vibe: "Editorial health magazine",
+    icon: LayoutDashboard,
+    accent: "#D35838",
+    tint: "#FBEADF",
+  },
+
   // Round 3 - 3D refinements on home-6
   {
     n: 11,
@@ -266,7 +338,7 @@ function DesignCard({ d, index }: { d: Design; index: number }) {
             overflow: "hidden",
           }}
         >
-          {d.round === 3 && (
+          {d.round === 4 && (
             <div
               style={{
                 position: "absolute",
@@ -375,6 +447,7 @@ function DesignCard({ d, index }: { d: Design; index: number }) {
 }
 
 export default function HomePreviews() {
+  const round4 = DESIGNS.filter((d) => d.round === 4);
   const round3 = DESIGNS.filter((d) => d.round === 3);
   const round2 = DESIGNS.filter((d) => d.round === 2);
   const round1 = DESIGNS.filter((d) => d.round === 1);
@@ -407,7 +480,7 @@ export default function HomePreviews() {
               marginBottom: 18,
             }}
           >
-            15 designs / 3 rounds / Smith home page
+            20 designs / 4 rounds / Smith home page
           </div>
           <h1
             style={{
@@ -419,9 +492,9 @@ export default function HomePreviews() {
               maxWidth: 820,
             }}
           >
-            Fifteen Precura home pages.
+            Twenty Precura home pages.
             <br />
-            <span style={{ color: "#6B6B6B" }}>Round 3 refines the 3D direction you liked.</span>
+            <span style={{ color: "#6B6B6B" }}>Round 4 is Airbnb-warm and judged.</span>
           </h1>
           <p
             style={{
@@ -432,10 +505,10 @@ export default function HomePreviews() {
               margin: 0,
             }}
           >
-            Round 3 iterates on home-6. Each design keeps the 3D terrain but fixes the noisy hero, adds the full
-            next-level product story (scientific research, biomarkers, personal doctor, active coaching, living
-            profile), adds a clickable carousel, and pulls in the living profile and 2,000 members sections you liked
-            from home-10. Five different hero treatments so they don&apos;t converge.
+            Round 4 pivots back to Airbnb warmth, instant value, subscription framing. Each v1 was reviewed by two
+            TechCrunch Disrupt judges (Alex Sung, ex-Airbnb design; Maya Patel, ex-Headspace growth). Judges tore them
+            apart, then each designer made ONE decisive change. What&apos;s shown below are the final v2 proposals, not
+            the v1 drafts.
           </p>
         </motion.div>
 
@@ -456,6 +529,53 @@ export default function HomePreviews() {
                 fontWeight: 600,
                 letterSpacing: "-0.015em",
                 margin: 0,
+              }}
+            >
+              Round 4 / Airbnb warm, instant, judged
+            </h2>
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: MONO,
+                color: "#6B6B6B",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              Home 16 to 20
+            </span>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gap: 20,
+            }}
+          >
+            {round4.map((d, i) => (
+              <DesignCard key={d.n} d={d} index={i} />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 56, marginBottom: 28 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              marginBottom: 20,
+              paddingBottom: 14,
+              borderBottom: "1px solid #E8E4DB",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 22,
+                fontWeight: 600,
+                letterSpacing: "-0.015em",
+                margin: 0,
+                color: "#6B6B6B",
               }}
             >
               Round 3 / Three Dimensional, refined
