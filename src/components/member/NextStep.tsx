@@ -13,6 +13,11 @@ export function NextStep({
   eyebrow: string;
   title: string;
   action?: string;
+  /**
+   * subtle = calm/neutral state (between-panels, no urgency).
+   * Renders in stone/ink neutral tones, no terracotta.
+   * Non-subtle is reserved for onboarding asks (new-member kit tracking, etc).
+   */
   subtle?: boolean;
 }) {
   return (
@@ -23,8 +28,8 @@ export function NextStep({
       style={{
         margin: "0 20px 18px",
         padding: "22px 22px 22px",
-        background: subtle ? C.stoneSoft : C.terracottaTint,
-        border: `1px solid ${subtle ? C.stone : C.terracottaSoft}`,
+        background: subtle ? C.stoneSoft : C.butterTint,
+        border: `1px solid ${subtle ? C.stone : C.butterSoft}`,
         borderRadius: 22,
         boxShadow: C.shadowSoft,
         fontFamily: SYSTEM_FONT,
@@ -34,7 +39,7 @@ export function NextStep({
         style={{
           fontSize: 10,
           fontWeight: 600,
-          color: subtle ? C.inkMuted : C.terracottaDeep,
+          color: C.inkMuted,
           letterSpacing: "0.14em",
           textTransform: "uppercase",
           marginBottom: 10,

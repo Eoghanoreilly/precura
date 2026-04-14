@@ -210,7 +210,7 @@ export function MemberSidebar({
             style={{
               fontSize: 10,
               fontWeight: 600,
-              color: C.terracotta,
+              color: C.inkMuted,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               marginBottom: 8,

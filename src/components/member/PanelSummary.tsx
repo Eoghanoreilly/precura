@@ -44,7 +44,7 @@ export function PanelSummary({
         style={{
           fontSize: 10,
           fontWeight: 600,
-          color: C.terracotta,
+          color: C.inkMuted,
           letterSpacing: "0.14em",
           textTransform: "uppercase",
           marginBottom: 12,
@@ -135,9 +135,12 @@ export function PanelSummary({
           fontFamily: "inherit",
           fontSize: 13,
           fontWeight: 600,
-          color: C.terracotta,
+          color: C.inkSoft,
           cursor: "pointer",
           letterSpacing: "-0.005em",
+          textDecoration: "underline",
+          textDecorationColor: C.stone,
+          textUnderlineOffset: 4,
         }}
       >
         {expanded ? "Hide breakdown" : "See by category"}
