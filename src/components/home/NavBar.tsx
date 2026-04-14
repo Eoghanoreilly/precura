@@ -119,7 +119,7 @@ export function NavBar() {
         {/* Right side CTA */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <Link
-            href="#pricing"
+            href="/login"
             style={{
               fontSize: 14,
               fontWeight: 500,
@@ -154,9 +154,6 @@ export function NavBar() {
       <style jsx>{`
         @media (max-width: 900px) {
           :global(.home17-nav-links) {
-            display: none !important;
-          }
-          :global(.home17-nav-signin) {
             display: none !important;
           }
         }
