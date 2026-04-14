@@ -6,8 +6,16 @@ import { C, SYSTEM_FONT, DISPLAY_NUM } from "./tokens";
 
 // ============================================================================
 // GlucoseHero - the single marker that matters on panel-results-day.
-// Promoted out of WhatMoved so the page answers Anna's "is this good or bad?"
-// question in one glance. Full-width card, bigger number, sparkline, verdict.
+//
+// Pass 3 rebuild: the v2 card was tasteful but quiet - small number, small
+// range bar, verdict italic-grey at the bottom. Anna could not answer
+// "is this good or bad?" in 30 seconds.
+//
+// This version commits to being a verdict card:
+// - Number and italic-serif verdict side by side in the hero row
+// - A full-bleed zoned bar below (green/butter/amber/risk segments) with
+//   the value pinned at its actual position in the ref range
+// - Sparkline at the bottom for trajectory context
 // ============================================================================
 
 export interface GlucoseHeroProps {
@@ -37,12 +45,17 @@ export function GlucoseHero({
   const deltaLabel =
     delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "no change";
 
-  const verdictColor =
-    verdictTone === "attention"
-      ? C.caution
-      : verdictTone === "good"
+  // Zone position: classify where currentValue sits in the normal band.
+  // 0-85% of range = good, 85-100% = approaching, >100% = over, far over = risk.
+  const zone = classifyZone(currentValue, refLow, refHigh);
+  const zoneColor =
+    zone === "good"
       ? C.good
-      : C.inkSoft;
+      : zone === "approaching"
+      ? C.butter
+      : zone === "over"
+      ? C.caution
+      : C.risk;
 
   return (
     <motion.section
@@ -51,23 +64,24 @@ export function GlucoseHero({
       transition={{ duration: 0.8, delay: 0.35 }}
       style={{
         margin: "0 20px 18px",
-        padding: "26px 24px 22px",
+        padding: "26px 26px 22px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,
-        borderRadius: 22,
+        borderRadius: 24,
         boxShadow: C.shadowCard,
         fontFamily: SYSTEM_FONT,
+        overflow: "hidden",
       }}
     >
-      {/* Eyebrow - terracotta = doctor flagged this */}
+      {/* Eyebrow */}
       <div
         style={{
           fontSize: 10,
           fontWeight: 600,
           color: C.terracotta,
-          letterSpacing: "0.14em",
+          letterSpacing: "0.16em",
           textTransform: "uppercase",
-          marginBottom: 10,
+          marginBottom: 6,
         }}
       >
         The one Dr. Tomas flagged
@@ -78,109 +92,142 @@ export function GlucoseHero({
         style={{
           fontSize: 14,
           color: C.inkMuted,
-          marginBottom: 12,
+          marginBottom: 20,
           letterSpacing: "-0.005em",
         }}
       >
         Fasting glucose / blood sugar before eating
       </div>
 
-      {/* Big number + delta row */}
+      {/* Hero row: big number on the left, italic-serif verdict on the right */}
       <div
+        className="glucose-hero-row"
         style={{
           display: "flex",
-          alignItems: "flex-end",
-          gap: 14,
-          marginBottom: 18,
-          flexWrap: "wrap",
+          alignItems: "flex-start",
+          gap: 22,
+          marginBottom: 22,
         }}
       >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span
+              style={{
+                ...DISPLAY_NUM,
+                fontSize: "clamp(52px, 11vw, 68px)",
+                color: C.ink,
+                letterSpacing: "-0.035em",
+                lineHeight: 0.95,
+              }}
+            >
+              {currentValue}
+            </span>
+            <span
+              style={{
+                fontSize: 16,
+                color: C.inkFaint,
+                marginLeft: 2,
+              }}
+            >
+              {unit}
+            </span>
+          </div>
+          <div
             style={{
-              ...DISPLAY_NUM,
-              fontSize: "clamp(44px, 11vw, 60px)",
-              color: C.ink,
-              letterSpacing: "-0.032em",
-              lineHeight: 1,
-            }}
-          >
-            {currentValue}
-          </span>
-          <span
-            style={{
-              fontSize: 16,
-              color: C.inkFaint,
-              marginLeft: 2,
-            }}
-          >
-            {unit}
-          </span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            paddingBottom: 4,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
-              color: C.caution,
+              color: zoneColor,
+              marginTop: 6,
               letterSpacing: "-0.005em",
             }}
           >
             {deltaLabel} since last panel
-          </span>
-          <span
+            <span
+              style={{
+                color: C.inkFaint,
+                fontWeight: 400,
+                marginLeft: 6,
+                fontStyle: "italic",
+                fontFamily: 'Georgia, "Times New Roman", serif',
+              }}
+            >
+              from {previousValue}
+            </span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            paddingTop: 4,
+          }}
+        >
+          <div
             style={{
-              fontSize: 12,
-              color: C.inkFaint,
-              marginTop: 2,
+              fontSize: "clamp(16px, 2.4vw, 20px)",
+              lineHeight: 1.35,
+              color: C.ink,
+              letterSpacing: "-0.01em",
               fontStyle: "italic",
               fontFamily: 'Georgia, "Times New Roman", serif',
+              fontWeight: 500,
             }}
           >
-            from {previousValue} {unit}
-          </span>
+            {verdict}
+          </div>
         </div>
       </div>
 
-      {/* Range bar - shows where currentValue sits in ref range */}
-      <RangeBar
+      {/* Full-bleed zone bar */}
+      <ZoneBar
         value={currentValue}
         refLow={refLow}
         refHigh={refHigh}
       />
 
-      {/* 5-year sparkline */}
+      {/* Sparkline */}
       <GlucoseSparkline history={history} refHigh={refHigh} />
 
-      {/* Plain-English verdict */}
-      <div
-        style={{
-          fontSize: 15,
-          fontWeight: 500,
-          color: verdictColor,
-          letterSpacing: "-0.005em",
-          marginTop: 4,
-          fontStyle: "italic",
-          fontFamily: 'Georgia, "Times New Roman", serif',
-        }}
-      >
-        {verdict}
-      </div>
+      <style jsx>{`
+        @media (max-width: 520px) {
+          :global(.glucose-hero-row) {
+            flex-direction: column !important;
+            gap: 14px !important;
+          }
+        }
+      `}</style>
     </motion.section>
   );
 }
 
 // ============================================================================
-// RangeBar - horizontal bar showing refLow / refHigh with a marker for value
+// classifyZone - helper
 // ============================================================================
 
-function RangeBar({
+type Zone = "good" | "approaching" | "over" | "risk";
+
+function classifyZone(
+  value: number,
+  refLow: number,
+  refHigh: number
+): Zone {
+  const range = refHigh - refLow;
+  const approachingLine = refLow + range * 0.85;
+  const overLine = refHigh;
+  const riskLine = refHigh + range * 0.2;
+
+  if (value < approachingLine) return "good";
+  if (value < overLine) return "approaching";
+  if (value < riskLine) return "over";
+  return "risk";
+}
+
+// ============================================================================
+// ZoneBar - full-width 4-segment bar with triangle marker above value position
+// ============================================================================
+
+function ZoneBar({
   value,
   refLow,
   refHigh,
@@ -189,85 +236,140 @@ function RangeBar({
   refLow: number;
   refHigh: number;
 }) {
-  // Extend the visual range a bit beyond ref bounds so marker isn't at the edge
-  const pad = (refHigh - refLow) * 0.2;
-  const min = refLow - pad;
-  const max = refHigh + pad;
-  const pct = ((value - min) / (max - min)) * 100;
-  const normalLowPct = ((refLow - min) / (max - min)) * 100;
-  const normalHighPct = ((refHigh - min) / (max - min)) * 100;
+  const range = refHigh - refLow;
+  // Visual bar spans: refLow-ish on left, up to refHigh + 20% on right
+  const visMin = refLow - range * 0.1;
+  const visMax = refHigh + range * 0.2;
+  const visRange = visMax - visMin;
 
-  const inRange = value >= refLow && value <= refHigh;
-  const nearTop = value > refHigh - (refHigh - refLow) * 0.15 && value <= refHigh;
-  const markerColor = !inRange
-    ? C.risk
-    : nearTop
-    ? C.caution
-    : C.good;
+  // Zone boundary positions as % of visual bar
+  const good_end = ((refLow + range * 0.85 - visMin) / visRange) * 100;
+  const approach_end = ((refHigh - visMin) / visRange) * 100;
+  const over_end = ((refHigh + range * 0.1 - visMin) / visRange) * 100;
+
+  // Marker position
+  const markerPct = ((value - visMin) / visRange) * 100;
+  const clamped = Math.max(2, Math.min(98, markerPct));
 
   return (
-    <div style={{ margin: "4px 0 20px" }}>
+    <div style={{ margin: "4px 0 22px" }}>
+      {/* Marker row - triangle pointing down + value label */}
       <div
         style={{
           position: "relative",
-          height: 8,
-          background: C.stoneSoft,
-          borderRadius: 4,
+          height: 22,
         }}
       >
-        {/* Normal range highlighted */}
         <div
           style={{
             position: "absolute",
+            left: `${clamped}%`,
             top: 0,
-            bottom: 0,
-            left: `${normalLowPct}%`,
-            width: `${normalHighPct - normalLowPct}%`,
-            background: C.sageTint,
-            border: `1px solid ${C.sageSoft}`,
-            borderRadius: 4,
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <span
+            style={{
+              ...DISPLAY_NUM,
+              fontSize: 12,
+              color: C.ink,
+              lineHeight: 1,
+            }}
+          >
+            {value}
+          </span>
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "6px solid transparent",
+              borderRight: "6px solid transparent",
+              borderTop: `7px solid ${C.ink}`,
+              marginTop: 3,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* The bar itself */}
+      <div
+        style={{
+          position: "relative",
+          height: 14,
+          borderRadius: 7,
+          overflow: "hidden",
+          display: "flex",
+          border: `1px solid ${C.lineCard}`,
+          boxShadow: "inset 0 1px 2px rgba(28,26,23,0.06)",
+        }}
+      >
+        {/* Good zone */}
+        <div
+          style={{
+            width: `${good_end}%`,
+            background: `linear-gradient(90deg, ${C.sageSoft}, ${C.sage})`,
           }}
         />
-        {/* Value marker */}
+        {/* Approaching zone */}
         <div
           style={{
-            position: "absolute",
-            top: -3,
-            left: `${pct}%`,
-            width: 14,
-            height: 14,
-            background: markerColor,
-            border: `2px solid ${C.paper}`,
-            borderRadius: "50%",
-            transform: "translateX(-50%)",
-            boxShadow: "0 2px 6px rgba(28,26,23,0.25)",
+            width: `${approach_end - good_end}%`,
+            background: `linear-gradient(90deg, ${C.sage}, ${C.butter})`,
+          }}
+        />
+        {/* Over zone */}
+        <div
+          style={{
+            width: `${over_end - approach_end}%`,
+            background: `linear-gradient(90deg, ${C.butter}, ${C.caution})`,
+          }}
+        />
+        {/* Risk zone */}
+        <div
+          style={{
+            width: `${100 - over_end}%`,
+            background: `linear-gradient(90deg, ${C.caution}, ${C.risk})`,
           }}
         />
       </div>
+
+      {/* Bar labels */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginTop: 6,
+          marginTop: 8,
           fontSize: 10,
           color: C.inkFaint,
           fontFamily:
-            '"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace',
+            '"SF Mono", SFMono-Regular, ui-monospace, monospace',
           letterSpacing: "0.02em",
         }}
       >
-        <span>{refLow}</span>
-        <span style={{ color: C.inkMuted, fontWeight: 600 }}>
+        <span>{refLow} low</span>
+        <span
+          style={{
+            color: C.inkMuted,
+            fontFamily: SYSTEM_FONT,
+            fontWeight: 600,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            fontSize: 9,
+          }}
+        >
           normal range
         </span>
-        <span>{refHigh}</span>
+        <span>{refHigh} high</span>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// GlucoseSparkline - inline SVG 5-year trend.
+// GlucoseSparkline - inline SVG 5-year trend (same as before, smaller)
 // ============================================================================
 
 function GlucoseSparkline({
@@ -280,7 +382,7 @@ function GlucoseSparkline({
   if (history.length < 2) return null;
 
   const w = 560;
-  const h = 72;
+  const h = 60;
   const pad = 6;
 
   const allValues = history.map((p) => p.value).concat([refHigh + 0.4]);
@@ -294,22 +396,37 @@ function GlucoseSparkline({
   });
 
   const pathD = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .map((p, i) =>
+      `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`
+    )
     .join(" ");
 
   const areaD =
     pathD +
-    ` L ${points[points.length - 1].x.toFixed(1)} ${h - pad} L ${points[0].x.toFixed(
-      1
-    )} ${h - pad} Z`;
+    ` L ${points[points.length - 1].x.toFixed(1)} ${h - pad} L ${points[0].x.toFixed(1)} ${h - pad} Z`;
 
-  // Reference line for refHigh (6.0 = top of normal)
   const refY = h - pad - ((refHigh - min) / (max - min)) * (h - pad * 2);
 
-  const lastPoint = points[points.length - 1];
-
   return (
-    <div style={{ margin: "8px 0 14px" }}>
+    <div
+      style={{
+        marginTop: 4,
+        paddingTop: 14,
+        borderTop: `1px solid ${C.lineSoft}`,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: C.inkFaint,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          marginBottom: 6,
+        }}
+      >
+        Your 5-year trend
+      </div>
       <svg
         viewBox={`0 0 ${w} ${h}`}
         width="100%"
@@ -323,7 +440,6 @@ function GlucoseSparkline({
           </linearGradient>
         </defs>
 
-        {/* Normal-range top reference line */}
         <line
           x1={pad}
           y1={refY}
@@ -334,18 +450,7 @@ function GlucoseSparkline({
           strokeDasharray="3 4"
           opacity="0.6"
         />
-        <text
-          x={w - pad}
-          y={refY - 4}
-          textAnchor="end"
-          fontSize="10"
-          fill={C.sageDeep}
-          fontFamily={SYSTEM_FONT}
-        >
-          top of normal
-        </text>
 
-        {/* Area + line */}
         <path d={areaD} fill="url(#glucose-grad)" />
         <path
           d={pathD}
@@ -356,7 +461,6 @@ function GlucoseSparkline({
           strokeLinejoin="round"
         />
 
-        {/* Year dots */}
         {points.map((p, i) => (
           <circle
             key={p.year}
@@ -369,16 +473,15 @@ function GlucoseSparkline({
           />
         ))}
 
-        {/* Year labels */}
         {points.map((p, i) => {
           if (i === 0 || i === points.length - 1) {
             return (
               <text
                 key={`l-${p.year}`}
                 x={p.x}
-                y={h - pad + 14}
+                y={h - pad + 12}
                 textAnchor={i === 0 ? "start" : "end"}
-                fontSize="10"
+                fontSize="9"
                 fill={C.inkFaint}
                 fontFamily={SYSTEM_FONT}
               >
@@ -388,19 +491,6 @@ function GlucoseSparkline({
           }
           return null;
         })}
-
-        {/* Current value label above the last point */}
-        <text
-          x={lastPoint.x}
-          y={lastPoint.y - 10}
-          textAnchor="end"
-          fontSize="11"
-          fontWeight="600"
-          fill={C.terracotta}
-          fontFamily={SYSTEM_FONT}
-        >
-          {lastPoint.value}
-        </text>
       </svg>
     </div>
   );
