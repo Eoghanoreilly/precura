@@ -88,7 +88,11 @@ function PanelResultsDayView() {
   return (
     <>
       <StatusHeadline text={STATUS_TEXT} tone="attention" />
-      <NoteFromDoctor preview={NOTE_PREVIEW} noteDate={NOTE_DATE} />
+      <NoteFromDoctor
+        preview={NOTE_PREVIEW}
+        noteDate={NOTE_DATE}
+        primaryAction={{ label: "Schedule a 15-min call" }}
+      />
       {glucose && <GlucoseHero {...glucose} />}
       <WhatMoved markers={changes} />
       <RiskTrajectory
@@ -100,11 +104,6 @@ function PanelResultsDayView() {
         caption="You're sitting at the high end of the amber band. If the glucose trend continues at its current slope, the model projects you cross into higher risk territory inside 5 years. That's the line Dr. Tomas wants to flatten."
       />
       <PanelSummary {...summary} />
-      <NextStep
-        eyebrow="Next step"
-        title="Book a 15-minute call with Dr. Tomas to walk through the panel."
-        action="Schedule a call"
-      />
       <LivingProfileLink years={5} />
     </>
   );

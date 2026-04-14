@@ -7,9 +7,16 @@ import { C, SYSTEM_FONT, DOCTOR } from "./tokens";
 export function NoteFromDoctor({
   preview,
   noteDate,
+  primaryAction,
 }: {
   preview: string;
   noteDate: string;
+  /**
+   * Optional primary action rendered as a button at the bottom of the card.
+   * Used on panel-results-day to surface the "Book a call with Dr. Tomas"
+   * resolution right next to the note that created the expectation.
+   */
+  primaryAction?: { label: string; onClick?: () => void };
 }) {
   return (
     <motion.div
@@ -93,6 +100,31 @@ export function NoteFromDoctor({
       >
         &ldquo;{preview}&rdquo;
       </div>
+
+      {/* Primary action (e.g. "Schedule a call") - resolves the note's ask */}
+      {primaryAction && (
+        <button
+          onClick={primaryAction.onClick}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "12px 22px",
+            background: C.ink,
+            color: C.canvasSoft,
+            border: "none",
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "inherit",
+            letterSpacing: "-0.005em",
+            cursor: "pointer",
+            boxShadow: "0 8px 18px -8px rgba(28,26,23,0.32)",
+            marginBottom: 16,
+          }}
+        >
+          {primaryAction.label}
+        </button>
+      )}
 
       {/* Footer: date + read full */}
       <div
