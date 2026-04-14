@@ -223,6 +223,46 @@ export default function V2LoginPage() {
           </div>
         </div>
 
+        {/* Agent Smith Prototypes */}
+        <div className="mt-8">
+          <div className="text-center mb-4">
+            <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Agent Smith Prototypes</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>10 independent product visions</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 1, name: "Blood Tests", style: "Werlabs killer", color: "#1e6bb8", bg: "#eef5fc" },
+              { id: 2, name: "Your Doctor", style: "Doctor-first", color: "#0d8a72", bg: "#f0faf7" },
+              { id: 3, name: "One Number", style: "Health score", color: "#1a1a1a", bg: "#f0f0f0" },
+              { id: 4, name: "Train To Prevent", style: "Fitness + health", color: "#e8550f", bg: "#fff4ee" },
+              { id: 5, name: "Break The Pattern", style: "Family health", color: "#6b21a8", bg: "#f5f0ff" },
+              { id: 6, name: "Better 1177", style: "Swedish standard", color: "#1862a5", bg: "#edf4ff" },
+              { id: 7, name: "Connect The Dots", style: "Health timeline", color: "#0f5959", bg: "#eefaf9" },
+              { id: 8, name: "Guided Journey", style: "Coaching program", color: "#2d7a3a", bg: "#f0faf1" },
+              { id: 9, name: "Full Picture", style: "Data depth", color: "#3730a3", bg: "#eef2ff" },
+              { id: 10, name: "The Trajectory", style: "One chart", color: "#c41c1c", bg: "#fff1f0" },
+              { id: 11, name: "Spotify Health", style: "Dark, bold, personal", color: "#1DB954", bg: "#121212" },
+              { id: 12, name: "Airbnb Health", style: "White, airy, cards", color: "#FF385C", bg: "#fff5f5" },
+              { id: 13, name: "Apple Fitness+", style: "Rings, gradients", color: "#FF2D55", bg: "#1C1C1E" },
+              { id: 14, name: "Material You", style: "Google, teal, FAB", color: "#006D3E", bg: "#FAFDFB" },
+              { id: 15, name: "Notion Health", style: "Clean, no cards", color: "#2383E2", bg: "#FAFAF9" },
+            ].map((a) => (
+              <button
+                key={a.id}
+                onClick={() => router.push(`/smith${a.id}`)}
+                className="p-3 rounded-xl text-left transition-all active:scale-95 hover:opacity-80"
+                style={{ background: a.bg, border: `1px solid ${a.bg === "#000" ? "#333" : "var(--border)"}` }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold" style={{ color: a.color, fontFamily: "var(--font-mono)" }}>{a.id}</span>
+                  <span className="text-xs font-semibold" style={{ color: a.color }}>{a.name}</span>
+                </div>
+                <p className="text-[10px] mt-1 opacity-60" style={{ color: a.color }}>{a.style}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <p
           className="text-center text-xs mt-6"
           style={{ color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}
