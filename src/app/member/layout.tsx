@@ -1,12 +1,24 @@
 import React from "react";
+import { C } from "@/components/member/tokens";
 
-// The responsive canvas, centering, and sidebar logic all live in
-// src/components/member/MemberShell.tsx so this layout is a passthrough.
-// It exists because Next.js App Router requires a layout file alongside pages.
+// Layout provides the darker outer canvas so the cream shell inside
+// MemberShell floats against it. The three-layer stack is:
+//   outer (this layout) -> warm stone  (darkest)
+//   inner (MemberShell) -> canvasDeep  (mid cream)
+//   cards                -> paper white (lightest, real contrast)
 export default function MemberLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        background: C.stone,
+      }}
+    >
+      {children}
+    </div>
+  );
 }

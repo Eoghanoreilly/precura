@@ -12,7 +12,7 @@ export function TopBar({ userInitials = "A" }: { userInitials?: string }) {
         alignItems: "center",
         justifyContent: "space-between",
         padding: "16px 20px 14px",
-        background: C.canvas,
+        background: "transparent",
         fontFamily: SYSTEM_FONT,
         borderBottom: `1px solid ${C.lineSoft}`,
       }}

@@ -32,7 +32,7 @@ export function MemberShell({
     <div
       style={{
         minHeight: "100dvh",
-        background: C.canvasDeep,
+        background: C.stone,
         fontFamily: SYSTEM_FONT,
         display: "flex",
         justifyContent: "center",
@@ -54,8 +54,8 @@ export function MemberShell({
           width: 100%;
           max-width: 430px;
           min-height: 100dvh;
-          background: ${C.canvas};
-          box-shadow: 0 0 40px rgba(28, 26, 23, 0.06);
+          background: ${C.canvasDeep};
+          box-shadow: 0 0 60px rgba(28, 26, 23, 0.1);
         }
         .member-shell-grid {
           display: block;
