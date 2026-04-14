@@ -98,7 +98,7 @@ export function GlucoseHero({
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
           <span
             style={{
-              fontSize: 56,
+              fontSize: "clamp(44px, 11vw, 60px)",
               fontWeight: 600,
               color: C.ink,
               letterSpacing: "-0.032em",

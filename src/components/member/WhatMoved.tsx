@@ -57,16 +57,12 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
       </div>
 
       <div
-        className="member-whatmoved-row"
+        className="member-whatmoved-grid"
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: "1fr",
           gap: 12,
-          overflowX: "auto",
           padding: "4px 20px 14px",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          WebkitOverflowScrolling: "touch",
-          flexWrap: "nowrap",
         }}
       >
         {markers.map((m, i) => {
@@ -85,9 +81,8 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.5 + i * 0.06 }}
               style={{
-                flexShrink: 0,
-                width: 172,
-                padding: "16px 16px 14px",
+                width: "100%",
+                padding: "16px 18px 14px",
                 background: C.paper,
                 border: `1px solid ${C.lineCard}`,
                 borderRadius: 18,
@@ -179,14 +174,13 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
       </div>
       <style jsx>{`
         @media (min-width: 640px) {
-          :global(.member-whatmoved-row) {
-            flex-wrap: wrap !important;
-            overflow-x: visible !important;
+          :global(.member-whatmoved-grid) {
+            grid-template-columns: 1fr 1fr !important;
           }
-          :global(.member-whatmoved-row) > * {
-            flex: 1 1 calc(50% - 8px) !important;
-            min-width: 0 !important;
-            width: auto !important;
+        }
+        @media (min-width: 1024px) {
+          :global(.member-whatmoved-grid) {
+            grid-template-columns: repeat(3, 1fr) !important;
           }
         }
       `}</style>
