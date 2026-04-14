@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+**Session state, handover notes, and in-progress specs live outside the repo** at `~/.claude/projects/-Users-eoghan-Desktop-precura/` (subfolders: `handover/`, `specs/`). Read those when resuming work - they are not auto-loaded.
+
 ## Build and Development Commands
 
 ```bash
@@ -38,6 +40,10 @@ Precura is a predictive health platform. Two versions exist side-by-side:
 
 - **v1** (`/src/app/`) - Original MVP demo with FINDRISC risk scoring
 - **v2** (`/src/app/v2/`) - Full platform prototype with 1177 integration, multi-model risk, doctor messaging, provider portal, training plans
+
+On top of both sits the **Welcome Kit** home page at `/` (canonical since 2026-04-13). Components live in `src/components/home/*` - warm Airbnb-host aesthetic, cream/butter/terracotta/sage palette, editorial type, single-CTA hero.
+
+Also on disk: 15 frozen **Smith prototypes** at `src/app/smith1` through `smith15`, each exploring a different logged-in product vision. `smith12` is "Airbnb Health" (mobile-first bottom nav, 8 pages). Do not touch existing Smiths - they are reference material.
 
 **Live URL:** https://precura-wine.vercel.app
 **GitHub:** https://github.com/Eoghanoreilly/precura
@@ -142,6 +148,12 @@ All via CSS variables in `globals.css`:
 - Every blood test includes a doctor's review/note
 - Training tracks real workouts (exercises, sets, reps, weights) - NEVER steps or active minutes
 - Quality over speed. One polished component beats ten rushed ones.
+- No em dashes, en dashes, or unicode arrows anywhere. Hyphens, slashes, ASCII only.
+- No gratuitous "Swedish X" in marketing copy. Keep Sweden where it is operational fact (1177, BankID, SEK, Socialstyrelsen, Karolinska, patientdatalagen, Stockholm office, Made in Sweden footer, Swedish-licensed clinic badge, Nationella Diabetesregistret stat source). Strip it where it is adjective flavor.
+- "Licensed doctors" (plural) is the blanket term in brand copy, even though the team is currently one doctor. Dr. Tomas stays singular only when named in a bio paragraph.
+- "One annual membership" is banned in marketing copy. Flexible-term pricing (once-off / 3mo / 6mo / year) is coming - do not frame annual as the differentiator.
+- Stats must be real, verifiable, sourced. Do not invent numbers. Do not rephrase a sourced stat in a way that invalidates the source.
+- Hero headline philosophy: "See your future health. Before the system does." The opponent is the once-a-year checkup model, not doctors - because Precura IS doctors.
 
 ## Known Issues and TODOs
 
