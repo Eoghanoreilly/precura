@@ -39,8 +39,52 @@ Precura is a predictive health platform. Two versions exist side-by-side:
 - **v1** (`/src/app/`) - Original MVP demo with FINDRISC risk scoring
 - **v2** (`/src/app/v2/`) - Full platform prototype with 1177 integration, multi-model risk, doctor messaging, provider portal, training plans
 
+On top of both sits a new canonical home page: the **Welcome Kit** (`src/components/home/*`), shipped 2026-04-13. It replaces the old v1 gradient-blob landing at `/`. See the "Home page: Welcome Kit" section below.
+
 **Live URL:** https://precura-wine.vercel.app
 **GitHub:** https://github.com/Eoghanoreilly/precura
+
+## Home page: Welcome Kit (canonical, 2026-04-13+)
+
+The root `/` now renders the Welcome Kit, a 14-section Airbnb-warm landing page chosen after 4 rounds and 20 design explorations (home-1 through home-20, since deleted; git history preserves every round).
+
+### Structure
+
+All components live under `src/components/home/` (flat, not in an `_components` subfolder) and share a single `tokens.ts`:
+
+```
+src/components/home/
+  tokens.ts             # Palette (cream / butter / terracotta / sage), system font
+  NavBar.tsx            # Top nav: logo + links + Sign in (->/login) + Become a member
+  Hero.tsx              # Editorial headline + welcome kit flat-lay visual
+  ProblemStrip.tsx      # 3 stat cards on a darker canvas
+  AnnaSection.tsx       # Anna Bergstrom's 5-year story arc
+  HowItWorks.tsx        # 3-step onboarding flow
+  LivingProfile.tsx     # Biomarker trend cards (the "living profile" concept)
+  WhatYouGet.tsx        # Product components: science / care / profile
+  MemberCarousel.tsx    # Member stories carousel
+  TrustScience.tsx      # Dr. Tomas bio + clinical citations table
+  StoriesSection.tsx    # Longer member stories
+  Pricing.tsx           # Three tiers (currently all SEK/year - pending flexible-term rework)
+  FAQ.tsx               # Expandable Q+A
+  FinalCTA.tsx          # Bottom CTA section
+  Footer.tsx            # Address, links, legal
+```
+
+### Design language
+
+- Palette: cream canvas, butter highlights, terracotta accent, sage deep, warm radial highlights.
+- Typography: editorial weight 600 serif-like sans with italic terracotta accents on secondary clauses.
+- Motion: framer-motion reveals, slow and soft.
+- Inspiration: Airbnb host pages. Restraint, warmth, single CTAs.
+
+### Copy philosophy (learned 2026-04-14)
+
+- **Hero headline:** "See your future health. Before the system does." The old "Before your doctor does" framing was wrong because Dr. Tomas IS the doctor - the real opponent is the once-a-year system model.
+- **No gratuitous "Swedish X" marketing adjective.** Keep Sweden where it is operational fact (1177, BankID, SEK, Socialstyrelsen, Karolinska, patientdatalagen, Stockholm office, Made in Sweden footer, Swedish Post office shipping, Swedish-licensed clinic badge). Strip it where it is adjective flavor ("Swedish adults", "Swedish GP", "Swedish healthcare system", "Swedish primary care").
+- **"Licensed doctors" plural** is the blanket replacement for any "Swedish-licensed GP" / "one Swedish doctor" copy. Fake it till you make it. Exception: when Dr. Tomas is named in a bio paragraph, singular + named is fine.
+- **"One annual membership" is banned from marketing copy.** The product currently only sells annual, but the hero / footer / CTAs must not frame annual as the differentiator. Flexible-term pricing (once-off / 3mo / 6mo / year) is coming.
+- **Stats must be real, verifiable, sourced.** Do not invent numbers. Do not rephrase a sourced stat in a way that invalidates the source. The ProblemStrip "1 in 2 Swedes with type 2 diabetes are undiagnosed" stat stays as-is because it is cited to Nationella Diabetesregistret 2024.
 
 ## Architecture
 
@@ -77,6 +121,14 @@ src/lib/v2/        # v2 data (mock-patient.ts - comprehensive 5-year patient rec
 /v2/provider/patient   # Individual patient - AI summary, AI Q&A, screening scores
 /v2/provider/vardcentral # B2B investor demo - population health insights
 ```
+
+### Smith prototypes (smith1-15)
+
+Fifteen frozen prototypes under `src/app/smith1/` through `src/app/smith15/`, each exploring a different product vision for the logged-in experience. Part of a design exploration round, not live product.
+
+- `smith12` is "Airbnb Health" - a mobile-first (max-width 430) prototype with an Airbnb-style bottom nav (Explore / Actions / Profile) across 8 pages (`layout.tsx`, `page.tsx`, `actions/`, `blood-tests/`, `messages/`, `profile/`, `risk/`, `training/`). Uses a Cereal font fallback which violates the Apple-system-font-only rule - do not copy the font stack.
+- Other smiths vary: some desktop-first, some experimental (neon health scores, handwritten notes, population dashboards). Browse the gallery at `/home-previews` or directly at `/smith1`..`/smith15`.
+- **Do not touch existing Smith prototypes.** They are frozen reference material for future redesigns.
 
 ### v2 Navigation Model
 - NO bottom tab bar on any v2 page
@@ -142,6 +194,10 @@ All via CSS variables in `globals.css`:
 - Every blood test includes a doctor's review/note
 - Training tracks real workouts (exercises, sets, reps, weights) - NEVER steps or active minutes
 - Quality over speed. One polished component beats ten rushed ones.
+- No em dashes, en dashes, or unicode arrows. Hyphens, slashes, ASCII only.
+- No gratuitous "Swedish X" in marketing copy. Operational facts only. See the Home page / Copy philosophy section above for the full rule set.
+- "Licensed doctors" (plural) is the blanket term in brand copy. Dr. Tomas stays singular only when named in a bio paragraph.
+- "One annual membership" is banned from marketing copy.
 
 ## Known Issues and TODOs
 
@@ -177,3 +233,21 @@ npx vercel --yes --prod --scope moonflows-projects-9c4fc1f9
 
 Vercel team: `moonflows-projects-9c4fc1f9`
 Production URL: `https://precura-wine.vercel.app`
+
+## In-flight work (as of 2026-04-14)
+
+Full session handover lives in `docs/handover/2026-04-14-session-state.md`. Read it before resuming any task.
+
+### Open PRs (merge in order)
+
+1. **#1 - `fix/home-nav-login-link`** - NavBar "Sign in" pointed to `#pricing` and was hidden below 900px. Now routes to `/login` and is visible at all widths.
+2. **#2 - `fix/home-copy-inclusive-sweep`** - Hero rewrite + site-wide sweep to drop "Swedish X" marketing language and "one annual membership" framing. Stacked on #1.
+3. **#3 - `docs/session-handover-2026-04-14`** - this handover documentation.
+
+Deployed builds for #1 and #2 are already live on `https://precura-wine.vercel.app`.
+
+### Pending tasks (deferred, explicit scope boundary)
+
+- **Pricing section rework** - flexible terms (once-off / 3mo / 6mo / year). Needs real prices from user before building. Do not touch `src/components/home/Pricing.tsx` otherwise.
+- **ProblemStrip "1 in 2 Swedes" stat** - sourced to Nationella Diabetesregistret 2024. User decision pending: keep as-is, re-source, or remove.
+- **Logged-in page redesign** - in-flight creative task. User wants to blend the Welcome Kit aesthetic with the `smith12` "Airbnb Health" prototype. Brainstorming paused mid-exploration. Resume by reading `docs/superpowers/specs/2026-04-14-logged-in-redesign-brainstorm.md` and invoking `superpowers:brainstorming`.
