@@ -2,135 +2,77 @@
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  BLOOD_TEST_HISTORY,
-  RISK_ASSESSMENTS,
-} from "@/lib/v2/mock-patient";
-import { TopBar } from "@/components/member/TopBar";
 import { StatusHeadline } from "@/components/member/StatusHeadline";
 import { NoteFromDoctor } from "@/components/member/NoteFromDoctor";
-import { WhatMoved, MarkerChange } from "@/components/member/WhatMoved";
+import { WhatMoved } from "@/components/member/WhatMoved";
 import { RiskTrajectory } from "@/components/member/RiskTrajectory";
-import { PanelSummary, Category } from "@/components/member/PanelSummary";
+import { PanelSummary } from "@/components/member/PanelSummary";
 import { NextStep } from "@/components/member/NextStep";
 import { LivingProfileLink } from "@/components/member/LivingProfileLink";
 import { MemberShell } from "@/components/member/MemberShell";
+import type { MemberSidebarProps } from "@/components/member/MemberSidebar";
+import { DOCTOR } from "@/components/member/tokens";
+import {
+  buildMarkerChanges,
+  buildPanelSummary,
+  RISK_HISTORY,
+  RISK_PROJECTION,
+  NOTE_PREVIEW,
+  NOTE_DATE,
+  STATUS_TEXT,
+} from "@/components/member/data";
 
 // ============================================================================
-// Data derivation for Anna on panel-results-day
+// Sidebar presets per user state
 // ============================================================================
 
-function buildMarkerChanges(): MarkerChange[] {
-  // Latest panel is index 0, previous panel is index 1.
-  const latest = BLOOD_TEST_HISTORY[0];
-  const previous = BLOOD_TEST_HISTORY[1];
-  if (!latest || !previous) return [];
+const ANNA_USER = {
+  name: "Anna Bergstrom",
+  initials: "A",
+  memberSince: "Member since Jan 2026",
+};
 
-  // Pick the markers that exist in both and show the ones that moved.
-  const changes: MarkerChange[] = [];
-  for (const m of latest.results) {
-    const prev = previous.results.find((p) => p.shortName === m.shortName);
-    if (!prev) continue;
-    if (prev.value === m.value) continue;
-    changes.push({
-      name: m.shortName,
-      plainName: m.plainName,
-      unit: m.unit,
-      previousValue: prev.value,
-      currentValue: m.value,
-      status: m.status,
-    });
-  }
-  // Sort: borderline/abnormal first, then by biggest relative change.
-  changes.sort((a, b) => {
-    const sevA = a.status === "normal" ? 0 : 1;
-    const sevB = b.status === "normal" ? 0 : 1;
-    if (sevA !== sevB) return sevB - sevA;
-    const changeA = Math.abs(a.currentValue - a.previousValue) / a.previousValue;
-    const changeB = Math.abs(b.currentValue - b.previousValue) / b.previousValue;
-    return changeB - changeA;
-  });
-  return changes.slice(0, 4);
-}
+const ERIK_USER = {
+  name: "Erik Lindqvist",
+  initials: "E",
+  memberSince: "Member since Apr 2026",
+};
 
-function buildPanelSummary(): {
-  total: number;
-  flagged: number;
-  inRange: number;
-  panelDate: string;
-  categories: Category[];
-} {
-  const latest = BLOOD_TEST_HISTORY[0];
-  const total = latest.results.length;
-  const flagged = latest.results.filter((m) => m.status !== "normal").length;
-  const inRange = total - flagged;
+const TOMAS = {
+  name: DOCTOR.name,
+  initials: DOCTOR.initials,
+  title: DOCTOR.title,
+};
 
-  const metabolicMarkers = ["HbA1c", "f-Glucose", "f-Insulin"];
-  const cardioMarkers = ["TC", "HDL", "LDL", "TG"];
-  const thyroidMarkers = ["TSH"];
-  const nutritionMarkers = ["Vit D"];
-  const kidneyMarkers = ["Crea"];
+const SIDEBAR_PANEL_RESULTS: MemberSidebarProps = {
+  user: ANNA_USER,
+  doctor: TOMAS,
+  nextPanel: {
+    eyebrow: "Next panel",
+    headline: "26 July 2026",
+    subtext: "Kit ships 19 July",
+  },
+};
 
-  function categoryStats(shortNames: string[]): Category | null {
-    const picked = latest.results.filter((m) => shortNames.includes(m.shortName));
-    if (picked.length === 0) return null;
-    return {
-      name: "",
-      markerCount: picked.length,
-      flaggedCount: picked.filter((m) => m.status !== "normal").length,
-    };
-  }
+const SIDEBAR_BETWEEN_PANELS: MemberSidebarProps = {
+  user: ANNA_USER,
+  doctor: TOMAS,
+  nextPanel: {
+    eyebrow: "Next panel",
+    headline: "26 July 2026",
+    subtext: "In 47 days",
+  },
+};
 
-  const categories: Category[] = [];
-  const metabolic = categoryStats(metabolicMarkers);
-  if (metabolic) categories.push({ ...metabolic, name: "Metabolic / blood sugar" });
-  const cardio = categoryStats(cardioMarkers);
-  if (cardio) categories.push({ ...cardio, name: "Cardiovascular" });
-  const thyroid = categoryStats(thyroidMarkers);
-  if (thyroid) categories.push({ ...thyroid, name: "Thyroid" });
-  const nutrition = categoryStats(nutritionMarkers);
-  if (nutrition) categories.push({ ...nutrition, name: "Nutrition" });
-  const kidney = categoryStats(kidneyMarkers);
-  if (kidney) categories.push({ ...kidney, name: "Kidney function" });
-
-  return {
-    total,
-    flagged,
-    inRange,
-    panelDate: formatDate(latest.date),
-    categories,
-  };
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-// FINDRISC risk projection data. History is modeled from Anna's glucose drift;
-// projection is the RISK_ASSESSMENTS.diabetes.tenYearRisk trajectory extrapolated.
-// These numbers are consistent with mock patient worsening trend, not fabricated
-// clinical claims.
-const RISK_HISTORY = [
-  { year: "2022", value: 10 },
-  { year: "2023", value: 12 },
-  { year: "2024", value: 14 },
-  { year: "2025", value: 15 },
-  { year: "2026", value: 17 },
-];
-
-const RISK_PROJECTION = [
-  { year: "2026", value: 17 },
-  { year: "2027", value: 19 },
-  { year: "2028", value: 20 },
-  { year: "2029", value: 21 },
-  { year: "2030", value: 22 },
-  { year: "2031", value: 23 },
-];
+const SIDEBAR_NEW_MEMBER: MemberSidebarProps = {
+  user: ERIK_USER,
+  doctor: TOMAS,
+  nextPanel: {
+    eyebrow: "Your kit",
+    headline: "Ships 15 April",
+    subtext: "Track it here",
+  },
+};
 
 // ============================================================================
 // State: panel-results-day (Anna, primary)
@@ -142,15 +84,8 @@ function PanelResultsDayView() {
 
   return (
     <>
-      <TopBar userInitials="A" />
-      <StatusHeadline
-        text="Your fasting glucose moved. Dr. Tomas wants to walk you through it."
-        tone="attention"
-      />
-      <NoteFromDoctor
-        preview="Your fasting glucose at 5.8 is in the upper normal range, not diabetic, but worth watching. Looking at your Precura history, it's been gradually rising from 5.0 in 2021. Combined with your family history, I'd recommend we keep a close eye on this."
-        noteDate="28 Mar 2026"
-      />
+      <StatusHeadline text={STATUS_TEXT} tone="attention" />
+      <NoteFromDoctor preview={NOTE_PREVIEW} noteDate={NOTE_DATE} />
       <WhatMoved markers={changes} />
       <RiskTrajectory
         history={RISK_HISTORY}
@@ -178,7 +113,6 @@ function BetweenPanelsView() {
   const summary = buildPanelSummary();
   return (
     <>
-      <TopBar userInitials="A" />
       <StatusHeadline
         text="Steady quarter. Next panel in 47 days."
         tone="neutral"
@@ -212,7 +146,6 @@ function BetweenPanelsView() {
 function NewMemberView() {
   return (
     <>
-      <TopBar userInitials="E" />
       <StatusHeadline
         text="Welcome, Erik. Your first kit ships tomorrow."
         tone="good"
@@ -226,14 +159,26 @@ function NewMemberView() {
         title="Blood kit ships 15 April. Track it here when it's on the move."
         action="Track my kit"
       />
-      <GhostCard title="Your 10-year forecast" subtitle="Appears after your first panel" />
-      <GhostCard title="Your panel" subtitle="Your first panel results will land here" />
+      <GhostCard
+        title="Your 10-year forecast"
+        subtitle="Appears after your first panel"
+      />
+      <GhostCard
+        title="Your panel"
+        subtitle="Your first panel results will land here"
+      />
       <LivingProfileLink years={0} />
     </>
   );
 }
 
-function GhostCard({ title, subtitle }: { title: string; subtitle: string }) {
+function GhostCard({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
   return (
     <div
       style={{
@@ -279,12 +224,25 @@ function MemberHomeContent() {
   const params = useSearchParams();
   const state = params.get("state") ?? "panel-results-day";
 
-  let view: React.ReactNode;
-  if (state === "between-panels") view = <BetweenPanelsView />;
-  else if (state === "new-member") view = <NewMemberView />;
-  else view = <PanelResultsDayView />;
-
-  return <MemberShell>{view}</MemberShell>;
+  if (state === "between-panels") {
+    return (
+      <MemberShell sidebar={SIDEBAR_BETWEEN_PANELS} userInitials="A">
+        <BetweenPanelsView />
+      </MemberShell>
+    );
+  }
+  if (state === "new-member") {
+    return (
+      <MemberShell sidebar={SIDEBAR_NEW_MEMBER} userInitials="E">
+        <NewMemberView />
+      </MemberShell>
+    );
+  }
+  return (
+    <MemberShell sidebar={SIDEBAR_PANEL_RESULTS} userInitials="A">
+      <PanelResultsDayView />
+    </MemberShell>
+  );
 }
 
 export default function MemberHomePage() {

@@ -3,8 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { TopBar } from "@/components/member/TopBar";
 import { MemberShell } from "@/components/member/MemberShell";
+import type { MemberSidebarProps } from "@/components/member/MemberSidebar";
 import { C, SYSTEM_FONT, DOCTOR } from "@/components/member/tokens";
 import { PATIENT } from "@/lib/v2/mock-patient";
 
@@ -35,10 +35,28 @@ const SETTINGS_GROUPS = [
   },
 ];
 
+const SIDEBAR: MemberSidebarProps = {
+  user: {
+    name: "Anna Bergstrom",
+    initials: "A",
+    memberSince: "Member since Jan 2026",
+  },
+  doctor: {
+    name: DOCTOR.name,
+    initials: DOCTOR.initials,
+    title: DOCTOR.title,
+  },
+  nextPanel: {
+    eyebrow: "Next panel",
+    headline: "26 July 2026",
+    subtext: "Kit ships 19 July",
+  },
+  activeHref: "/member/profile",
+};
+
 export default function ProfilePage() {
   return (
-    <MemberShell>
-      <TopBar userInitials="A" />
+    <MemberShell sidebar={SIDEBAR} userInitials="A">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

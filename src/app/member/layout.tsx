@@ -1,23 +1,12 @@
 import React from "react";
-import { C, SYSTEM_FONT } from "@/components/member/tokens";
 
+// The responsive canvas, centering, and sidebar logic all live in
+// src/components/member/MemberShell.tsx so this layout is a passthrough.
+// It exists because Next.js App Router requires a layout file alongside pages.
 export default function MemberLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: C.canvasDeep,
-        fontFamily: SYSTEM_FONT,
-        display: "flex",
-        justifyContent: "center",
-        padding: 0,
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }
