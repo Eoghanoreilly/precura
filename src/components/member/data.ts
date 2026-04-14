@@ -1,6 +1,10 @@
-import { BLOOD_TEST_HISTORY } from "@/lib/v2/mock-patient";
+import { BLOOD_TEST_HISTORY, getMarkerHistory } from "@/lib/v2/mock-patient";
 import type { MarkerChange } from "./WhatMoved";
 import type { Category } from "./PanelSummary";
+import type { GlucoseHeroProps } from "./GlucoseHero";
+
+// Markers that are promoted out of WhatMoved because they have their own hero.
+const PROMOTED_MARKERS = new Set(["f-Glucose"]);
 
 // ============================================================================
 // Shared data derivation for /member proposal pages.
@@ -13,6 +17,7 @@ export function buildMarkerChanges(): MarkerChange[] {
 
   const changes: MarkerChange[] = [];
   for (const m of latest.results) {
+    if (PROMOTED_MARKERS.has(m.shortName)) continue;
     const prev = previous.results.find((p) => p.shortName === m.shortName);
     if (!prev) continue;
     if (prev.value === m.value) continue;
@@ -89,6 +94,46 @@ export function buildPanelSummary(): {
     inRange,
     panelDate: formatDate(latest.date),
     categories,
+  };
+}
+
+// ============================================================================
+// Glucose hero data - 5-year history + current/previous values from the panel
+// ============================================================================
+
+export function buildGlucoseHero(): GlucoseHeroProps | null {
+  const latest = BLOOD_TEST_HISTORY[0];
+  const previous = BLOOD_TEST_HISTORY[1];
+  if (!latest || !previous) return null;
+
+  const currentMarker = latest.results.find(
+    (m) => m.shortName === "f-Glucose"
+  );
+  const previousMarker = previous.results.find(
+    (m) => m.shortName === "f-Glucose"
+  );
+  if (!currentMarker || !previousMarker) return null;
+
+  // getMarkerHistory returns { date, value }[] in ascending order. Convert
+  // to { year, value } for the sparkline.
+  const raw = getMarkerHistory("f-Glucose");
+  const history = raw.map((r) => ({
+    year: new Date(r.date).getFullYear().toString(),
+    value: r.value,
+  }));
+
+  const verdict =
+    "Still in range, still drifting. This is the one Dr. Tomas wants to watch.";
+
+  return {
+    currentValue: currentMarker.value,
+    previousValue: previousMarker.value,
+    unit: currentMarker.unit,
+    refLow: currentMarker.refLow,
+    refHigh: currentMarker.refHigh,
+    history,
+    verdict,
+    verdictTone: "attention",
   };
 }
 

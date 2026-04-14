@@ -4,6 +4,7 @@ import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { StatusHeadline } from "@/components/member/StatusHeadline";
 import { NoteFromDoctor } from "@/components/member/NoteFromDoctor";
+import { GlucoseHero } from "@/components/member/GlucoseHero";
 import { WhatMoved } from "@/components/member/WhatMoved";
 import { RiskTrajectory } from "@/components/member/RiskTrajectory";
 import { PanelSummary } from "@/components/member/PanelSummary";
@@ -15,6 +16,7 @@ import { DOCTOR } from "@/components/member/tokens";
 import {
   buildMarkerChanges,
   buildPanelSummary,
+  buildGlucoseHero,
   RISK_HISTORY,
   RISK_PROJECTION,
   NOTE_PREVIEW,
@@ -81,11 +83,13 @@ const SIDEBAR_NEW_MEMBER: MemberSidebarProps = {
 function PanelResultsDayView() {
   const changes = buildMarkerChanges();
   const summary = buildPanelSummary();
+  const glucose = buildGlucoseHero();
 
   return (
     <>
       <StatusHeadline text={STATUS_TEXT} tone="attention" />
       <NoteFromDoctor preview={NOTE_PREVIEW} noteDate={NOTE_DATE} />
+      {glucose && <GlucoseHero {...glucose} />}
       <WhatMoved markers={changes} />
       <RiskTrajectory
         history={RISK_HISTORY}
