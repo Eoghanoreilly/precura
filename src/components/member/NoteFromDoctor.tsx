@@ -109,7 +109,7 @@ export function NoteFromDoctor({
             display: "inline-flex",
             alignItems: "center",
             padding: "12px 22px",
-            background: C.ink,
+            background: C.terracotta,
             color: C.canvasSoft,
             border: "none",
             borderRadius: 12,
@@ -118,7 +118,8 @@ export function NoteFromDoctor({
             fontFamily: "inherit",
             letterSpacing: "-0.005em",
             cursor: "pointer",
-            boxShadow: "0 8px 18px -8px rgba(28,26,23,0.32)",
+            boxShadow:
+              "0 10px 22px -10px rgba(201,87,58,0.45), 0 2px 6px rgba(201,87,58,0.18)",
             marginBottom: 16,
           }}
         >
