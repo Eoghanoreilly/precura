@@ -97,6 +97,7 @@ function PanelResultsDayView() {
         currentLabel="17%"
         modelName="Type 2 diabetes (FINDRISC)"
         riskLabel="Moderate risk, trending up"
+        caption="You're sitting at the high end of the amber band. If the glucose trend continues at its current slope, the model projects you cross into higher risk territory inside 5 years. That's the line Dr. Tomas wants to flatten."
       />
       <PanelSummary {...summary} />
       <NextStep
@@ -131,6 +132,7 @@ function BetweenPanelsView() {
         currentLabel="17%"
         modelName="Type 2 diabetes (FINDRISC)"
         riskLabel="Moderate risk, holding steady"
+        caption="Your forecast has held steady since the last panel. The lifestyle changes are doing real work here."
       />
       <PanelSummary {...summary} />
       <NextStep

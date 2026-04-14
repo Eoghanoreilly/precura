@@ -15,12 +15,15 @@ export function RiskTrajectory({
   currentLabel,
   modelName,
   riskLabel,
+  caption,
 }: {
   history: { year: string; value: number }[];
   projection: { year: string; value: number }[];
   currentLabel: string;
   modelName: string;
   riskLabel: string;
+  /** Plain-English sentence under the chart, e.g. italic-serif verdict. */
+  caption?: string;
 }) {
   const xLabels = [
     ...history.map((h) => h.year),
@@ -40,8 +43,23 @@ export function RiskTrajectory({
     ...projection.slice(1).map((p) => p.value),
   ];
 
+  // Emphasize the endpoint (today) with a larger symbol on the history series.
+  const emphasizedHistorySeries = historySeries.map((v, i) =>
+    i === history.length - 1 && v !== null
+      ? {
+          value: v,
+          symbolSize: 11,
+          itemStyle: {
+            color: C.terracotta,
+            borderColor: C.paper,
+            borderWidth: 3,
+          },
+        }
+      : v
+  );
+
   const option = {
-    grid: { top: 16, right: 12, bottom: 28, left: 36 },
+    grid: { top: 16, right: 16, bottom: 28, left: 40 },
     xAxis: {
       type: "category" as const,
       data: xLabels,
@@ -57,9 +75,11 @@ export function RiskTrajectory({
     },
     yAxis: {
       type: "value" as const,
+      max: 30,
+      min: 0,
       axisLine: { show: false },
       axisTick: { show: false },
-      splitLine: { lineStyle: { color: C.lineSoft, type: "dashed" as const } },
+      splitLine: { show: false },
       axisLabel: {
         color: C.inkFaint,
         fontSize: 10,
@@ -68,10 +88,48 @@ export function RiskTrajectory({
       },
     },
     series: [
+      // Zone bands as a hidden line with markArea backgrounds
+      {
+        type: "line" as const,
+        data: xLabels.map(() => null),
+        silent: true,
+        showSymbol: false,
+        markArea: {
+          silent: true,
+          data: [
+            [
+              { yAxis: 0, itemStyle: { color: "rgba(78,142,92,0.10)" } },
+              { yAxis: 15 },
+            ],
+            [
+              { yAxis: 15, itemStyle: { color: "rgba(208,132,23,0.12)" } },
+              { yAxis: 25 },
+            ],
+            [
+              { yAxis: 25, itemStyle: { color: "rgba(196,71,42,0.14)" } },
+              { yAxis: 30 },
+            ],
+          ],
+        },
+        markLine: {
+          silent: true,
+          symbol: "none",
+          lineStyle: { color: C.sage, type: "dashed", width: 1, opacity: 0.5 },
+          label: {
+            show: true,
+            position: "insideStartTop",
+            formatter: "low risk",
+            fontSize: 9,
+            color: C.sageDeep,
+            fontFamily: SYSTEM_FONT,
+          },
+          data: [{ yAxis: 15 }],
+        },
+      },
       {
         name: "Measured",
         type: "line" as const,
-        data: historySeries,
+        data: emphasizedHistorySeries,
         smooth: true,
         symbol: "circle",
         symbolSize: 6,
@@ -194,23 +252,37 @@ export function RiskTrajectory({
           </div>
         </div>
       </div>
-      <div style={{ height: 170, marginTop: 10 }}>
+      <div style={{ height: 190, marginTop: 10 }}>
         <ReactECharts
           option={option}
           style={{ height: "100%", width: "100%" }}
           opts={{ renderer: "svg" }}
         />
       </div>
+      {caption && (
+        <div
+          style={{
+            fontSize: 14,
+            lineHeight: 1.5,
+            color: C.inkSoft,
+            marginTop: 10,
+            fontStyle: "italic",
+            fontFamily: 'Georgia, "Times New Roman", serif',
+          }}
+        >
+          {caption}
+        </div>
+      )}
       <div
         style={{
           fontSize: 10,
           color: C.inkFaint,
-          marginTop: 4,
-          textAlign: "center",
+          marginTop: caption ? 8 : 4,
           letterSpacing: "0.02em",
         }}
       >
-        Solid: measured. Dashed: projected by the model.
+        Solid line: measured. Dashed line: projected by the model. Bands:
+        low risk (green), moderate (amber), high (red).
       </div>
     </motion.section>
   );
