@@ -118,7 +118,7 @@ export function WhatYouGet() {
             eyebrowColor={C.butter}
             eyebrow="01 / SCIENCE"
             title="Validated clinical risk models."
-            body="Your profile runs on the same models Swedish GPs trust: FINDRISC, SCORE2, FRAX. Plus UKPDS, SDPP and DPP as secondary checks."
+            body="Your profile runs on the same models doctors trust: FINDRISC, SCORE2, FRAX. Plus UKPDS, SDPP and DPP as secondary checks."
             bullets={[
               "FINDRISC (Lindstrom & Tuomilehto, 2003)",
               "SCORE2 (Working Group, 2021)",

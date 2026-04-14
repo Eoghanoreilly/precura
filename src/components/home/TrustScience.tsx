@@ -127,8 +127,7 @@ export function TrustScience() {
                   lineHeight: 1.55,
                 }}
               >
-                Karolinska-trained / 15+ years primary care / Swedish-licensed
-                GP
+                Karolinska-trained / 15+ years primary care / Licensed
               </div>
             </div>
           </motion.div>
@@ -167,7 +166,7 @@ export function TrustScience() {
                 marginBottom: 20,
               }}
             >
-              Run by a Swedish doctor.{" "}
+              Run by licensed doctors.{" "}
               <span
                 style={{
                   color: C.terracotta,
@@ -195,7 +194,7 @@ export function TrustScience() {
             >
               Dr. Tomas personally reviews every new member&apos;s baseline
               panel and writes the first note. The risk models we use are the
-              same ones Swedish GPs use today, published in peer-reviewed
+              same ones doctors trust today, published in peer-reviewed
               journals, referenced below.
             </motion.p>
 

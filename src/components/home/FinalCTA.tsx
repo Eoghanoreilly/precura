@@ -89,7 +89,7 @@ export function FinalCTA() {
               background: C.butter,
             }}
           />
-          Accepting new members / Sweden
+          Accepting new members
         </motion.div>
 
         <motion.h2
@@ -135,8 +135,8 @@ export function FinalCTA() {
             marginRight: "auto",
           }}
         >
-          Your welcome kit ships within 72 hours of signup. A Swedish doctor
-          reads your first panel. Your living profile stays with you for as
+          Your welcome kit ships within 72 hours of signup. Licensed doctors
+          review your first panel. Your living profile stays with you for as
           long as you want it to.
         </motion.p>
 

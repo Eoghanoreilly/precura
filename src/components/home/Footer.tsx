@@ -117,8 +117,8 @@ export function Footer() {
                 maxWidth: 320,
               }}
             >
-              Predictive health for Sweden. One annual membership, one Swedish
-              doctor, one living profile that updates every test.
+              Predictive health, licensed doctors who know your trajectory,
+              and a living profile that updates with every test.
             </p>
             <div
               style={{
