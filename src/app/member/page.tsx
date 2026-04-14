@@ -14,6 +14,7 @@ import { RiskTrajectory } from "@/components/member/RiskTrajectory";
 import { PanelSummary, Category } from "@/components/member/PanelSummary";
 import { NextStep } from "@/components/member/NextStep";
 import { LivingProfileLink } from "@/components/member/LivingProfileLink";
+import { MemberShell } from "@/components/member/MemberShell";
 
 // ============================================================================
 // Data derivation for Anna on panel-results-day
@@ -278,9 +279,12 @@ function MemberHomeContent() {
   const params = useSearchParams();
   const state = params.get("state") ?? "panel-results-day";
 
-  if (state === "between-panels") return <BetweenPanelsView />;
-  if (state === "new-member") return <NewMemberView />;
-  return <PanelResultsDayView />;
+  let view: React.ReactNode;
+  if (state === "between-panels") view = <BetweenPanelsView />;
+  else if (state === "new-member") view = <NewMemberView />;
+  else view = <PanelResultsDayView />;
+
+  return <MemberShell>{view}</MemberShell>;
 }
 
 export default function MemberHomePage() {

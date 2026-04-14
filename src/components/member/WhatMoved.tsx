@@ -57,7 +57,7 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
       </div>
 
       <div
-        className="member-hscroll"
+        className="member-whatmoved-row"
         style={{
           display: "flex",
           gap: 12,
@@ -66,6 +66,7 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           WebkitOverflowScrolling: "touch",
+          flexWrap: "nowrap",
         }}
       >
         {markers.map((m, i) => {
@@ -176,6 +177,19 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
           );
         })}
       </div>
+      <style jsx>{`
+        @media (min-width: 640px) {
+          :global(.member-whatmoved-row) {
+            flex-wrap: wrap !important;
+            overflow-x: visible !important;
+          }
+          :global(.member-whatmoved-row) > * {
+            flex: 1 1 calc(50% - 8px) !important;
+            min-width: 0 !important;
+            width: auto !important;
+          }
+        }
+      `}</style>
     </motion.section>
   );
 }

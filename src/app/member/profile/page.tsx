@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { TopBar } from "@/components/member/TopBar";
+import { MemberShell } from "@/components/member/MemberShell";
 import { C, SYSTEM_FONT, DOCTOR } from "@/components/member/tokens";
 import { PATIENT } from "@/lib/v2/mock-patient";
 
@@ -36,7 +37,7 @@ const SETTINGS_GROUPS = [
 
 export default function ProfilePage() {
   return (
-    <>
+    <MemberShell>
       <TopBar userInitials="A" />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -150,6 +151,6 @@ export default function ProfilePage() {
           Sign out
         </Link>
       </motion.div>
-    </>
+    </MemberShell>
   );
 }
