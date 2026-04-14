@@ -3,7 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import { C, SYSTEM_FONT } from "./tokens";
+import { C, SYSTEM_FONT, DISPLAY_NUM } from "./tokens";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), {
   ssr: false,
@@ -229,12 +229,10 @@ export function RiskTrajectory({
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           <div
             style={{
-              fontSize: 30,
-              fontWeight: 600,
+              ...DISPLAY_NUM,
+              fontSize: 32,
               color: C.terracotta,
-              letterSpacing: "-0.022em",
               lineHeight: 1,
-              fontFamily: '"SF Mono", ui-monospace, monospace',
             }}
           >
             {currentLabel}

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { C, SYSTEM_FONT } from "./tokens";
+import { C, SYSTEM_FONT, DISPLAY_NUM } from "./tokens";
 
 // ============================================================================
 // GlucoseHero - the single marker that matters on panel-results-day.
@@ -98,14 +98,11 @@ export function GlucoseHero({
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
           <span
             style={{
+              ...DISPLAY_NUM,
               fontSize: "clamp(44px, 11vw, 60px)",
-              fontWeight: 600,
               color: C.ink,
               letterSpacing: "-0.032em",
               lineHeight: 1,
-              fontFamily:
-                '"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace',
-              fontVariantNumeric: "tabular-nums",
             }}
           >
             {currentValue}

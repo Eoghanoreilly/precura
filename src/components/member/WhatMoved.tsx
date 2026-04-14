@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { C, SYSTEM_FONT } from "./tokens";
+import { C, SYSTEM_FONT, DISPLAY_NUM } from "./tokens";
 
 export interface MarkerChange {
   name: string;
@@ -138,11 +138,9 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
               >
                 <span
                   style={{
+                    ...DISPLAY_NUM,
                     fontSize: 26,
-                    fontWeight: 600,
                     color: C.ink,
-                    letterSpacing: "-0.015em",
-                    fontFamily: '"SF Mono", ui-monospace, monospace',
                     lineHeight: 1,
                   }}
                 >

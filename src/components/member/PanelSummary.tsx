@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { C, SYSTEM_FONT } from "./tokens";
+import { C, SYSTEM_FONT, DISPLAY_NUM } from "./tokens";
 
 export interface Category {
   name: string;
@@ -65,16 +65,15 @@ export function PanelSummary({
         <div>
           <div
             style={{
-              fontSize: 32,
-              fontWeight: 600,
+              ...DISPLAY_NUM,
+              fontSize: 34,
               color: C.ink,
-              letterSpacing: "-0.022em",
               lineHeight: 1,
             }}
           >
             {total}
           </div>
-          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 3 }}>
+          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 4 }}>
             markers
           </div>
         </div>
@@ -88,16 +87,15 @@ export function PanelSummary({
         <div>
           <div
             style={{
-              fontSize: 24,
-              fontWeight: 600,
+              ...DISPLAY_NUM,
+              fontSize: 26,
               color: C.caution,
-              letterSpacing: "-0.015em",
               lineHeight: 1,
             }}
           >
             {flagged}
           </div>
-          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 3 }}>
+          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 4 }}>
             need attention
           </div>
         </div>
@@ -111,16 +109,15 @@ export function PanelSummary({
         <div>
           <div
             style={{
-              fontSize: 24,
-              fontWeight: 600,
+              ...DISPLAY_NUM,
+              fontSize: 26,
               color: C.good,
-              letterSpacing: "-0.015em",
               lineHeight: 1,
             }}
           >
             {inRange}
           </div>
-          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 3 }}>
+          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 4 }}>
             in range
           </div>
         </div>
