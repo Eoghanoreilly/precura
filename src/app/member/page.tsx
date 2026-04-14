@@ -166,30 +166,33 @@ function NewMemberView() {
       />
       <GhostCard
         title="Your 10-year forecast"
-        subtitle="Appears after your first panel"
+        preview="After your first panel, Dr. Tomas will run the FINDRISC, SCORE2 and FRAX models and a line will appear here showing where your risk sits today and where it's heading. We'll show you the trajectory years before a yearly check-up would."
       />
       <GhostCard
-        title="Your panel"
-        subtitle="Your first panel results will land here"
+        title="What moved"
+        preview="Every marker that changed since your last panel will live here, with plain-English names, the old value, the new value, and a one-line read from Dr. Tomas on whether it matters."
       />
-      <LivingProfileLink years={0} />
+      <GhostCard
+        title="Your 5-year story"
+        preview="Every panel, note, and training update goes into a living profile you can scroll back through. The story starts the day your first kit arrives."
+      />
     </>
   );
 }
 
 function GhostCard({
   title,
-  subtitle,
+  preview,
 }: {
   title: string;
-  subtitle: string;
+  preview: string;
 }) {
   return (
     <div
       style={{
         margin: "0 20px 18px",
-        padding: "28px 22px",
-        background: "rgba(255,255,255,0.4)",
+        padding: "24px 22px 22px",
+        background: "rgba(255,255,255,0.45)",
         border: "1px dashed #E0D9C8",
         borderRadius: 22,
         fontFamily:
@@ -203,19 +206,21 @@ function GhostCard({
           color: "#8B8579",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
-          marginBottom: 6,
+          marginBottom: 10,
         }}
       >
         {title}
       </div>
       <div
         style={{
-          fontSize: 13,
+          fontSize: 14,
+          lineHeight: 1.55,
           color: "#8B8579",
           fontStyle: "italic",
+          fontFamily: 'Georgia, "Times New Roman", serif',
         }}
       >
-        {subtitle}
+        {preview}
       </div>
     </div>
   );
