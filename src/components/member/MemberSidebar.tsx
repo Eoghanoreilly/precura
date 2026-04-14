@@ -52,7 +52,7 @@ export function MemberSidebar({
           style={{
             textDecoration: "none",
             display: "inline-block",
-            marginBottom: 32,
+            marginBottom: 28,
           }}
         >
           <span
@@ -68,94 +68,95 @@ export function MemberSidebar({
           </span>
         </Link>
 
-        {/* User card */}
+        {/* Identity pair: user on top, hairline, doctor below. Single container
+            so the relationship reads as one object (you + your doctor) rather
+            than two disconnected widgets. */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 24,
-            padding: "14px 16px",
             background: C.paper,
-            borderRadius: 16,
+            borderRadius: 18,
             border: `1px solid ${C.lineCard}`,
             boxShadow: C.shadowSoft,
+            overflow: "hidden",
+            marginBottom: 22,
             fontFamily: SYSTEM_FONT,
           }}
         >
+          {/* User row */}
           <div
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: "50%",
-              background: `linear-gradient(135deg, ${C.butter} 0%, ${C.terracottaSoft} 100%)`,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              color: C.ink,
-              fontSize: 16,
-              fontWeight: 600,
-              letterSpacing: "-0.01em",
-              boxShadow: C.shadowSoft,
-              flexShrink: 0,
+              gap: 12,
+              padding: "14px 16px 14px",
             }}
           >
-            {user.initials}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 14,
-                fontWeight: 600,
+                width: 42,
+                height: 42,
+                borderRadius: "50%",
+                background: `linear-gradient(135deg, ${C.butter} 0%, ${C.terracottaSoft} 100%)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 color: C.ink,
-                letterSpacing: "-0.005em",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                fontSize: 16,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+                boxShadow: C.shadowSoft,
+                flexShrink: 0,
               }}
             >
-              {user.name}
+              {user.initials}
             </div>
-            <div style={{ fontSize: 11, color: C.inkFaint }}>
-              {user.memberSince}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: C.ink,
+                  letterSpacing: "-0.005em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {user.name}
+              </div>
+              <div style={{ fontSize: 11, color: C.inkFaint }}>
+                {user.memberSince}
+              </div>
             </div>
           </div>
-        </motion.div>
 
-        {/* Doctor sidecard */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          style={{
-            padding: "16px 18px",
-            background: C.sageTint,
-            border: `1px solid ${C.sageSoft}`,
-            borderRadius: 16,
-            marginBottom: 20,
-            fontFamily: SYSTEM_FONT,
-          }}
-        >
+          {/* Hairline connector */}
           <div
             style={{
-              fontSize: 10,
-              fontWeight: 600,
-              color: C.sageDeep,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              marginBottom: 10,
+              height: 1,
+              background: C.lineSoft,
+              marginLeft: 16,
+              marginRight: 16,
+            }}
+          />
+
+          {/* Doctor row - sage ground marks it as medical trust */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "14px 16px 14px",
+              background: C.sageTint,
             }}
           >
-            Your doctor
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 44,
-                height: 44,
+                width: 42,
+                height: 42,
                 borderRadius: "50%",
                 background: `linear-gradient(135deg, ${C.sage} 0%, ${C.sageDeep} 100%)`,
                 display: "flex",
@@ -184,7 +185,13 @@ export function MemberSidebar({
               >
                 {doctor.name}
               </div>
-              <div style={{ fontSize: 11, color: C.sageDeep }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: C.sageDeep,
+                  letterSpacing: "-0.005em",
+                }}
+              >
                 {doctor.title}
               </div>
             </div>
@@ -234,8 +241,13 @@ export function MemberSidebar({
           </div>
         </motion.div>
 
-        {/* Nav */}
-        <nav style={{ fontFamily: SYSTEM_FONT }}>
+        {/* Nav - lighter, borderless, lets the content win */}
+        <nav
+          style={{
+            fontFamily: SYSTEM_FONT,
+            paddingTop: 4,
+          }}
+        >
           {NAV_ITEMS.map((it) => {
             const active = it.href === activeHref;
             return (
@@ -243,18 +255,27 @@ export function MemberSidebar({
                 key={it.label}
                 href={it.href}
                 style={{
-                  display: "block",
-                  padding: "11px 14px",
-                  fontSize: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 4px",
+                  fontSize: 13,
                   fontWeight: active ? 600 : 500,
                   color: active ? C.ink : C.inkMuted,
                   textDecoration: "none",
-                  borderRadius: 10,
-                  background: active ? C.stoneSoft : "transparent",
-                  marginBottom: 2,
                   letterSpacing: "-0.005em",
                 }}
               >
+                {/* Thin left indicator line only on active */}
+                <span
+                  style={{
+                    width: 2,
+                    height: 16,
+                    background: active ? C.terracotta : "transparent",
+                    borderRadius: 1,
+                    flexShrink: 0,
+                  }}
+                />
                 {it.label}
               </Link>
             );
