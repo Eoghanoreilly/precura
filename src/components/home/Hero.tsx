@@ -84,7 +84,7 @@ export function Hero() {
               marginBottom: 24,
             }}
           >
-            See trouble coming.{" "}
+            See your future health.{" "}
             <span
               style={{
                 color: C.terracotta,
@@ -92,7 +92,7 @@ export function Hero() {
                 fontWeight: 500,
               }}
             >
-              A year before your doctor does.
+              Before the system does.
             </span>
           </motion.h1>
 
@@ -110,10 +110,10 @@ export function Hero() {
               maxWidth: 500,
             }}
           >
-            Precura is a year of predictive health for Swedish adults. Four
-            blood panels, one Swedish GP who knows your trajectory, and a
-            living profile that catches drift years before a yearly check-up
-            would.
+            Precura is predictive health for anyone who wants to see what&apos;s
+            coming. Regular blood panels, licensed doctors who know your
+            trajectory, and a living profile that catches drift years before a
+            yearly check-up would.
           </motion.p>
 
           {/* Single primary CTA */}

@@ -59,7 +59,7 @@ export function ProblemStrip() {
             maxWidth: 680,
           }}
         >
-          The Swedish healthcare system is good at treatment.
+          The system is good at treatment.
           <br />
           <span style={{ color: C.terracotta }}>
             It&apos;s slow at prediction.

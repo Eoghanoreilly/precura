@@ -37,7 +37,7 @@ export function LivingProfile() {
       unit: "nmol/L",
       values: [58, 54, 52, 50, 48],
       current: 48,
-      note: "Low for the Swedish winter months. Start 2000 IU daily, retest in 6 months.",
+      note: "Low for the winter months. Start 2000 IU daily, retest in 6 months.",
       zone: "borderline",
     },
     {

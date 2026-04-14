@@ -17,11 +17,11 @@ export function FAQ() {
     },
     {
       q: "How is this different from Werlabs or a normal blood test?",
-      a: "Werlabs gives you a snapshot. Precura gives you a trajectory. We pull your 1177 history, connect it to every new panel, and show the 5-year arc. Every result is reviewed by the same Swedish-licensed GP (Dr. Tomas Kurakovas). And when your numbers change, your training plan changes. A one-off panel cannot do that.",
+      a: "Werlabs gives you a snapshot. Precura gives you a trajectory. We pull your 1177 history, connect it to every new panel, and show the 5-year arc. Every result is reviewed by the same licensed doctor (Dr. Tomas Kurakovas). And when your numbers change, your training plan changes. A one-off panel cannot do that.",
     },
     {
       q: "Is Dr. Tomas a real doctor I actually talk to?",
-      a: "Yes. Dr. Tomas Kurakovas is a Karolinska-trained GP with over 15 years in Swedish primary care, licensed by Socialstyrelsen. He personally reviews every new member's baseline panel, writes the first note, and replies to messages within 24 hours (12 hours on Plus). You see his face, you see his handwriting, you can book a call.",
+      a: "Yes. Dr. Tomas Kurakovas is a Karolinska-trained GP with over 15 years in primary care, licensed by Socialstyrelsen. He personally reviews every new member's baseline panel, writes the first note, and replies to messages within 24 hours (12 hours on Plus). You see his face, you see his handwriting, you can book a call.",
     },
     {
       q: "Is the coaching real coaching or just an AI bot?",
