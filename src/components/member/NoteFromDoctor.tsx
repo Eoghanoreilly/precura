@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { C, SYSTEM_FONT, DOCTOR } from "./tokens";
 
@@ -147,21 +148,19 @@ export function NoteFromDoctor({
         >
           {noteDate}
         </span>
-        <button
+        <Link
+          href="/member/messages"
           style={{
-            background: "none",
-            border: "none",
-            padding: 0,
             fontFamily: "inherit",
             fontSize: 13,
             fontWeight: 600,
             color: C.terracotta,
-            cursor: "pointer",
             letterSpacing: "-0.005em",
+            textDecoration: "none",
           }}
         >
           Read full note
-        </button>
+        </Link>
       </div>
     </motion.div>
   );
