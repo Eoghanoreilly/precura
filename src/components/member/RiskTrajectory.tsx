@@ -3,7 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import { C, SYSTEM_FONT, DISPLAY_NUM } from "./tokens";
+import { C, SYSTEM_FONT } from "./tokens";
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), {
   ssr: false,
@@ -12,16 +12,12 @@ const ReactECharts = dynamic(() => import("echarts-for-react"), {
 export function RiskTrajectory({
   history,
   projection,
-  currentLabel,
   modelName,
-  riskLabel,
   caption,
 }: {
   history: { year: string; value: number }[];
   projection: { year: string; value: number }[];
-  currentLabel: string;
   modelName: string;
-  riskLabel: string;
   /** Plain-English sentence under the chart, e.g. italic-serif verdict. */
   caption?: string;
 }) {
@@ -58,37 +54,26 @@ export function RiskTrajectory({
       : v
   );
 
+  // True sparkline: no axis labels, no grid, no percent y-axis. Only the
+  // curve, the zone bands beneath it, and an emphasized endpoint that
+  // marks "today". The caption below the chart carries the number verbally
+  // so the chart isn't doing double-duty as a KPI display.
   const option = {
-    grid: { top: 16, right: 16, bottom: 28, left: 40 },
+    grid: { top: 10, right: 12, bottom: 8, left: 12 },
     xAxis: {
       type: "category" as const,
       data: xLabels,
       boundaryGap: false,
-      axisLine: { lineStyle: { color: C.lineCard } },
-      axisTick: { show: false },
-      axisLabel: {
-        color: C.inkFaint,
-        fontSize: 10,
-        fontFamily: SYSTEM_FONT,
-        interval: 1,
-      },
+      show: false,
     },
     yAxis: {
       type: "value" as const,
       max: 30,
       min: 0,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      splitLine: { show: false },
-      axisLabel: {
-        color: C.inkFaint,
-        fontSize: 10,
-        fontFamily: SYSTEM_FONT,
-        formatter: "{value}%",
-      },
+      show: false,
     },
     series: [
-      // Zone bands as a hidden line with markArea backgrounds
+      // Zone bands via markArea - stronger opacity so they read
       {
         type: "line" as const,
         data: xLabels.map(() => null),
@@ -98,32 +83,18 @@ export function RiskTrajectory({
           silent: true,
           data: [
             [
-              { yAxis: 0, itemStyle: { color: "rgba(78,142,92,0.10)" } },
+              { yAxis: 0, itemStyle: { color: "rgba(78,142,92,0.18)" } },
               { yAxis: 15 },
             ],
             [
-              { yAxis: 15, itemStyle: { color: "rgba(208,132,23,0.12)" } },
+              { yAxis: 15, itemStyle: { color: "rgba(208,132,23,0.22)" } },
               { yAxis: 25 },
             ],
             [
-              { yAxis: 25, itemStyle: { color: "rgba(196,71,42,0.14)" } },
+              { yAxis: 25, itemStyle: { color: "rgba(196,71,42,0.22)" } },
               { yAxis: 30 },
             ],
           ],
-        },
-        markLine: {
-          silent: true,
-          symbol: "none",
-          lineStyle: { color: C.sage, type: "dashed", width: 1, opacity: 0.5 },
-          label: {
-            show: true,
-            position: "insideStartTop",
-            formatter: "low risk",
-            fontSize: 9,
-            color: C.sageDeep,
-            fontFamily: SYSTEM_FONT,
-          },
-          data: [{ yAxis: 15 }],
         },
       },
       {
@@ -132,7 +103,7 @@ export function RiskTrajectory({
         data: emphasizedHistorySeries,
         smooth: true,
         symbol: "circle",
-        symbolSize: 6,
+        symbolSize: 0,
         lineStyle: { width: 3, color: C.terracotta },
         itemStyle: { color: C.terracotta },
         areaStyle: {
@@ -143,7 +114,7 @@ export function RiskTrajectory({
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: "rgba(201,87,58,0.22)" },
+              { offset: 0, color: "rgba(201,87,58,0.32)" },
               { offset: 1, color: "rgba(201,87,58,0.02)" },
             ],
           },
@@ -155,12 +126,12 @@ export function RiskTrajectory({
         data: projectionSeries,
         smooth: true,
         symbol: "circle",
-        symbolSize: 5,
+        symbolSize: 0,
         lineStyle: {
           width: 2,
           color: C.terracotta,
           type: "dashed" as const,
-          opacity: 0.6,
+          opacity: 0.7,
         },
         itemStyle: { color: C.terracotta, opacity: 0.5 },
       },
@@ -174,7 +145,7 @@ export function RiskTrajectory({
       transition={{ duration: 0.8, delay: 0.5 }}
       style={{
         margin: "4px 20px 18px",
-        padding: "22px 22px 14px",
+        padding: "22px 24px 18px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,
         borderRadius: 22,
@@ -184,103 +155,66 @@ export function RiskTrajectory({
     >
       <div
         style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          marginBottom: 4,
-          gap: 12,
+          fontSize: 10,
+          fontWeight: 600,
+          color: C.terracotta,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          marginBottom: 6,
         }}
       >
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              color: C.terracotta,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              marginBottom: 5,
-            }}
-          >
-            Your 10-year forecast
-          </div>
-          <div
-            style={{
-              fontSize: 17,
-              fontWeight: 600,
-              color: C.ink,
-              letterSpacing: "-0.018em",
-              lineHeight: 1.25,
-              marginBottom: 2,
-            }}
-          >
-            {modelName}
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: C.inkMuted,
-              letterSpacing: "-0.005em",
-            }}
-          >
-            {riskLabel}
-          </div>
-        </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div
-            style={{
-              ...DISPLAY_NUM,
-              fontSize: 32,
-              color: C.terracotta,
-              lineHeight: 1,
-            }}
-          >
-            {currentLabel}
-          </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: C.inkFaint,
-              marginTop: 3,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-            }}
-          >
-            today
-          </div>
-        </div>
+        Your 10-year forecast
       </div>
-      <div style={{ height: 190, marginTop: 10 }}>
+      <div
+        style={{
+          fontSize: 17,
+          fontWeight: 600,
+          color: C.ink,
+          letterSpacing: "-0.018em",
+          lineHeight: 1.25,
+          marginBottom: 14,
+        }}
+      >
+        {modelName}
+      </div>
+
+      {caption && (
+        <div
+          style={{
+            fontSize: "clamp(16px, 2vw, 19px)",
+            lineHeight: 1.45,
+            color: C.ink,
+            fontStyle: "italic",
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            marginBottom: 16,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {caption}
+        </div>
+      )}
+
+      {/* Sparkline - no axes, no labels, just the curve + zone bands */}
+      <div style={{ height: 120, marginTop: 4 }}>
         <ReactECharts
           option={option}
           style={{ height: "100%", width: "100%" }}
           opts={{ renderer: "svg" }}
         />
       </div>
-      {caption && (
-        <div
-          style={{
-            fontSize: 14,
-            lineHeight: 1.5,
-            color: C.inkSoft,
-            marginTop: 10,
-            fontStyle: "italic",
-            fontFamily: 'Georgia, "Times New Roman", serif',
-          }}
-        >
-          {caption}
-        </div>
-      )}
+
+      {/* Subtle legend */}
       <div
         style={{
           fontSize: 10,
           color: C.inkFaint,
-          marginTop: caption ? 8 : 4,
+          marginTop: 10,
           letterSpacing: "0.02em",
+          fontStyle: "italic",
+          fontFamily: 'Georgia, "Times New Roman", serif',
         }}
       >
-        Solid line: measured. Dashed line: projected by the model. Bands:
-        low risk (green), moderate (amber), high (red).
+        Solid: measured. Dashed: projected. Bands: low / moderate / high risk.
       </div>
     </motion.section>
   );

@@ -104,10 +104,8 @@ function PanelResultsDayView() {
       <RiskTrajectory
         history={RISK_HISTORY}
         projection={RISK_PROJECTION}
-        currentLabel="17%"
         modelName="Type 2 diabetes (FINDRISC)"
-        riskLabel="Moderate risk, trending up"
-        caption="You're sitting at the high end of the amber band. If the glucose trend continues at its current slope, the model projects you cross into higher risk territory inside 5 years. That's the line Dr. Tomas wants to flatten."
+        caption="You're sitting at the high end of moderate, around 17%. If the glucose trend continues at its current slope, the model projects you cross into higher-risk territory inside 5 years. That's the line Dr. Tomas wants to flatten."
       />
 
       <style jsx global>{`
@@ -151,10 +149,8 @@ function BetweenPanelsView() {
       <RiskTrajectory
         history={RISK_HISTORY}
         projection={RISK_PROJECTION}
-        currentLabel="17%"
         modelName="Type 2 diabetes (FINDRISC)"
-        riskLabel="Moderate risk, holding steady"
-        caption="Your forecast has held steady since the last panel. The lifestyle changes are doing real work here."
+        caption="Your forecast has held steady at around 17% since the last panel. The lifestyle changes are doing real work here."
       />
       <PanelSummary {...summary} />
       <NextStep
