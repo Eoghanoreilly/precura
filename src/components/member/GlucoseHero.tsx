@@ -436,7 +436,7 @@ function GlucoseTrendChart({
 
         {/* No per-year history dots - just the line and the endpoint. */}
 
-        {/* Emphasized "today" dot on the last point with a labeled callout */}
+        {/* Emphasized "today" dot on the last point */}
         <circle
           cx={lastPoint.x}
           cy={lastPoint.y}
@@ -446,51 +446,45 @@ function GlucoseTrendChart({
           strokeWidth="4"
         />
 
-        {/* Leader line from dot to callout */}
+        {/* Leader line from dot to inline label */}
         <line
           x1={lastPoint.x - 14}
           y1={lastPoint.y}
-          x2={lastPoint.x - 62}
+          x2={lastPoint.x - 58}
           y2={lastPoint.y}
-          stroke={C.ink}
-          strokeWidth="1"
-          opacity="0.35"
+          stroke={C.terracotta}
+          strokeWidth="1.5"
+          opacity="0.55"
         />
 
-        {/* Callout pill: "Today 5.8" anchored left of the endpoint */}
-        <g
-          transform={`translate(${(lastPoint.x - 130).toFixed(1)}, ${(lastPoint.y - 13).toFixed(1)})`}
+        {/* Inline serif label: "TODAY" eyebrow above a big terracotta value.
+            No pill, no dark fill - the label sits in the cream canvas as
+            plain text so it belongs to the same palette as the rest of
+            the card. */}
+        <text
+          x={lastPoint.x - 64}
+          y={lastPoint.y - 4}
+          textAnchor="end"
+          fontSize="9"
+          fontWeight="700"
+          fill={C.inkFaint}
+          fontFamily={SYSTEM_FONT}
+          letterSpacing="0.16em"
         >
-          <rect
-            x="0"
-            y="0"
-            width="66"
-            height="26"
-            rx="13"
-            fill={C.ink}
-          />
-          <text
-            x="12"
-            y="17"
-            fontSize="11"
-            fontWeight="600"
-            fill={C.canvasSoft}
-            fontFamily={SYSTEM_FONT}
-            letterSpacing="0.02em"
-          >
-            Today
-          </text>
-          <text
-            x="42"
-            y="17"
-            fontSize="12"
-            fontWeight="700"
-            fill={C.canvasSoft}
-            fontFamily='"SF Mono", SFMono-Regular, ui-monospace, monospace'
-          >
-            {currentValue}
-          </text>
-        </g>
+          TODAY
+        </text>
+        <text
+          x={lastPoint.x - 64}
+          y={lastPoint.y + 14}
+          textAnchor="end"
+          fontSize="18"
+          fontWeight="700"
+          fill={C.terracotta}
+          fontFamily='"SF Mono", SFMono-Regular, ui-monospace, monospace'
+          letterSpacing="-0.02em"
+        >
+          {currentValue}
+        </text>
 
         {/* X-axis year labels */}
         {points.map((p, i) => {

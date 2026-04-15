@@ -1,6 +1,5 @@
 import { BLOOD_TEST_HISTORY, getMarkerHistory } from "@/lib/v2/mock-patient";
 import type { MarkerChange } from "./WhatMoved";
-import type { Category } from "./PanelSummary";
 import type { GlucoseHeroProps } from "./GlucoseHero";
 
 // Markers that are promoted out of WhatMoved because they have their own hero.
@@ -50,50 +49,16 @@ export function buildPanelSummary(): {
   flagged: number;
   inRange: number;
   panelDate: string;
-  categories: Category[];
 } {
   const latest = BLOOD_TEST_HISTORY[0];
   const total = latest.results.length;
   const flagged = latest.results.filter((m) => m.status !== "normal").length;
   const inRange = total - flagged;
-
-  const metabolicMarkers = ["HbA1c", "f-Glucose", "f-Insulin"];
-  const cardioMarkers = ["TC", "HDL", "LDL", "TG"];
-  const thyroidMarkers = ["TSH"];
-  const nutritionMarkers = ["Vit D"];
-  const kidneyMarkers = ["Crea"];
-
-  function categoryStats(shortNames: string[]): Category | null {
-    const picked = latest.results.filter((m) =>
-      shortNames.includes(m.shortName)
-    );
-    if (picked.length === 0) return null;
-    return {
-      name: "",
-      markerCount: picked.length,
-      flaggedCount: picked.filter((m) => m.status !== "normal").length,
-    };
-  }
-
-  const categories: Category[] = [];
-  const metabolic = categoryStats(metabolicMarkers);
-  if (metabolic)
-    categories.push({ ...metabolic, name: "Metabolic / blood sugar" });
-  const cardio = categoryStats(cardioMarkers);
-  if (cardio) categories.push({ ...cardio, name: "Cardiovascular" });
-  const thyroid = categoryStats(thyroidMarkers);
-  if (thyroid) categories.push({ ...thyroid, name: "Thyroid" });
-  const nutrition = categoryStats(nutritionMarkers);
-  if (nutrition) categories.push({ ...nutrition, name: "Nutrition" });
-  const kidney = categoryStats(kidneyMarkers);
-  if (kidney) categories.push({ ...kidney, name: "Kidney function" });
-
   return {
     total,
     flagged,
     inRange,
     panelDate: formatDate(latest.date),
-    categories,
   };
 }
 

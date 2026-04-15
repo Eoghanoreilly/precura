@@ -8,7 +8,6 @@ import { NoteFromDoctor } from "@/components/member/NoteFromDoctor";
 import { GlucoseHero } from "@/components/member/GlucoseHero";
 import { WhatMoved } from "@/components/member/WhatMoved";
 import { RiskTrajectory } from "@/components/member/RiskTrajectory";
-import { PanelSummary } from "@/components/member/PanelSummary";
 import { NextStep } from "@/components/member/NextStep";
 import { MemberShell } from "@/components/member/MemberShell";
 import type { MemberSidebarProps } from "@/components/member/MemberSidebar";
@@ -95,12 +94,12 @@ function PanelResultsDayView() {
       />
       {glucose && <GlucoseHero {...glucose} />}
 
-      {/* 2-up row at desktop: supporting markers beside panel summary.
-          Collapses to single column below 1024px. */}
-      <div className="member-pair-row">
-        <WhatMoved markers={changes} />
-        <PanelSummary {...summary} />
-      </div>
+      <WhatMoved
+        markers={changes}
+        panelTotal={summary.total}
+        panelFlagged={summary.flagged}
+        panelInRange={summary.inRange}
+      />
 
       <RiskTrajectory
         history={RISK_HISTORY}
@@ -108,25 +107,6 @@ function PanelResultsDayView() {
         modelName="Type 2 diabetes (FINDRISC)"
         caption="You're sitting at the high end of moderate, around 17%. If the glucose trend continues at its current slope, the model projects you cross into higher-risk territory inside 5 years. That's the line Dr. Tomas wants to flatten."
       />
-
-      <style jsx global>{`
-        .member-pair-row {
-          display: block;
-        }
-        @media (min-width: 1024px) {
-          .member-pair-row {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 16px;
-            margin: 0 20px 18px;
-          }
-          .member-pair-row > section {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            margin-bottom: 0 !important;
-          }
-        }
-      `}</style>
     </>
   );
 }
@@ -136,7 +116,6 @@ function PanelResultsDayView() {
 // ============================================================================
 
 function BetweenPanelsView() {
-  const summary = buildPanelSummary();
   return (
     <>
       <StatusHeadline
@@ -153,7 +132,6 @@ function BetweenPanelsView() {
         modelName="Type 2 diabetes (FINDRISC)"
         caption="Your forecast has held steady at around 17% since the last panel. The lifestyle changes are doing real work here."
       />
-      <PanelSummary {...summary} />
       <NextStep
         eyebrow="Next panel"
         title="Your Q2 kit ships 26 July. Nothing to do until then."

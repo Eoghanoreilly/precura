@@ -14,19 +14,40 @@ export interface MarkerChange {
 }
 
 /**
- * WhatMoved - rewritten from a metric grid to editorial prose.
+ * WhatMoved - pass 6 rewrite as a single prose paragraph.
  *
- * Previous version was a 1/2/3-column grid of identical tiles
- * (name, value, delta). Adversarial review flagged this as exactly
- * the SaaS dashboard pattern the product was supposed to reject.
+ * Previous version was a row-per-marker with colored dots and inline deltas -
+ * adversarial review called it "a list masquerading as prose". This version
+ * is one paragraph that names each marker inside a flowing sentence, with
+ * the values inlined as small tabular-display spans. No bullets, no dots,
+ * no hairlines. Reads like a letter, not a dashboard.
  *
- * New version composes one sentence per marker: "Your total cholesterol
- * came in at 5.1, just over the normal line." Same data, brand voice.
- * Values are bolded and tinted by status color so the data still pops;
- * the surrounding prose is the voice of the product speaking to Anna.
+ * Also folds in the panel summary counts that used to live in a separate
+ * PanelSummary card ("of your X markers, Y need attention and Z are in
+ * range") because that card was the same "traffic-light score in a trench
+ * coat" problem.
  */
-export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
+export function WhatMoved({
+  markers,
+  panelTotal,
+  panelFlagged,
+  panelInRange,
+}: {
+  markers: MarkerChange[];
+  panelTotal: number;
+  panelFlagged: number;
+  panelInRange: number;
+}) {
   if (markers.length === 0) return null;
+
+  // Group markers by status so we can write natural clauses.
+  const borderlineUp: MarkerChange[] = [];
+  const normalMoved: MarkerChange[] = [];
+
+  for (const m of markers) {
+    if (m.status === "borderline") borderlineUp.push(m);
+    else normalMoved.push(m);
+  }
 
   return (
     <motion.section
@@ -35,7 +56,7 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
       transition={{ duration: 0.8, delay: 0.4 }}
       style={{
         margin: "0 20px 18px",
-        padding: "22px 24px 20px",
+        padding: "22px 26px 22px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,
         borderRadius: 22,
@@ -48,184 +69,169 @@ export function WhatMoved({ markers }: { markers: MarkerChange[] }) {
           fontSize: 10,
           fontWeight: 600,
           color: C.inkMuted,
-          letterSpacing: "0.14em",
+          letterSpacing: "0.16em",
           textTransform: "uppercase",
-          marginBottom: 14,
+          marginBottom: 12,
         }}
       >
-        Also moved in this panel
+        Also in this panel
       </div>
 
-      <div
+      <p
         style={{
-          fontSize: 16,
-          lineHeight: 1.7,
+          fontSize: "clamp(16px, 1.8vw, 19px)",
+          lineHeight: 1.65,
           color: C.inkSoft,
           letterSpacing: "-0.005em",
+          margin: 0,
         }}
       >
-        {markers.map((m, i) => (
-          <MarkerSentence key={m.name} marker={m} index={i} />
-        ))}
-      </div>
+        Of the{" "}
+        <InlineValue value={panelTotal} color={C.ink} />{" "}
+        markers in this panel,{" "}
+        <InlineValue value={panelFlagged} color={C.caution} />{" "}
+        {panelFlagged === 1 ? "needs" : "need"} attention and{" "}
+        <InlineValue value={panelInRange} color={C.good} />{" "}
+        {panelInRange === 1 ? "sits" : "sit"} comfortably in range.{" "}
+        <BorderlineClause markers={borderlineUp} />
+        <NormalClause markers={normalMoved} />
+        Everything else held.
+      </p>
     </motion.section>
   );
 }
 
 // ============================================================================
-// MarkerSentence - builds one prose sentence per marker.
+// InlineValue - shared tabular display numeral inline in a sentence
 // ============================================================================
 
-function MarkerSentence({
-  marker,
-  index,
+function InlineValue({
+  value,
+  color,
 }: {
-  marker: MarkerChange;
-  index: number;
+  value: number;
+  color: string;
 }) {
-  const delta = Number(
-    (marker.currentValue - marker.previousValue).toFixed(2)
-  );
-  const deltaDir =
-    delta > 0 ? "up" : delta < 0 ? "down" : "flat";
-  const color =
-    marker.status === "normal"
-      ? C.good
-      : marker.status === "borderline"
-      ? C.caution
-      : C.risk;
-
-  // Prose templates per status + direction
-  const trailing = buildTrailing(marker, deltaDir);
-
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.5 + index * 0.08 }}
+    <span
       style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-        padding: "8px 0",
-        borderTop: index === 0 ? "none" : `1px solid ${C.lineSoft}`,
+        ...DISPLAY_NUM,
+        fontSize: 20,
+        color: color,
+        verticalAlign: "baseline",
       }}
     >
-      {/* Status dot */}
-      <span
-        style={{
-          display: "inline-block",
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: color,
-          marginTop: 10,
-          flexShrink: 0,
-        }}
-      />
-      <div style={{ flex: 1 }}>
-        Your{" "}
-        <span style={{ color: C.ink, fontWeight: 500 }}>
-          {marker.plainName.toLowerCase()}
-        </span>{" "}
-        came in at{" "}
-        <span
-          style={{
-            ...DISPLAY_NUM,
-            fontSize: 16,
-            color: color,
-          }}
-        >
-          {marker.currentValue}
-        </span>
-        <span style={{ color: C.inkMuted }}> {marker.unit}</span>
-        {trailing}
-      </div>
-    </motion.div>
+      {value}
+    </span>
   );
 }
 
-function buildTrailing(
-  marker: MarkerChange,
-  deltaDir: "up" | "down" | "flat"
-): React.ReactNode {
-  // Each case returns a short clause after the value.
-  // Borderline = over/near the line. Abnormal = out of range.
-  // Normal = in range but moved.
-
-  const delta = Math.abs(
-    Number((marker.currentValue - marker.previousValue).toFixed(2))
+function InlineMarker({
+  name,
+  value,
+  unit,
+  color,
+}: {
+  name: string;
+  value: number;
+  unit: string;
+  color: string;
+}) {
+  return (
+    <>
+      <span style={{ color: C.ink, fontWeight: 500 }}>{name}</span>{" "}
+      <span
+        style={{
+          ...DISPLAY_NUM,
+          fontSize: 17,
+          color: color,
+        }}
+      >
+        {value}
+      </span>{" "}
+      <span style={{ color: C.inkFaint, fontSize: "0.85em" }}>{unit}</span>
+    </>
   );
+}
 
-  if (marker.status === "abnormal") {
+// ============================================================================
+// Clause builders - each returns a React fragment to splice into the paragraph
+// ============================================================================
+
+function BorderlineClause({ markers }: { markers: MarkerChange[] }) {
+  if (markers.length === 0) return null;
+
+  if (markers.length === 1) {
+    const m = markers[0];
     return (
       <>
-        , outside the normal range.{" "}
+        Your{" "}
+        <InlineMarker
+          name={m.plainName.toLowerCase()}
+          value={m.currentValue}
+          unit={m.unit}
+          color={C.caution}
+        />{" "}
+        ticked up a touch,{" "}
         <em
           style={{
             fontFamily: 'Georgia, "Times New Roman", serif',
             color: C.inkMuted,
           }}
         >
-          Dr. Tomas will flag this in his next note.
-        </em>
+          just over the line and worth watching.
+        </em>{" "}
       </>
     );
   }
 
-  if (marker.status === "borderline") {
-    if (deltaDir === "up") {
-      return (
-        <>
-          , a touch over the line.{" "}
-          <em
-            style={{
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              color: C.inkMuted,
-            }}
-          >
-            Worth keeping an eye on.
-          </em>
-        </>
-      );
-    }
-    return (
-      <>
-        , right at the edge of normal.{" "}
-        <em
-          style={{
-            fontFamily: 'Georgia, "Times New Roman", serif',
-            color: C.inkMuted,
-          }}
-        >
-          Holding steady.
-        </em>
-      </>
-    );
-  }
+  return (
+    <>
+      {markers.map((m, i) => (
+        <React.Fragment key={m.name}>
+          {i === 0 ? "Your " : i === markers.length - 1 ? " and your " : ", your "}
+          <InlineMarker
+            name={m.plainName.toLowerCase()}
+            value={m.currentValue}
+            unit={m.unit}
+            color={C.caution}
+          />
+        </React.Fragment>
+      ))}
+      {" "}both ticked up a touch,{" "}
+      <em
+        style={{
+          fontFamily: 'Georgia, "Times New Roman", serif',
+          color: C.inkMuted,
+        }}
+      >
+        just over the line and worth watching.
+      </em>{" "}
+    </>
+  );
+}
 
-  // Normal but moved
-  if (deltaDir === "down") {
-    return (
-      <>
-        , down {delta} from last time.{" "}
-        <em
-          style={{
-            fontFamily: 'Georgia, "Times New Roman", serif',
-            color: C.inkMuted,
-          }}
-        >
-          Moving the right way.
-        </em>
-      </>
-    );
-  }
-  if (deltaDir === "up") {
-    return (
-      <>
-        , up {delta} from last time, still in range.
-      </>
-    );
-  }
-  return <>, unchanged.</>;
+function NormalClause({ markers }: { markers: MarkerChange[] }) {
+  if (markers.length === 0) return null;
+
+  return (
+    <>
+      {markers.map((m, i) => (
+        <React.Fragment key={m.name}>
+          {i === 0
+            ? "Your "
+            : i === markers.length - 1
+            ? " and your "
+            : ", your "}
+          <InlineMarker
+            name={m.plainName.toLowerCase()}
+            value={m.currentValue}
+            unit={m.unit}
+            color={C.good}
+          />
+        </React.Fragment>
+      ))}
+      {" "}crept up a hair but held well inside normal.{" "}
+    </>
+  );
 }
