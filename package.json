@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.89.0",
     "@nivo/bar": "^0.99.0",
     "@nivo/bullet": "^0.99.0",
     "@nivo/core": "^0.99.0",
