@@ -1,21 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import Link from "next/link";
 import { C, SYSTEM_FONT } from "./tokens";
-import { TopBar } from "./TopBar";
 import { MemberSidebar, type MemberSidebarProps } from "./MemberSidebar";
+import { MobileDrawer } from "./MobileDrawer";
 
-/**
- * Responsive shell for all /member pages.
- *
- * - <640px: 430px max column, TopBar at top, no sidebar.
- * - 640-1023px: 640px max column, TopBar at top, no sidebar.
- * - >=1024px: 1160px grid, sticky left sidebar (280px), main content (right).
- *   TopBar hidden because the sidebar contains the logo.
- *
- * Pages pass sidebar props so content-specific details (next panel, active nav)
- * can vary per page/state.
- */
+// ============================================================================
+// MemberShell - the responsive frame every /member page renders inside.
+//
+// Mobile (< 1024px):
+//   - Full viewport width
+//   - Sticky top bar with hamburger (left), logo (center), avatar (right)
+//   - Drawer slides in from the left on hamburger tap
+//   - Main content fills the viewport with comfortable gutters
+//
+// Desktop (>= 1024px):
+//   - CSS grid: 280px sidebar on the left, main content area on the right
+//   - Sidebar is sticky and contains the full MemberSidebar component
+//   - Main content centers at max 960px within its grid cell with padding
+//   - Mobile header hidden
+// ============================================================================
 
 export interface MemberShellProps {
   sidebar: MemberSidebarProps;
@@ -28,78 +33,178 @@ export function MemberShell({
   userInitials,
   children,
 }: MemberShellProps) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   return (
     <div
       style={{
         minHeight: "100dvh",
-        background: C.stone,
+        background: C.canvas,
         fontFamily: SYSTEM_FONT,
-        display: "flex",
-        justifyContent: "center",
+        color: C.ink,
       }}
     >
-      <div className="member-shell">
-        <div className="member-shell-topbar">
-          <TopBar userInitials={userInitials} />
+      {/* Mobile header - hidden at >=1024px */}
+      <header className="member-mobile-header">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open menu"
+          style={{
+            background: "none",
+            border: "none",
+            padding: 6,
+            cursor: "pointer",
+            color: C.ink,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <HamburgerIcon />
+        </button>
+        <Link
+          href="/member"
+          style={{
+            color: C.ink,
+            fontSize: 20,
+            fontWeight: 600,
+            letterSpacing: "-0.028em",
+            textDecoration: "none",
+          }}
+        >
+          Precura
+        </Link>
+        <Link
+          href="/member/profile"
+          aria-label="Profile"
+          style={{ textDecoration: "none" }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, ${C.butter} 0%, ${C.terracottaSoft} 100%)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: C.ink,
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+              boxShadow: C.shadowSoft,
+            }}
+          >
+            {userInitials}
+          </div>
+        </Link>
+      </header>
+
+      {/* Mobile drawer */}
+      <MobileDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        activeHref={sidebar.activeHref}
+      />
+
+      {/* Responsive layout wrapper */}
+      <div className="member-layout">
+        {/* Desktop sidebar - hidden below 1024px */}
+        <div className="member-desktop-sidebar">
+          <MemberSidebar {...sidebar} />
         </div>
 
-        <div className="member-shell-grid">
-          <MemberSidebar {...sidebar} />
-          <main className="member-shell-main">{children}</main>
-        </div>
+        {/* Main content - always visible, centered with max-width */}
+        <main className="member-main">{children}</main>
       </div>
 
       <style jsx global>{`
-        .member-shell {
-          width: 100%;
-          max-width: 430px;
-          min-height: 100dvh;
-          background: ${C.canvasDeep};
-          box-shadow: 0 0 60px rgba(28, 26, 23, 0.1);
+        /* Mobile header: default visible */
+        .member-mobile-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 18px;
+          border-bottom: 1px solid ${C.lineSoft};
+          position: sticky;
+          top: 0;
+          background: ${C.canvas};
+          z-index: 20;
+          gap: 14px;
         }
-        .member-shell-grid {
+
+        /* Layout: single column on mobile, grid on desktop */
+        .member-layout {
           display: block;
+          min-height: calc(100dvh - 66px);
         }
-        .member-sidebar {
+
+        .member-desktop-sidebar {
           display: none;
         }
+
+        .member-main {
+          width: 100%;
+          max-width: 100%;
+          padding: 28px 20px 56px;
+          box-sizing: border-box;
+        }
+
         @media (min-width: 640px) {
-          .member-shell {
-            max-width: 640px;
+          .member-main {
+            padding: 36px 32px 64px;
           }
         }
+
         @media (min-width: 1024px) {
-          .member-shell {
-            max-width: 1160px;
-            box-shadow: 0 0 80px rgba(28, 26, 23, 0.08);
-          }
-          .member-shell-topbar {
+          .member-mobile-header {
             display: none;
           }
-          .member-shell-grid {
+          .member-layout {
             display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 0;
+            grid-template-columns: 300px minmax(0, 1fr);
             align-items: start;
+            min-height: 100dvh;
           }
-          .member-sidebar {
+          .member-desktop-sidebar {
             display: block;
             position: sticky;
             top: 0;
             align-self: start;
             max-height: 100dvh;
             overflow-y: auto;
-            padding: 28px 28px 28px 28px;
             border-right: 1px solid ${C.lineSoft};
           }
-          .member-sidebar-inner {
-            max-width: 236px;
+          .member-main {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 40px 48px 72px;
+            width: 100%;
           }
-          .member-shell-main {
-            padding-top: 12px;
+        }
+
+        @media (min-width: 1440px) {
+          .member-main {
+            padding: 48px 56px 80px;
           }
         }
       `}</style>
     </div>
+  );
+}
+
+function HamburgerIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 22 22"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect x="3" y="6" width="16" height="2" rx="1" fill="currentColor" />
+      <rect x="3" y="11" width="16" height="2" rx="1" fill="currentColor" />
+      <rect x="3" y="16" width="16" height="2" rx="1" fill="currentColor" />
+    </svg>
   );
 }

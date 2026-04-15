@@ -144,7 +144,7 @@ export function RiskTrajectory({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.5 }}
       style={{
-        margin: "4px 20px 18px",
+        margin: "0 0 22px",
         padding: "22px 24px 18px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,

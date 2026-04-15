@@ -67,7 +67,7 @@ export function GlucoseHero({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.35 }}
       style={{
-        margin: "0 20px 18px",
+        margin: "0 0 22px",
         padding: "26px 28px 26px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,

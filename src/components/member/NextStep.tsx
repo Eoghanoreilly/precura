@@ -26,7 +26,7 @@ export function NextStep({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.7 }}
       style={{
-        margin: "0 20px 18px",
+        margin: "0 0 22px",
         padding: "22px 22px 22px",
         background: subtle ? C.stoneSoft : C.butterTint,
         border: `1px solid ${subtle ? C.stone : C.butterSoft}`,

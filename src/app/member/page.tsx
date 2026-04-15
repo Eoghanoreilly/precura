@@ -173,7 +173,7 @@ function WhileYouWait() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.5 }}
       style={{
-        margin: "0 20px 28px",
+        margin: "0 0 28px",
         padding: "26px 28px 28px",
         background: "rgba(255,255,255,0.5)",
         border: `1px dashed #D0C9B8`,

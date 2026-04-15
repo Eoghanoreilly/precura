@@ -25,7 +25,7 @@ export function NoteFromDoctor({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.25 }}
       style={{
-        margin: "16px 20px 22px",
+        margin: "0 0 22px",
         padding: "22px 22px 18px",
         background: C.canvasSoft,
         border: `1px solid ${C.lineCard}`,

@@ -21,9 +21,7 @@ export default function TrainingPage() {
     <MemberShell sidebar={buildSidebar("/member/training")} userInitials="A">
       <div
         style={{
-          padding: "36px 28px 40px",
           fontFamily: SYSTEM_FONT,
-          maxWidth: 780,
         }}
       >
         {/* Hero */}

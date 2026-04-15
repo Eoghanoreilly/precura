@@ -49,7 +49,7 @@ export function WhatMoved({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.4 }}
       style={{
-        margin: "0 20px 18px",
+        margin: "0 0 22px",
         padding: "22px 26px 22px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,

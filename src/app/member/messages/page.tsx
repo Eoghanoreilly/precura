@@ -42,9 +42,7 @@ export default function MessagesPage() {
     <MemberShell sidebar={buildSidebar("/member/messages")} userInitials="A">
       <div
         style={{
-          padding: "36px 28px 40px",
           fontFamily: SYSTEM_FONT,
-          maxWidth: 780,
         }}
       >
         {/* Hero */}
