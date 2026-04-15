@@ -176,45 +176,32 @@ function NewMemberView() {
       <NoteFromDoctor
         preview="Welcome to Precura. I'm Tomas, the doctor who'll review your panels and write your notes. Your first kit is on its way. When the results come back, I'll walk you through every marker and what it means for you."
         noteDate="14 Apr 2026"
+        primaryAction={{ label: "Track my kit" }}
       />
-      <NextStep
-        eyebrow="Your kit"
-        title="Blood kit ships 15 April. Track it here when it's on the move."
-        action="Track my kit"
-      />
-      <GhostCard
-        title="Your 10-year forecast"
-        preview="After your first panel, Dr. Tomas will run the FINDRISC, SCORE2 and FRAX models and a line will appear here showing where your risk sits today and where it's heading. We'll show you the trajectory years before a yearly check-up would."
-      />
-      <GhostCard
-        title="What moved"
-        preview="Every marker that changed since your last panel will live here, with plain-English names, the old value, the new value, and a one-line read from Dr. Tomas on whether it matters."
-      />
-      <GhostCard
-        title="Your 5-year story"
-        preview="Every panel, note, and training update goes into a living profile you can scroll back through. The story starts the day your first kit arrives."
-      />
+      <WhileYouWait />
     </>
   );
 }
 
-function GhostCard({
-  title,
-  preview,
-}: {
-  title: string;
-  preview: string;
-}) {
+// ============================================================================
+// WhileYouWait - new-member editorial section
+// ============================================================================
+
+function WhileYouWait() {
   return (
-    <div
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, delay: 0.5 }}
       style={{
-        margin: "0 20px 18px",
-        padding: "24px 22px 22px",
-        background: "rgba(255,255,255,0.45)",
-        border: "1px dashed #E0D9C8",
+        margin: "0 20px 28px",
+        padding: "26px 28px 28px",
+        background: "rgba(255,255,255,0.5)",
+        border: `1px dashed #D0C9B8`,
         borderRadius: 22,
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
+        maxWidth: "100%",
       }}
     >
       <div
@@ -222,25 +209,32 @@ function GhostCard({
           fontSize: 10,
           fontWeight: 600,
           color: "#8B8579",
-          letterSpacing: "0.14em",
+          letterSpacing: "0.16em",
           textTransform: "uppercase",
-          marginBottom: 10,
+          marginBottom: 14,
         }}
       >
-        {title}
+        While you wait
       </div>
       <div
         style={{
-          fontSize: 14,
-          lineHeight: 1.55,
-          color: "#8B8579",
+          fontSize: "clamp(16px, 1.9vw, 19px)",
+          lineHeight: 1.65,
+          color: "#615C52",
           fontStyle: "italic",
           fontFamily: 'Georgia, "Times New Roman", serif',
+          letterSpacing: "-0.005em",
         }}
       >
-        {preview}
+        When your kit arrives, you&apos;ll draw a small sample at home and drop
+        it at any Swedish Post office. We forward it to our lab in Stockholm
+        and run a panel of 22 markers. Dr. Tomas writes you a personal note
+        within 48 hours of the results landing. From that moment on, this
+        page becomes your living profile: a 10-year risk forecast, every
+        marker that moved since your last panel, and a five-year story that
+        starts with your first result.
       </div>
-    </div>
+    </motion.section>
   );
 }
 
