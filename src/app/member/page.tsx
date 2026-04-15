@@ -93,7 +93,14 @@ function PanelResultsDayView() {
         primaryAction={{ label: "Schedule a 15-min call" }}
       />
       {glucose && <GlucoseHero {...glucose} />}
-      <WhatMoved markers={changes} />
+
+      {/* 2-up row at desktop: supporting markers beside panel summary.
+          Collapses to single column below 1024px. */}
+      <div className="member-pair-row">
+        <WhatMoved markers={changes} />
+        <PanelSummary {...summary} />
+      </div>
+
       <RiskTrajectory
         history={RISK_HISTORY}
         projection={RISK_PROJECTION}
@@ -102,7 +109,25 @@ function PanelResultsDayView() {
         riskLabel="Moderate risk, trending up"
         caption="You're sitting at the high end of the amber band. If the glucose trend continues at its current slope, the model projects you cross into higher risk territory inside 5 years. That's the line Dr. Tomas wants to flatten."
       />
-      <PanelSummary {...summary} />
+
+      <style jsx global>{`
+        .member-pair-row {
+          display: block;
+        }
+        @media (min-width: 1024px) {
+          .member-pair-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 16px;
+            margin: 0 20px 18px;
+          }
+          .member-pair-row > section {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-bottom: 0 !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
