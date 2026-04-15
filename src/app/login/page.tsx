@@ -34,10 +34,10 @@ export default function LoginPage() {
       setTimeout(() => {
         setUser(user);
         if (type === "new") {
-          router.push("/onboarding");
+          router.push("/member?state=new-member");
         } else {
           initMockReturningUser();
-          router.push("/dashboard");
+          router.push("/member");
         }
       }, 800);
     }, 2000);
