@@ -236,24 +236,26 @@ export default function ProfilePage() {
           style={{
             paddingTop: 24,
             maxWidth: 620,
+            fontSize: "clamp(16px, 1.8vw, 18px)",
+            color: C.inkMuted,
+            lineHeight: 1.6,
+            letterSpacing: "-0.005em",
           }}
         >
+          Done for now?{" "}
           <Link
             href="/"
             style={{
-              display: "inline-block",
-              padding: "11px 22px",
-              border: `1px solid ${C.lineCard}`,
-              borderRadius: 100,
-              fontSize: 13,
+              color: C.inkSoft,
+              textDecoration: "underline",
+              textDecorationColor: C.stone,
+              textUnderlineOffset: 3,
               fontWeight: 600,
-              color: C.inkMuted,
-              textDecoration: "none",
-              letterSpacing: "-0.005em",
             }}
           >
-            Sign out
+            Sign out of Precura
           </Link>
+          .
         </motion.div>
       </div>
     </MemberShell>

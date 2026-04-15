@@ -70,7 +70,8 @@ export function MemberSidebar({
 
         {/* Identity pair: user on top, hairline, doctor below. Single container
             so the relationship reads as one object (you + your doctor) rather
-            than two disconnected widgets. */}
+            than two disconnected widgets. Stronger shadow than supporting
+            cards so the humans land first in the sidebar visual hierarchy. */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -79,9 +80,10 @@ export function MemberSidebar({
             background: C.paper,
             borderRadius: 18,
             border: `1px solid ${C.lineCard}`,
-            boxShadow: C.shadowSoft,
+            boxShadow:
+              "0 1px 2px rgba(28,26,23,0.04), 0 18px 40px rgba(28,26,23,0.10)",
             overflow: "hidden",
-            marginBottom: 22,
+            marginBottom: 26,
             fontFamily: SYSTEM_FONT,
           }}
         >
@@ -198,18 +200,15 @@ export function MemberSidebar({
           </div>
         </motion.div>
 
-        {/* Next panel card */}
+        {/* Next panel - demoted to borderless listing so the identity card
+            wins the sidebar visual hierarchy */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
           style={{
-            padding: "16px 18px",
-            background: C.paper,
-            border: `1px solid ${C.lineCard}`,
-            borderRadius: 16,
+            padding: "0 4px",
             marginBottom: 28,
-            boxShadow: C.shadowSoft,
             fontFamily: SYSTEM_FONT,
           }}
         >
@@ -217,31 +216,40 @@ export function MemberSidebar({
             style={{
               fontSize: 10,
               fontWeight: 600,
-              color: C.inkMuted,
-              letterSpacing: "0.14em",
+              color: C.inkFaint,
+              letterSpacing: "0.16em",
               textTransform: "uppercase",
-              marginBottom: 8,
+              marginBottom: 5,
             }}
           >
             {nextPanel.eyebrow}
           </div>
           <div
             style={{
-              fontSize: 17,
-              fontWeight: 600,
-              color: C.ink,
-              letterSpacing: "-0.01em",
+              fontSize: 15,
+              fontWeight: 500,
+              color: C.inkSoft,
+              letterSpacing: "-0.008em",
               marginBottom: 2,
             }}
           >
             {nextPanel.headline}
           </div>
-          <div style={{ fontSize: 11, color: C.inkFaint }}>
+          <div
+            style={{
+              fontSize: 11,
+              color: C.inkFaint,
+              fontStyle: "italic",
+              fontFamily: 'Georgia, "Times New Roman", serif',
+            }}
+          >
             {nextPanel.subtext}
           </div>
         </motion.div>
 
-        {/* Nav - lighter, borderless, lets the content win */}
+        {/* Nav - lighter, borderless, lets the content win. Active item
+            gets a thicker terracotta bar + bold + full ink color so the
+            indicator registers. */}
         <nav
           style={{
             fontFamily: SYSTEM_FONT,
@@ -257,23 +265,26 @@ export function MemberSidebar({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
-                  padding: "8px 4px",
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 500,
+                  gap: 12,
+                  padding: "10px 4px",
+                  fontSize: 14,
+                  fontWeight: active ? 700 : 500,
                   color: active ? C.ink : C.inkMuted,
                   textDecoration: "none",
-                  letterSpacing: "-0.005em",
+                  letterSpacing: "-0.008em",
                 }}
               >
-                {/* Thin left indicator line only on active */}
+                {/* Thicker left indicator on active */}
                 <span
                   style={{
-                    width: 2,
-                    height: 16,
+                    width: 4,
+                    height: 20,
                     background: active ? C.terracotta : "transparent",
-                    borderRadius: 1,
+                    borderRadius: 2,
                     flexShrink: 0,
+                    boxShadow: active
+                      ? "0 2px 6px rgba(201,87,58,0.35)"
+                      : "none",
                   }}
                 />
                 {it.label}
