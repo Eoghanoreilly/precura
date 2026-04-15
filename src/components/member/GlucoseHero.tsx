@@ -5,17 +5,23 @@ import { motion } from "framer-motion";
 import { C, SYSTEM_FONT, DISPLAY_NUM } from "./tokens";
 
 // ============================================================================
-// GlucoseHero - the single marker that matters on panel-results-day.
+// GlucoseHero - pass 4 rebuild
 //
-// Pass 3 rebuild: the v2 card was tasteful but quiet - small number, small
-// range bar, verdict italic-grey at the bottom. Anna could not answer
-// "is this good or bad?" in 30 seconds.
+// Previous versions stacked eyebrow / name / number / verdict / zonebar /
+// sparkline as separate strips. Adversarial review: "four stacked rows
+// pretending to be a composition."
 //
-// This version commits to being a verdict card:
-// - Number and italic-serif verdict side by side in the hero row
-// - A full-bleed zoned bar below (green/butter/amber/risk segments) with
-//   the value pinned at its actual position in the ref range
-// - Sparkline at the bottom for trajectory context
+// This version is a two-element composition:
+//   Element 1 (top): huge number + italic-serif verdict side by side
+//   Element 2 (bottom): a FULL trend chart with green/amber/risk zone bands
+//                        behind the line, labeled years, and a large "today"
+//                        dot that sits visually in whichever zone her value
+//                        has drifted into.
+//
+// The chart with zone bands replaces the separate zone bar from the previous
+// version - it communicates position AND drift in ONE visual, which is what
+// the agent actually asked for. The number and verdict are the verbal half
+// of the same answer.
 // ============================================================================
 
 export interface GlucoseHeroProps {
@@ -24,7 +30,7 @@ export interface GlucoseHeroProps {
   unit: string;
   refLow: number;
   refHigh: number;
-  /** 5-year history as { year, value } for the sparkline. */
+  /** 5-year history as { year, value }. */
   history: { year: string; value: number }[];
   /** Plain-English verdict line, e.g. "Still in range, still drifting." */
   verdict: string;
@@ -45,10 +51,8 @@ export function GlucoseHero({
   const deltaLabel =
     delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "no change";
 
-  // Zone position: classify where currentValue sits in the normal band.
-  // 0-85% of range = good, 85-100% = approaching, >100% = over, far over = risk.
   const zone = classifyZone(currentValue, refLow, refHigh);
-  const zoneColor =
+  const deltaColor =
     zone === "good"
       ? C.good
       : zone === "approaching"
@@ -64,13 +68,12 @@ export function GlucoseHero({
       transition={{ duration: 0.8, delay: 0.35 }}
       style={{
         margin: "0 20px 18px",
-        padding: "26px 26px 22px",
+        padding: "26px 28px 26px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,
         borderRadius: 24,
         boxShadow: C.shadowCard,
         fontFamily: SYSTEM_FONT,
-        overflow: "hidden",
       }}
     >
       {/* Eyebrow */}
@@ -86,47 +89,40 @@ export function GlucoseHero({
       >
         The one Dr. Tomas flagged
       </div>
-
-      {/* Plain-English marker name */}
       <div
         style={{
           fontSize: 14,
           color: C.inkMuted,
-          marginBottom: 20,
+          marginBottom: 18,
           letterSpacing: "-0.005em",
         }}
       >
         Fasting glucose / blood sugar before eating
       </div>
 
-      {/* Hero row: big number on the left, italic-serif verdict on the right */}
-      <div
-        className="glucose-hero-row"
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 22,
-          marginBottom: 22,
-        }}
-      >
-        <div style={{ flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+      {/* Hero row: HUGE number (left) + italic-serif verdict (right) */}
+      <div className="glucose-hero-row">
+        <div className="glucose-hero-number">
+          <div
+            style={{ display: "flex", alignItems: "flex-start", gap: 8 }}
+          >
             <span
               style={{
                 ...DISPLAY_NUM,
-                fontSize: "clamp(52px, 11vw, 68px)",
+                fontSize: "clamp(72px, 12vw, 112px)",
                 color: C.ink,
-                letterSpacing: "-0.035em",
-                lineHeight: 0.95,
+                letterSpacing: "-0.04em",
+                lineHeight: 0.88,
               }}
             >
               {currentValue}
             </span>
             <span
               style={{
-                fontSize: 16,
+                fontSize: 14,
                 color: C.inkFaint,
-                marginLeft: 2,
+                letterSpacing: "-0.005em",
+                marginTop: 8,
               }}
             >
               {unit}
@@ -134,10 +130,10 @@ export function GlucoseHero({
           </div>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
-              color: zoneColor,
-              marginTop: 6,
+              color: deltaColor,
+              marginTop: 10,
               letterSpacing: "-0.005em",
             }}
           >
@@ -146,7 +142,7 @@ export function GlucoseHero({
               style={{
                 color: C.inkFaint,
                 fontWeight: 400,
-                marginLeft: 6,
+                marginLeft: 8,
                 fontStyle: "italic",
                 fontFamily: 'Georgia, "Times New Roman", serif',
               }}
@@ -155,20 +151,13 @@ export function GlucoseHero({
             </span>
           </div>
         </div>
-
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            paddingTop: 4,
-          }}
-        >
+        <div className="glucose-hero-verdict">
           <div
             style={{
-              fontSize: "clamp(16px, 2.4vw, 20px)",
-              lineHeight: 1.35,
+              fontSize: "clamp(19px, 2.6vw, 24px)",
+              lineHeight: 1.3,
               color: C.ink,
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.012em",
               fontStyle: "italic",
               fontFamily: 'Georgia, "Times New Roman", serif',
               fontWeight: 500,
@@ -179,21 +168,36 @@ export function GlucoseHero({
         </div>
       </div>
 
-      {/* Full-bleed zone bar */}
-      <ZoneBar
-        value={currentValue}
+      {/* 5-year trend chart with zone bands - replaces the old separate bar */}
+      <GlucoseTrendChart
+        history={history}
         refLow={refLow}
         refHigh={refHigh}
+        currentValue={currentValue}
       />
 
-      {/* Sparkline */}
-      <GlucoseSparkline history={history} refHigh={refHigh} />
-
       <style jsx>{`
-        @media (max-width: 520px) {
-          :global(.glucose-hero-row) {
+        .glucose-hero-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 28px;
+          margin-bottom: 20px;
+        }
+        .glucose-hero-number {
+          flex-shrink: 0;
+        }
+        .glucose-hero-verdict {
+          flex: 1;
+          min-width: 0;
+          padding-top: 6px;
+        }
+        @media (max-width: 640px) {
+          .glucose-hero-row {
             flex-direction: column !important;
-            gap: 14px !important;
+            gap: 16px !important;
+          }
+          .glucose-hero-verdict {
+            padding-top: 0 !important;
           }
         }
       `}</style>
@@ -202,7 +206,7 @@ export function GlucoseHero({
 }
 
 // ============================================================================
-// classifyZone - helper
+// classifyZone
 // ============================================================================
 
 type Zone = "good" | "approaching" | "over" | "risk";
@@ -216,7 +220,6 @@ function classifyZone(
   const approachingLine = refLow + range * 0.85;
   const overLine = refHigh;
   const riskLine = refHigh + range * 0.2;
-
   if (value < approachingLine) return "good";
   if (value < overLine) return "approaching";
   if (value < riskLine) return "over";
@@ -224,272 +227,276 @@ function classifyZone(
 }
 
 // ============================================================================
-// ZoneBar - full-width 4-segment bar with triangle marker above value position
+// GlucoseTrendChart - the hero visualization.
+// Full-width SVG chart with zone bands in the background, the trend line on
+// top, labeled year ticks, and a large emphasized "today" dot.
 // ============================================================================
 
-function ZoneBar({
-  value,
+function GlucoseTrendChart({
+  history,
   refLow,
   refHigh,
-}: {
-  value: number;
-  refLow: number;
-  refHigh: number;
-}) {
-  const range = refHigh - refLow;
-  // Visual bar spans: refLow-ish on left, up to refHigh + 20% on right
-  const visMin = refLow - range * 0.1;
-  const visMax = refHigh + range * 0.2;
-  const visRange = visMax - visMin;
-
-  // Zone boundary positions as % of visual bar
-  const good_end = ((refLow + range * 0.85 - visMin) / visRange) * 100;
-  const approach_end = ((refHigh - visMin) / visRange) * 100;
-  const over_end = ((refHigh + range * 0.1 - visMin) / visRange) * 100;
-
-  // Marker position
-  const markerPct = ((value - visMin) / visRange) * 100;
-  const clamped = Math.max(2, Math.min(98, markerPct));
-
-  return (
-    <div style={{ margin: "4px 0 22px" }}>
-      {/* Marker row - triangle pointing down + value label */}
-      <div
-        style={{
-          position: "relative",
-          height: 22,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            left: `${clamped}%`,
-            top: 0,
-            transform: "translateX(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
-          <span
-            style={{
-              ...DISPLAY_NUM,
-              fontSize: 12,
-              color: C.ink,
-              lineHeight: 1,
-            }}
-          >
-            {value}
-          </span>
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderLeft: "6px solid transparent",
-              borderRight: "6px solid transparent",
-              borderTop: `7px solid ${C.ink}`,
-              marginTop: 3,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* The bar itself */}
-      <div
-        style={{
-          position: "relative",
-          height: 14,
-          borderRadius: 7,
-          overflow: "hidden",
-          display: "flex",
-          border: `1px solid ${C.lineCard}`,
-          boxShadow: "inset 0 1px 2px rgba(28,26,23,0.06)",
-        }}
-      >
-        {/* Good zone */}
-        <div
-          style={{
-            width: `${good_end}%`,
-            background: `linear-gradient(90deg, ${C.sageSoft}, ${C.sage})`,
-          }}
-        />
-        {/* Approaching zone */}
-        <div
-          style={{
-            width: `${approach_end - good_end}%`,
-            background: `linear-gradient(90deg, ${C.sage}, ${C.butter})`,
-          }}
-        />
-        {/* Over zone */}
-        <div
-          style={{
-            width: `${over_end - approach_end}%`,
-            background: `linear-gradient(90deg, ${C.butter}, ${C.caution})`,
-          }}
-        />
-        {/* Risk zone */}
-        <div
-          style={{
-            width: `${100 - over_end}%`,
-            background: `linear-gradient(90deg, ${C.caution}, ${C.risk})`,
-          }}
-        />
-      </div>
-
-      {/* Bar labels */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: 8,
-          fontSize: 10,
-          color: C.inkFaint,
-          fontFamily:
-            '"SF Mono", SFMono-Regular, ui-monospace, monospace',
-          letterSpacing: "0.02em",
-        }}
-      >
-        <span>{refLow} low</span>
-        <span
-          style={{
-            color: C.inkMuted,
-            fontFamily: SYSTEM_FONT,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            fontSize: 9,
-          }}
-        >
-          normal range
-        </span>
-        <span>{refHigh} high</span>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// GlucoseSparkline - inline SVG 5-year trend (same as before, smaller)
-// ============================================================================
-
-function GlucoseSparkline({
-  history,
-  refHigh,
+  currentValue,
 }: {
   history: { year: string; value: number }[];
+  refLow: number;
   refHigh: number;
+  currentValue: number;
 }) {
   if (history.length < 2) return null;
 
-  const w = 560;
-  const h = 60;
-  const pad = 6;
+  const w = 800;
+  const h = 240;
+  const padT = 18;
+  const padR = 28;
+  const padB = 42;
+  const padL = 46;
 
-  const allValues = history.map((p) => p.value).concat([refHigh + 0.4]);
-  const min = Math.min(...allValues) - 0.2;
-  const max = Math.max(...allValues) + 0.2;
+  // Y-axis range - wide enough to show zones AND the data
+  const range = refHigh - refLow;
+  const yMin = refLow - range * 0.3;
+  const yMax = refHigh + range * 0.3;
+  const yRange = yMax - yMin;
 
+  // Zone boundary y-coordinates
+  const yRisk = padT;
+  const yOver = padT + ((yMax - (refHigh + range * 0.1)) / yRange) * (h - padT - padB);
+  const yApproach = padT + ((yMax - refHigh) / yRange) * (h - padT - padB);
+  const yGood = padT + ((yMax - (refLow + range * 0.85)) / yRange) * (h - padT - padB);
+  const yBottom = h - padB;
+
+  // Data point positions
   const points = history.map((p, i) => {
-    const x = pad + (i / (history.length - 1)) * (w - pad * 2);
-    const y = h - pad - ((p.value - min) / (max - min)) * (h - pad * 2);
+    const x = padL + (i / (history.length - 1)) * (w - padL - padR);
+    const y = padT + ((yMax - p.value) / yRange) * (h - padT - padB);
     return { x, y, year: p.year, value: p.value };
   });
 
   const pathD = points
-    .map((p, i) =>
-      `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`
+    .map(
+      (p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`
     )
     .join(" ");
 
-  const areaD =
-    pathD +
-    ` L ${points[points.length - 1].x.toFixed(1)} ${h - pad} L ${points[0].x.toFixed(1)} ${h - pad} Z`;
+  const lastPoint = points[points.length - 1];
+  const lastZone = classifyZone(currentValue, refLow, refHigh);
+  const lastDotColor =
+    lastZone === "good"
+      ? C.good
+      : lastZone === "approaching"
+      ? C.butter
+      : lastZone === "over"
+      ? C.caution
+      : C.risk;
 
-  const refY = h - pad - ((refHigh - min) / (max - min)) * (h - pad * 2);
+  // Y-axis tick values
+  const yTicks = [refLow, refLow + range * 0.5, refHigh];
 
   return (
     <div
       style={{
         marginTop: 4,
-        paddingTop: 14,
+        paddingTop: 18,
         borderTop: `1px solid ${C.lineSoft}`,
       }}
     >
       <div
         style={{
-          fontSize: 10,
-          fontWeight: 600,
-          color: C.inkFaint,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          marginBottom: 6,
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          marginBottom: 10,
         }}
       >
-        Your 5-year trend
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: C.inkMuted,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+          }}
+        >
+          Your 5-year trend
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: C.inkFaint,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontStyle: "italic",
+          }}
+        >
+          zones show risk progression
+        </div>
       </div>
       <svg
         viewBox={`0 0 ${w} ${h}`}
         width="100%"
-        height={h}
         style={{ display: "block", overflow: "visible" }}
+        preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          <linearGradient id="glucose-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#C9573A" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#C9573A" stopOpacity="0.02" />
+          <linearGradient id="glucose-line-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#C9573A" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#C9573A" stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
-        <line
-          x1={pad}
-          y1={refY}
-          x2={w - pad}
-          y2={refY}
-          stroke={C.sage}
-          strokeWidth="1"
-          strokeDasharray="3 4"
-          opacity="0.6"
+        {/* Zone bands - full width, semi-transparent so the line sits on top */}
+        {/* Good band: yGood to yBottom */}
+        <rect
+          x={padL}
+          y={yGood}
+          width={w - padL - padR}
+          height={yBottom - yGood}
+          fill="rgba(78,142,92,0.10)"
+        />
+        {/* Approaching band: yApproach to yGood */}
+        <rect
+          x={padL}
+          y={yApproach}
+          width={w - padL - padR}
+          height={yGood - yApproach}
+          fill="rgba(233,181,71,0.14)"
+        />
+        {/* Over band: yOver to yApproach */}
+        <rect
+          x={padL}
+          y={yOver}
+          width={w - padL - padR}
+          height={yApproach - yOver}
+          fill="rgba(208,132,23,0.16)"
+        />
+        {/* Risk band: yRisk to yOver */}
+        <rect
+          x={padL}
+          y={yRisk}
+          width={w - padL - padR}
+          height={yOver - yRisk}
+          fill="rgba(196,71,42,0.14)"
         />
 
-        <path d={areaD} fill="url(#glucose-grad)" />
+        {/* Normal-range top reference line (6.0) */}
+        <line
+          x1={padL}
+          y1={yApproach}
+          x2={w - padR}
+          y2={yApproach}
+          stroke={C.risk}
+          strokeWidth="1"
+          strokeDasharray="4 4"
+          opacity="0.55"
+        />
+
+        {/* Y-axis tick labels */}
+        {yTicks.map((v) => {
+          const y = padT + ((yMax - v) / yRange) * (h - padT - padB);
+          return (
+            <text
+              key={v}
+              x={padL - 8}
+              y={y + 4}
+              textAnchor="end"
+              fontSize="11"
+              fill={C.inkFaint}
+              fontFamily={SYSTEM_FONT}
+            >
+              {v}
+            </text>
+          );
+        })}
+        <text
+          x={padL - 8}
+          y={yApproach - 6}
+          textAnchor="end"
+          fontSize="10"
+          fill={C.risk}
+          fontFamily={SYSTEM_FONT}
+          fontWeight="600"
+          letterSpacing="0.04em"
+        >
+          top of normal
+        </text>
+
+        {/* Area under line */}
+        <path
+          d={
+            pathD +
+            ` L ${lastPoint.x.toFixed(1)} ${yBottom} L ${points[0].x.toFixed(1)} ${yBottom} Z`
+          }
+          fill="url(#glucose-line-grad)"
+        />
+
+        {/* Trend line */}
         <path
           d={pathD}
           fill="none"
           stroke={C.terracotta}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
 
-        {points.map((p, i) => (
+        {/* History dots */}
+        {points.slice(0, -1).map((p) => (
           <circle
             key={p.year}
             cx={p.x}
             cy={p.y}
-            r={i === points.length - 1 ? 5 : 3}
-            fill={i === points.length - 1 ? C.terracotta : C.paper}
+            r={4}
+            fill={C.paper}
             stroke={C.terracotta}
-            strokeWidth="2"
+            strokeWidth="2.5"
           />
         ))}
 
+        {/* Emphasized "today" dot on the last point */}
+        <circle
+          cx={lastPoint.x}
+          cy={lastPoint.y}
+          r={11}
+          fill={lastDotColor}
+          stroke={C.paper}
+          strokeWidth="3"
+        />
+
+        {/* "Today: 5.8" callout above the last dot */}
+        <text
+          x={lastPoint.x}
+          y={lastPoint.y - 18}
+          textAnchor="end"
+          fontSize="12"
+          fontWeight="700"
+          fill={C.ink}
+          fontFamily={SYSTEM_FONT}
+        >
+          Today
+        </text>
+
+        {/* X-axis year labels */}
         {points.map((p, i) => {
-          if (i === 0 || i === points.length - 1) {
-            return (
-              <text
-                key={`l-${p.year}`}
-                x={p.x}
-                y={h - pad + 12}
-                textAnchor={i === 0 ? "start" : "end"}
-                fontSize="9"
-                fill={C.inkFaint}
-                fontFamily={SYSTEM_FONT}
-              >
-                {p.year}
-              </text>
-            );
-          }
-          return null;
+          const step = Math.max(1, Math.floor(points.length / 6));
+          if (i % step !== 0 && i !== points.length - 1) return null;
+          return (
+            <text
+              key={`yr-${p.year}`}
+              x={p.x}
+              y={yBottom + 16}
+              textAnchor={
+                i === 0
+                  ? "start"
+                  : i === points.length - 1
+                  ? "end"
+                  : "middle"
+              }
+              fontSize="10"
+              fill={C.inkFaint}
+              fontFamily={SYSTEM_FONT}
+            >
+              {p.year}
+            </text>
+          );
         })}
       </svg>
     </div>
