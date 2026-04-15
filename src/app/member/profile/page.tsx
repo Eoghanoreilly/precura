@@ -7,39 +7,9 @@ import { MemberShell } from "@/components/member/MemberShell";
 import type { MemberSidebarProps } from "@/components/member/MemberSidebar";
 import { C, SYSTEM_FONT, DOCTOR } from "@/components/member/tokens";
 
-// Profile is a relationship page, not a Stripe settings tab.
-// It opens with "hello, Anna", names the doctor and the work he's done,
-// tells a one-line story about where Anna is in her care journey, and
-// only THEN lists the account-level details.
-
-const CARE_FACTS = [
-  { label: "Panels reviewed", value: "2" },
-  { label: "Notes from Dr. Tomas", value: "3" },
-  { label: "Messages exchanged", value: "14" },
-  { label: "Training weeks completed", value: "10" },
-];
-
-const ACCOUNT = [
-  { label: "Email", value: "anna.bergstrom@example.se" },
-  { label: "Phone", value: "+46 70 123 45 67" },
-  { label: "Address", value: "Stockholm" },
-  { label: "Membership", value: "Annual, renews 12 Jan 2027" },
-];
-
-const DATA_ACTIONS = [
-  {
-    label: "Export everything as a FHIR bundle",
-    hint: "A single file with every panel, note, and message. Yours to keep.",
-  },
-  {
-    label: "Privacy & GDPR",
-    hint: "Where your data lives, who can see it, how we protect it.",
-  },
-  {
-    label: "Delete my account",
-    hint: "Removes your data from our servers. Not reversible.",
-  },
-];
+// Pass 5 full rewrite: no stat tiles, no labeled key/value rows, no form
+// cards. A single editorial column of prose with inline facts and underlined
+// text links. Reads like a member letter, not a settings page.
 
 const SIDEBAR: MemberSidebarProps = {
   user: {
@@ -60,28 +30,77 @@ const SIDEBAR: MemberSidebarProps = {
   activeHref: "/member/profile",
 };
 
+function EditLink({ children }: { children: React.ReactNode }) {
+  return (
+    <button
+      style={{
+        background: "none",
+        border: "none",
+        padding: 0,
+        fontFamily: "inherit",
+        fontSize: "inherit",
+        color: C.inkSoft,
+        cursor: "pointer",
+        textDecoration: "underline",
+        textDecorationColor: C.stone,
+        textDecorationThickness: 1,
+        textUnderlineOffset: 3,
+        letterSpacing: "-0.005em",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Para({
+  delay,
+  children,
+}: {
+  delay: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.p
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay }}
+      style={{
+        fontSize: "clamp(17px, 1.9vw, 19px)",
+        lineHeight: 1.7,
+        color: C.inkSoft,
+        letterSpacing: "-0.005em",
+        margin: 0,
+        marginBottom: 22,
+        maxWidth: 620,
+      }}
+    >
+      {children}
+    </motion.p>
+  );
+}
+
 export default function ProfilePage() {
   return (
     <MemberShell sidebar={SIDEBAR} userInitials="A">
-      {/* Hero: plain-English welcome, not a form header */}
-      <motion.section
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
         style={{
-          padding: "28px 22px 8px",
+          padding: "36px 28px 40px",
           fontFamily: SYSTEM_FONT,
         }}
       >
-        <h1
+        <motion.h1
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           style={{
-            fontSize: "clamp(30px, 5vw, 42px)",
-            lineHeight: 1.12,
+            fontSize: "clamp(32px, 5vw, 46px)",
+            lineHeight: 1.1,
             letterSpacing: "-0.028em",
             fontWeight: 600,
             color: C.ink,
             margin: 0,
-            marginBottom: 6,
+            marginBottom: 10,
           }}
         >
           Hello, Anna.{" "}
@@ -95,254 +114,148 @@ export default function ProfilePage() {
           >
             You&apos;ve been with Precura since January.
           </span>
-        </h1>
-      </motion.section>
+        </motion.h1>
 
-      {/* Care summary - the relationship, in four facts */}
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.15 }}
-        style={{
-          margin: "14px 20px 22px",
-          padding: "22px 22px 18px",
-          background: C.sageTint,
-          border: `1px solid ${C.sageSoft}`,
-          borderRadius: 22,
-          fontFamily: SYSTEM_FONT,
-        }}
-      >
-        <div
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.1 }}
           style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: C.sageDeep,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            marginBottom: 10,
-          }}
-        >
-          The work so far
-        </div>
-        <div
-          style={{
-            fontSize: 17,
-            lineHeight: 1.5,
-            color: C.ink,
-            marginBottom: 18,
-            letterSpacing: "-0.01em",
-            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontSize: 14,
+            color: C.inkMuted,
+            marginBottom: 34,
             fontStyle: "italic",
+            fontFamily: 'Georgia, "Times New Roman", serif',
           }}
         >
-          &ldquo;Your glucose has been drifting since 2022. We caught it in
-          January, started tracking it properly, and we&apos;re going to turn
-          it around.&rdquo;
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: C.sageDeep,
-            marginBottom: 16,
-            letterSpacing: "0.02em",
-          }}
-        >
-          Dr. Tomas Kurakovas, your doctor
-        </div>
+          A quiet corner of your membership. Everything about you,
+          everything about us, every way out.
+        </motion.div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: 14,
-            paddingTop: 16,
-            borderTop: `1px solid ${C.sageSoft}`,
-          }}
-        >
-          {CARE_FACTS.map((f) => (
-            <div key={f.label}>
-              <div
-                style={{
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: C.sageDeep,
-                  letterSpacing: "-0.015em",
-                  lineHeight: 1,
-                  marginBottom: 4,
-                  fontFamily:
-                    '"SF Mono", SFMono-Regular, ui-monospace, monospace',
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {f.value}
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: C.inkMuted,
-                  letterSpacing: "0.02em",
-                }}
-              >
-                {f.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.section>
+        <Para delay={0.18}>
+          You joined Precura on{" "}
+          <strong style={{ color: C.ink, fontWeight: 600 }}>
+            12 January 2026
+          </strong>
+          . Since then, Dr. Tomas has reviewed{" "}
+          <strong style={{ color: C.ink, fontWeight: 600 }}>two panels</strong>{" "}
+          for you, written{" "}
+          <strong style={{ color: C.ink, fontWeight: 600 }}>three notes</strong>
+          , and exchanged{" "}
+          <strong style={{ color: C.ink, fontWeight: 600 }}>
+            fourteen messages
+          </strong>{" "}
+          with you. Your next kit ships{" "}
+          <strong style={{ color: C.ink, fontWeight: 600 }}>
+            19 July 2026
+          </strong>
+          , and Dr. Tomas will have your third panel reviewed within 48 hours
+          of the lab results landing.
+        </Para>
 
-      {/* Account details - warm card, not a spreadsheet */}
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.25 }}
-        style={{
-          margin: "0 20px 22px",
-          padding: "20px 22px",
-          background: C.paper,
-          border: `1px solid ${C.lineCard}`,
-          borderRadius: 22,
-          boxShadow: C.shadowSoft,
-          fontFamily: SYSTEM_FONT,
-        }}
-      >
-        <div
+        <Para delay={0.26}>
+          Your membership is the{" "}
+          <strong style={{ color: C.ink, fontWeight: 600 }}>
+            annual plan
+          </strong>{" "}
+          at 2,995 SEK, renewing automatically on{" "}
+          <strong style={{ color: C.ink, fontWeight: 600 }}>
+            12 January 2027
+          </strong>
+          . You can{" "}
+          <EditLink>switch plan</EditLink>,{" "}
+          <EditLink>pause billing</EditLink>, or{" "}
+          <EditLink>cancel</EditLink>{" "}
+          any time from here. If you cancel, your historical data stays yours
+          and we&apos;ll keep your profile warm for when you come back.
+        </Para>
+
+        <Para delay={0.34}>
+          We have you at{" "}
+          <EditLink>anna.bergstrom@example.se</EditLink>, on{" "}
+          <EditLink>+46 70 123 45 67</EditLink>, shipping kits to{" "}
+          <EditLink>an address in Stockholm</EditLink>. Your personnummer is on
+          file for the clinic. Anything wrong? Tap any of those to correct it.
+        </Para>
+
+        <motion.hr
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.42 }}
           style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: C.inkMuted,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            marginBottom: 14,
+            border: "none",
+            borderTop: `1px solid ${C.lineSoft}`,
+            margin: "34px 0 28px",
+            maxWidth: 620,
           }}
+        />
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.48 }}
+          style={{ maxWidth: 620, marginBottom: 30 }}
         >
-          Account
-        </div>
-        {ACCOUNT.map((it, i) => (
           <div
-            key={it.label}
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "14px 0",
-              borderTop: i === 0 ? "none" : `1px solid ${C.lineSoft}`,
-              fontSize: 14,
-              fontFamily: SYSTEM_FONT,
-              gap: 16,
+              fontSize: 10,
+              fontWeight: 600,
+              color: C.inkMuted,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              marginBottom: 14,
             }}
           >
-            <span style={{ color: C.inkMuted, fontWeight: 500 }}>
-              {it.label}
-            </span>
-            <span
-              style={{
-                color: C.ink,
-                fontWeight: 500,
-                textAlign: "right",
-              }}
-            >
-              {it.value}
-            </span>
+            Your data, your rights
           </div>
-        ))}
-      </motion.section>
 
-      {/* Data + privacy - each action gets a one-line plain-English hint */}
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.32 }}
-        style={{
-          margin: "0 20px 28px",
-          padding: "20px 22px 6px",
-          background: C.paper,
-          border: `1px solid ${C.lineCard}`,
-          borderRadius: 22,
-          boxShadow: C.shadowSoft,
-          fontFamily: SYSTEM_FONT,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: C.inkMuted,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            marginBottom: 14,
-          }}
-        >
-          Your data
-        </div>
-        {DATA_ACTIONS.map((a, i) => (
-          <button
-            key={a.label}
+          <div
             style={{
-              display: "block",
-              width: "100%",
-              textAlign: "left",
-              padding: "14px 0",
-              borderTop: i === 0 ? "none" : `1px solid ${C.lineSoft}`,
-              borderLeft: "none",
-              borderRight: "none",
-              borderBottom: "none",
-              background: "transparent",
-              cursor: "pointer",
-              fontFamily: SYSTEM_FONT,
+              fontSize: "clamp(16px, 1.8vw, 18px)",
+              lineHeight: 1.7,
+              color: C.inkSoft,
+              letterSpacing: "-0.005em",
             }}
           >
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: C.ink,
-                marginBottom: 4,
-                letterSpacing: "-0.005em",
-              }}
-            >
-              {a.label}
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: C.inkMuted,
-                lineHeight: 1.45,
-              }}
-            >
-              {a.hint}
-            </div>
-          </button>
-        ))}
-      </motion.section>
+            Your health data lives in the EU on GDPR-compliant infrastructure,
+            encrypted at rest and in transit. We never sell, rent, or share it
+            with advertisers, insurers, or employers. You can{" "}
+            <EditLink>export everything as a FHIR bundle</EditLink> - a single
+            file with every panel, note, and message, yours to keep. You can{" "}
+            <EditLink>read how we handle your data</EditLink> in plain English.
+            You can{" "}
+            <EditLink>delete your account</EditLink> and take everything with
+            you the moment you decide to.
+          </div>
+        </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.7, delay: 0.5 }}
-        style={{
-          padding: "8px 22px 40px",
-          textAlign: "center",
-          fontFamily: SYSTEM_FONT,
-        }}
-      >
-        <Link
-          href="/"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.58 }}
           style={{
-            display: "inline-block",
-            padding: "11px 22px",
-            border: `1px solid ${C.lineCard}`,
-            borderRadius: 100,
-            fontSize: 13,
-            fontWeight: 600,
-            color: C.inkMuted,
-            textDecoration: "none",
-            letterSpacing: "-0.005em",
+            paddingTop: 24,
+            maxWidth: 620,
           }}
         >
-          Sign out
-        </Link>
-      </motion.div>
+          <Link
+            href="/"
+            style={{
+              display: "inline-block",
+              padding: "11px 22px",
+              border: `1px solid ${C.lineCard}`,
+              borderRadius: 100,
+              fontSize: 13,
+              fontWeight: 600,
+              color: C.inkMuted,
+              textDecoration: "none",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            Sign out
+          </Link>
+        </motion.div>
+      </div>
     </MemberShell>
   );
 }
