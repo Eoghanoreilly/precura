@@ -9,7 +9,6 @@ import { WhatMoved } from "@/components/member/WhatMoved";
 import { RiskTrajectory } from "@/components/member/RiskTrajectory";
 import { PanelSummary } from "@/components/member/PanelSummary";
 import { NextStep } from "@/components/member/NextStep";
-import { LivingProfileLink } from "@/components/member/LivingProfileLink";
 import { MemberShell } from "@/components/member/MemberShell";
 import type { MemberSidebarProps } from "@/components/member/MemberSidebar";
 import { DOCTOR } from "@/components/member/tokens";
@@ -104,7 +103,6 @@ function PanelResultsDayView() {
         caption="You're sitting at the high end of the amber band. If the glucose trend continues at its current slope, the model projects you cross into higher risk territory inside 5 years. That's the line Dr. Tomas wants to flatten."
       />
       <PanelSummary {...summary} />
-      <LivingProfileLink years={5} />
     </>
   );
 }
@@ -139,7 +137,6 @@ function BetweenPanelsView() {
         title="Your Q2 kit ships 26 July. Nothing to do until then."
         subtle
       />
-      <LivingProfileLink years={5} />
     </>
   );
 }
