@@ -31,9 +31,9 @@ export interface MemberSidebarProps {
 
 const NAV_ITEMS = [
   { label: "Home", href: "/member" },
-  { label: "Blood panels", href: "#" },
-  { label: "Doctor messages", href: "#" },
-  { label: "Training", href: "#" },
+  { label: "Blood panels", href: "/member/panels" },
+  { label: "Doctor messages", href: "/member/messages" },
+  { label: "Training", href: "/member/training" },
   { label: "Settings", href: "/member/profile" },
 ];
 
