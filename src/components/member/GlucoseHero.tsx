@@ -338,43 +338,39 @@ function GlucoseTrendChart({
       >
         <defs>
           <linearGradient id="glucose-line-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#C9573A" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#C9573A" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="#C9573A" stopOpacity="0.42" />
+            <stop offset="100%" stopColor="#C9573A" stopOpacity="0.02" />
           </linearGradient>
         </defs>
 
-        {/* Zone bands - full width, semi-transparent so the line sits on top */}
-        {/* Good band: yGood to yBottom */}
+        {/* Zone bands - pushed opacity up so they read as bands, not noise */}
         <rect
           x={padL}
           y={yGood}
           width={w - padL - padR}
           height={yBottom - yGood}
-          fill="rgba(78,142,92,0.10)"
+          fill="rgba(78,142,92,0.22)"
         />
-        {/* Approaching band: yApproach to yGood */}
         <rect
           x={padL}
           y={yApproach}
           width={w - padL - padR}
           height={yGood - yApproach}
-          fill="rgba(233,181,71,0.14)"
+          fill="rgba(233,181,71,0.28)"
         />
-        {/* Over band: yOver to yApproach */}
         <rect
           x={padL}
           y={yOver}
           width={w - padL - padR}
           height={yApproach - yOver}
-          fill="rgba(208,132,23,0.16)"
+          fill="rgba(208,132,23,0.30)"
         />
-        {/* Risk band: yRisk to yOver */}
         <rect
           x={padL}
           y={yRisk}
           width={w - padL - padR}
           height={yOver - yRisk}
-          fill="rgba(196,71,42,0.14)"
+          fill="rgba(196,71,42,0.28)"
         />
 
         {/* Normal-range top reference line (6.0) */}
@@ -438,41 +434,63 @@ function GlucoseTrendChart({
           strokeLinejoin="round"
         />
 
-        {/* History dots */}
-        {points.slice(0, -1).map((p) => (
-          <circle
-            key={p.year}
-            cx={p.x}
-            cy={p.y}
-            r={4}
-            fill={C.paper}
-            stroke={C.terracotta}
-            strokeWidth="2.5"
-          />
-        ))}
+        {/* No per-year history dots - just the line and the endpoint. */}
 
-        {/* Emphasized "today" dot on the last point */}
+        {/* Emphasized "today" dot on the last point with a labeled callout */}
         <circle
           cx={lastPoint.x}
           cy={lastPoint.y}
-          r={11}
+          r={12}
           fill={lastDotColor}
           stroke={C.paper}
-          strokeWidth="3"
+          strokeWidth="4"
         />
 
-        {/* "Today: 5.8" callout above the last dot */}
-        <text
-          x={lastPoint.x}
-          y={lastPoint.y - 18}
-          textAnchor="end"
-          fontSize="12"
-          fontWeight="700"
-          fill={C.ink}
-          fontFamily={SYSTEM_FONT}
+        {/* Leader line from dot to callout */}
+        <line
+          x1={lastPoint.x - 14}
+          y1={lastPoint.y}
+          x2={lastPoint.x - 62}
+          y2={lastPoint.y}
+          stroke={C.ink}
+          strokeWidth="1"
+          opacity="0.35"
+        />
+
+        {/* Callout pill: "Today 5.8" anchored left of the endpoint */}
+        <g
+          transform={`translate(${(lastPoint.x - 130).toFixed(1)}, ${(lastPoint.y - 13).toFixed(1)})`}
         >
-          Today
-        </text>
+          <rect
+            x="0"
+            y="0"
+            width="66"
+            height="26"
+            rx="13"
+            fill={C.ink}
+          />
+          <text
+            x="12"
+            y="17"
+            fontSize="11"
+            fontWeight="600"
+            fill={C.canvasSoft}
+            fontFamily={SYSTEM_FONT}
+            letterSpacing="0.02em"
+          >
+            Today
+          </text>
+          <text
+            x="42"
+            y="17"
+            fontSize="12"
+            fontWeight="700"
+            fill={C.canvasSoft}
+            fontFamily='"SF Mono", SFMono-Regular, ui-monospace, monospace'
+          >
+            {currentValue}
+          </text>
+        </g>
 
         {/* X-axis year labels */}
         {points.map((p, i) => {
