@@ -10,6 +10,18 @@ export interface Category {
   flaggedCount: number;
 }
 
+/**
+ * PanelSummary - pass 4 rewrite
+ *
+ * Previous version was a three-column numerical grid ("10 / 3 / 7") with
+ * tiny labels. Adversarial review flagged it as "the most generic block
+ * on the page - exactly the Function Health grid you said you were
+ * rejecting, just compressed to three cells."
+ *
+ * New version is editorial prose: one sentence framing the rollup, with
+ * the counts embedded inline as display-tabular numbers tinted by status.
+ * "See the breakdown" expands the category list underneath.
+ */
 export function PanelSummary({
   total,
   flagged,
@@ -32,7 +44,7 @@ export function PanelSummary({
       transition={{ duration: 0.8, delay: 0.6 }}
       style={{
         margin: "0 20px 18px",
-        padding: "22px 22px 18px",
+        padding: "22px 24px 20px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,
         borderRadius: 22,
@@ -47,80 +59,29 @@ export function PanelSummary({
           color: C.inkMuted,
           letterSpacing: "0.14em",
           textTransform: "uppercase",
-          marginBottom: 12,
+          marginBottom: 14,
         }}
       >
         Your panel, {panelDate}
       </div>
 
+      {/* Editorial sentence with inline tabular numbers */}
       <div
         style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 18,
-          marginBottom: 18,
-          flexWrap: "wrap",
+          fontSize: 17,
+          lineHeight: 1.5,
+          color: C.inkSoft,
+          letterSpacing: "-0.005em",
+          marginBottom: 16,
         }}
       >
-        <div>
-          <div
-            style={{
-              ...DISPLAY_NUM,
-              fontSize: 34,
-              color: C.ink,
-              lineHeight: 1,
-            }}
-          >
-            {total}
-          </div>
-          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 4 }}>
-            markers
-          </div>
-        </div>
-        <div
-          style={{
-            width: 1,
-            alignSelf: "stretch",
-            background: C.lineSoft,
-          }}
-        />
-        <div>
-          <div
-            style={{
-              ...DISPLAY_NUM,
-              fontSize: 26,
-              color: C.caution,
-              lineHeight: 1,
-            }}
-          >
-            {flagged}
-          </div>
-          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 4 }}>
-            need attention
-          </div>
-        </div>
-        <div
-          style={{
-            width: 1,
-            alignSelf: "stretch",
-            background: C.lineSoft,
-          }}
-        />
-        <div>
-          <div
-            style={{
-              ...DISPLAY_NUM,
-              fontSize: 26,
-              color: C.good,
-              lineHeight: 1,
-            }}
-          >
-            {inRange}
-          </div>
-          <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 4 }}>
-            in range
-          </div>
-        </div>
+        Of the{" "}
+        <InlineNumber value={total} color={C.ink} />{" "}
+        markers in this panel,{" "}
+        <InlineNumber value={flagged} color={C.caution} />{" "}
+        {flagged === 1 ? "needs" : "need"} attention and{" "}
+        <InlineNumber value={inRange} color={C.good} />{" "}
+        {inRange === 1 ? "is" : "are"} in range.
       </div>
 
       <button
@@ -140,7 +101,7 @@ export function PanelSummary({
           textUnderlineOffset: 4,
         }}
       >
-        {expanded ? "Hide breakdown" : "See by category"}
+        {expanded ? "Hide breakdown" : "See the breakdown"}
       </button>
 
       <AnimatePresence initial={false}>
@@ -188,5 +149,26 @@ export function PanelSummary({
         )}
       </AnimatePresence>
     </motion.section>
+  );
+}
+
+function InlineNumber({
+  value,
+  color,
+}: {
+  value: number;
+  color: string;
+}) {
+  return (
+    <span
+      style={{
+        ...DISPLAY_NUM,
+        fontSize: 20,
+        color: color,
+        verticalAlign: "baseline",
+      }}
+    >
+      {value}
+    </span>
   );
 }
