@@ -131,6 +131,19 @@ export function buildGlucoseHero(): GlucoseHeroProps | null {
   };
 }
 
+// ============================================================================
+// rebrandDoctor - rewrite any "Dr. Marcus Johansson" / "Dr. Johansson" refs
+// in mock data to "Dr. Tomas" for brand consistency inside the /member area.
+// v2 pages keep the original names so we don't break those screens.
+// ============================================================================
+
+export function rebrandDoctor(text: string): string {
+  return text
+    .replace(/Dr\. Marcus Johansson/g, "Dr. Tomas Kurakovas")
+    .replace(/Dr\. Johansson/g, "Dr. Tomas")
+    .replace(/Eoghan O'Reilly/g, "Anders Lindberg");
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("en-GB", {

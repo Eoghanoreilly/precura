@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MemberShell } from "@/components/member/MemberShell";
 import { C, SYSTEM_FONT, DISPLAY_NUM, DOCTOR } from "@/components/member/tokens";
-import { buildSidebar } from "@/components/member/data";
+import { buildSidebar, rebrandDoctor } from "@/components/member/data";
 import {
   BLOOD_TEST_HISTORY,
   DOCTOR_NOTES,
@@ -345,7 +345,7 @@ function PanelCard({
                 fontFamily: 'Georgia, "Times New Roman", serif',
               }}
             >
-              &ldquo;{note.split("\n")[0]}&rdquo;
+              &ldquo;{rebrandDoctor(note.split("\n")[0])}&rdquo;
             </div>
           </div>
         )}
