@@ -29,7 +29,7 @@ export function StatusHeadline({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, delay: 0.1 }}
       style={{
-        padding: "32px 22px 12px",
+        padding: "0 0 18px",
         fontFamily: SYSTEM_FONT,
       }}
     >

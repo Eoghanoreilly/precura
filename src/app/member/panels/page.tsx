@@ -80,9 +80,7 @@ export default function PanelsPage() {
     <MemberShell sidebar={buildSidebar("/member/panels")} userInitials="A">
       <div
         style={{
-          padding: "36px 28px 40px",
           fontFamily: SYSTEM_FONT,
-          maxWidth: 780,
         }}
       >
         <motion.div

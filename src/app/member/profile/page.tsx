@@ -85,7 +85,6 @@ export default function ProfilePage() {
     <MemberShell sidebar={SIDEBAR} userInitials="A">
       <div
         style={{
-          padding: "36px 28px 40px",
           fontFamily: SYSTEM_FONT,
         }}
       >

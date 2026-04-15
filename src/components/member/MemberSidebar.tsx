@@ -44,8 +44,13 @@ export function MemberSidebar({
   activeHref = "/member",
 }: MemberSidebarProps) {
   return (
-    <aside className="member-sidebar">
-      <div className="member-sidebar-inner">
+    <div
+      style={{
+        padding: "28px 26px 28px",
+        fontFamily: SYSTEM_FONT,
+      }}
+    >
+      <div>
         {/* Logo */}
         <Link
           href="/member"
@@ -293,6 +298,6 @@ export function MemberSidebar({
           })}
         </nav>
       </div>
-    </aside>
+    </div>
   );
 }
