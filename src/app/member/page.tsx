@@ -2,6 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { StatusHeadline } from "@/components/member/StatusHeadline";
 import { NoteFromDoctor } from "@/components/member/NoteFromDoctor";
 import { GlucoseHero } from "@/components/member/GlucoseHero";
