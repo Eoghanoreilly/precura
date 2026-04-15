@@ -1,6 +1,35 @@
 import { BLOOD_TEST_HISTORY, getMarkerHistory } from "@/lib/v2/mock-patient";
 import type { MarkerChange } from "./WhatMoved";
 import type { GlucoseHeroProps } from "./GlucoseHero";
+import type { MemberSidebarProps } from "./MemberSidebar";
+import { DOCTOR } from "./tokens";
+
+// ============================================================================
+// Sidebar preset - one source of truth for every /member page
+// ============================================================================
+
+export function buildSidebar(
+  activeHref: string = "/member"
+): MemberSidebarProps {
+  return {
+    user: {
+      name: "Anna Bergstrom",
+      initials: "A",
+      memberSince: "Member since Jan 2026",
+    },
+    doctor: {
+      name: DOCTOR.name,
+      initials: DOCTOR.initials,
+      title: DOCTOR.title,
+    },
+    nextPanel: {
+      eyebrow: "Next panel",
+      headline: "26 July 2026",
+      subtext: "Kit ships 19 July",
+    },
+    activeHref,
+  };
+}
 
 // Markers that are promoted out of WhatMoved because they have their own hero.
 const PROMOTED_MARKERS = new Set(["f-Glucose"]);
