@@ -7,12 +7,17 @@ import { MemberShell } from "@/components/member/MemberShell";
 import {
   C,
   SYSTEM_FONT,
+  MONO_FONT,
   DISPLAY_NUM,
   EYEBROW,
+  DOCTOR,
 } from "@/components/member/tokens";
 import { buildSidebar } from "@/components/member/data";
 import { getCurrentUser } from "@/lib/data/panels";
-import { getAnnotationsForPanel, createAnnotation } from "@/lib/data/annotations";
+import {
+  getAnnotationsForPanel,
+  createAnnotation,
+} from "@/lib/data/annotations";
 import { createClient } from "@/lib/supabase/client";
 import type {
   Profile,
@@ -23,30 +28,47 @@ import type {
 
 // ============================================================================
 // /member/panels/[id] - single panel detail + analysis view.
-// Shown after a user saves a new panel (the "meaningful moment").
+// Full editorial layout: hero band, attention cards with range bars,
+// all-clear summary, CTAs, expandable full marker list, annotations.
 // ============================================================================
 
-const CATEGORY_MAP: Record<string, string> = {
-  HbA1c: "Metabolic",
-  "fP-Glukos": "Metabolic",
-  "f-Glucose": "Metabolic",
-  "f-Insulin": "Metabolic",
-  Kolesterol: "Cardiovascular",
-  TC: "Cardiovascular",
-  HDL: "Cardiovascular",
-  LDL: "Cardiovascular",
-  TG: "Cardiovascular",
-  Triglycerider: "Cardiovascular",
-  TSH: "Thyroid",
-  "Vit D": "Nutrition",
-  "D-vitamin": "Nutrition",
-  Ferritin: "Nutrition",
-  Crea: "Kidney",
-  Kreatinin: "Kidney",
-  ALAT: "Liver",
-  Hb: "Blood",
-  CRP: "Inflammation",
-};
+// ---- Category map (groups biomarkers into body systems) ----
+
+const SYSTEM_MAP: [RegExp, string][] = [
+  [/^(HbA1c|fP-Glukos|f-Glucose|f-Insulin|fp-glukos|p-glukos)$/i, "Blood sugar"],
+  [/^(Kolesterol|TC|HDL|LDL|TG|Triglycerider)$/i, "Cholesterol"],
+  [/^(TSH|fT4|fT3|ft4|ft3)$/i, "Thyroid"],
+  [/^(ALAT|ASAT|GGT|ALP|Bilirubin)$/i, "Liver"],
+  [/^(Kreatinin|eGFR|Cystatin|p-kreatinin)$/i, "Kidney"],
+  [/^(Hb|Hemoglobin|Ferritin|Jarn|B12|Folat|p-ferritin|p-jarn|p-kobalamin|p-folat)$/i, "Iron / blood"],
+  [/^(CRP|SR|Leukocyter|p-crp|b-leukocyter)$/i, "Inflammation"],
+  [/^(Testosteron|SHBG|IGF-1|Kortisol|PSA|p-testosteron|p-kortisol|p-psa)$/i, "Hormones"],
+  [/^(Natrium|Kalium|Kalcium|Urat|p-natrium|p-kalium|p-kalcium|p-urat)$/i, "Minerals"],
+  [/^(D-vitamin|25-OH-Vitamin-D|Vit D)$/i, "Vitamins"],
+];
+
+function getSystem(shortName: string): string {
+  for (const [re, sys] of SYSTEM_MAP) {
+    if (re.test(shortName)) return sys;
+  }
+  return "Other";
+}
+
+const SYSTEM_ORDER = [
+  "Blood sugar",
+  "Cholesterol",
+  "Thyroid",
+  "Liver",
+  "Kidney",
+  "Iron / blood",
+  "Inflammation",
+  "Hormones",
+  "Minerals",
+  "Vitamins",
+  "Other",
+];
+
+// ---- Plain English names for common markers ----
 
 const PLAIN_NAMES: Record<string, string> = {
   HbA1c: "long-term blood sugar",
@@ -60,15 +82,145 @@ const PLAIN_NAMES: Record<string, string> = {
   TG: "blood fats",
   Triglycerider: "blood fats",
   TSH: "thyroid function",
+  fT4: "thyroid hormone",
+  fT3: "thyroid hormone",
   "Vit D": "vitamin D",
   "D-vitamin": "vitamin D",
+  "25-OH-Vitamin-D": "vitamin D",
   Ferritin: "iron stores",
-  Crea: "kidney function",
-  Kreatinin: "kidney function",
-  ALAT: "liver enzyme",
   Hb: "oxygen carrier",
+  Hemoglobin: "oxygen carrier",
+  B12: "vitamin B12",
+  Folat: "folate",
+  Jarn: "iron",
+  Kreatinin: "kidney function",
+  eGFR: "kidney filtration rate",
+  ALAT: "liver enzyme",
+  ASAT: "liver enzyme",
+  GGT: "liver enzyme",
+  ALP: "bone / liver enzyme",
+  Bilirubin: "bile pigment",
   CRP: "inflammation marker",
+  Leukocyter: "white blood cells",
+  SR: "sedimentation rate",
+  Testosteron: "testosterone",
+  SHBG: "hormone binding protein",
+  "IGF-1": "growth factor",
+  Kortisol: "stress hormone",
+  PSA: "prostate marker",
+  Natrium: "sodium",
+  Kalium: "potassium",
+  Kalcium: "calcium",
+  Urat: "uric acid",
 };
+
+// ---- Marker-specific explanations and tips ----
+
+function getMarkerExplanation(m: Biomarker): string {
+  const key = m.short_name.toLowerCase().replace(/^(fp-|f-p-|p-|b-|s-)/, "");
+  const direction = m.ref_range_low !== null && m.value < m.ref_range_low ? "below" : "above";
+
+  if (key.includes("d-vitamin") || key.includes("25-oh-vitamin") || key === "vit d") {
+    if (direction === "below") {
+      return "Common in Sweden, especially in winter when sunlight is limited. Most people supplement Oct through Apr.";
+    }
+    return "Above the upper reference range. Worth checking supplementation dose with Dr. Tomas.";
+  }
+  if (key.includes("kolesterol") || key === "tc" || key === "ldl") {
+    return "Above the recommended level. Diet and exercise adjustments can often bring this down.";
+  }
+  if (key === "hdl") {
+    if (direction === "below") {
+      return "Lower than ideal. Regular aerobic exercise and reducing processed food can help raise HDL.";
+    }
+    return "Higher than the reference range - generally considered protective.";
+  }
+  if (key.includes("glukos") || key.includes("glucose")) {
+    return "Slightly elevated fasting glucose. Worth monitoring over time, especially with family history.";
+  }
+  if (key === "hba1c") {
+    return "Reflects average blood sugar over the past 2-3 months. A useful long-term trend marker.";
+  }
+  if (key === "ferritin" || key === "jarn") {
+    if (direction === "below") {
+      return "Low iron stores are common, particularly in women. Dietary changes or supplementation can help.";
+    }
+    return "Elevated iron stores. Worth investigating the underlying cause with Dr. Tomas.";
+  }
+  if (key === "crp") {
+    return "An elevated inflammation marker. Can be caused by infection, stress, or chronic conditions.";
+  }
+  if (key === "tsh") {
+    return "TSH outside the normal range may indicate thyroid under- or overactivity. Worth a follow-up.";
+  }
+  if (key === "alat" || key === "asat" || key === "ggt") {
+    return "Liver enzymes outside range. Can be caused by alcohol, medication, or fatty liver. Worth discussing.";
+  }
+
+  const label = m.name_eng || m.short_name;
+  return `${label} is slightly ${direction} the normal range. Worth discussing with Dr. Tomas.`;
+}
+
+function getMarkerTip(m: Biomarker): string {
+  const key = m.short_name.toLowerCase().replace(/^(fp-|f-p-|p-|b-|s-)/, "");
+  const direction = m.ref_range_low !== null && m.value < m.ref_range_low ? "low" : "high";
+
+  if (key.includes("d-vitamin") || key.includes("25-oh-vitamin") || key === "vit d") {
+    return "Take 1000-2000 IU vitamin D3 daily from October through April. Retest in spring.";
+  }
+  if (key.includes("kolesterol") || key === "tc" || key === "ldl") {
+    return "Increase fiber, oily fish, and nuts. Reduce saturated fat. Retest in 3-6 months.";
+  }
+  if (key === "hdl" && direction === "low") {
+    return "30 minutes of brisk walking or cycling most days can raise HDL over 8-12 weeks.";
+  }
+  if (key.includes("glukos") || key.includes("glucose") || key === "hba1c") {
+    return "Reduce refined carbs and added sugar. Regular exercise after meals helps. Retest in 3 months.";
+  }
+  if (key === "ferritin" || key === "jarn") {
+    if (direction === "low") {
+      return "Eat iron-rich foods (red meat, lentils, spinach) with vitamin C to boost absorption.";
+    }
+    return "Avoid iron supplements and limit red meat until reviewed by your doctor.";
+  }
+  if (key === "crp") {
+    return "If you've been sick recently, retest in 4-6 weeks. Persistent elevation needs investigation.";
+  }
+  if (key === "tsh") {
+    return "Your doctor may order fT4 and fT3 to get the full thyroid picture. Retest in 6-8 weeks.";
+  }
+  if (key === "alat" || key === "asat" || key === "ggt") {
+    return "Avoid alcohol for 4 weeks and retest. If still elevated, an ultrasound may be recommended.";
+  }
+
+  return "Discuss this result with Dr. Tomas at your next review to understand what steps, if any, are needed.";
+}
+
+// ---- Helpers ----
+
+function displayName(m: Biomarker): string {
+  const plain = m.plain_name || PLAIN_NAMES[m.short_name] || "";
+  const label = m.name_eng || m.short_name;
+  if (plain && plain.toLowerCase() !== label.toLowerCase()) {
+    return `${label} (${plain})`;
+  }
+  return label;
+}
+
+function plainOnly(m: Biomarker): string {
+  return m.plain_name || PLAIN_NAMES[m.short_name] || "";
+}
+
+function statusColor(m: Biomarker): string {
+  if (m.status === "normal") return C.good;
+  if (m.status === "borderline") return C.caution;
+  return C.risk;
+}
+
+function formatMonthYear(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
 
 function formatLongDate(iso: string): string {
   const d = new Date(iso);
@@ -79,59 +231,17 @@ function formatLongDate(iso: string): string {
   });
 }
 
-function groupByCategory(
-  markers: Biomarker[]
-): { name: string; markers: Biomarker[] }[] {
+function groupBySystem(markers: Biomarker[]): { name: string; markers: Biomarker[] }[] {
   const groups = new Map<string, Biomarker[]>();
   for (const m of markers) {
-    const cat = CATEGORY_MAP[m.short_name] ?? "Other";
-    if (!groups.has(cat)) groups.set(cat, []);
-    groups.get(cat)!.push(m);
+    const sys = getSystem(m.short_name);
+    if (!groups.has(sys)) groups.set(sys, []);
+    groups.get(sys)!.push(m);
   }
-  const order = [
-    "Metabolic",
-    "Cardiovascular",
-    "Thyroid",
-    "Nutrition",
-    "Kidney",
-    "Liver",
-    "Blood",
-    "Inflammation",
-    "Other",
-  ];
-  return order
-    .filter((o) => groups.has(o))
-    .map((name) => ({ name, markers: groups.get(name)! }));
-}
-
-/** How far outside the ref range a marker is, as a percentage of the range span. */
-function deviationPct(m: Biomarker): number | null {
-  if (m.ref_range_low === null || m.ref_range_high === null) return null;
-  const span = m.ref_range_high - m.ref_range_low;
-  if (span <= 0) return null;
-  if (m.value < m.ref_range_low) return ((m.ref_range_low - m.value) / span) * 100;
-  if (m.value > m.ref_range_high) return ((m.value - m.ref_range_high) / span) * 100;
-  return 0;
-}
-
-/** Is this marker "close" to a ref range boundary (within 10% of the range)? */
-function isNearBoundary(m: Biomarker): boolean {
-  if (m.ref_range_low === null || m.ref_range_high === null) return false;
-  if (m.status !== "normal") return false;
-  const span = m.ref_range_high - m.ref_range_low;
-  if (span <= 0) return false;
-  const lowProximity = (m.value - m.ref_range_low) / span;
-  const highProximity = (m.ref_range_high - m.value) / span;
-  return lowProximity < 0.1 || highProximity < 0.1;
-}
-
-function displayName(m: Biomarker): string {
-  const plain = m.plain_name || PLAIN_NAMES[m.short_name] || "";
-  const label = m.name_eng || m.short_name;
-  if (plain && plain.toLowerCase() !== label.toLowerCase()) {
-    return `${label} (${plain})`;
-  }
-  return label;
+  return SYSTEM_ORDER.filter((s) => groups.has(s)).map((name) => ({
+    name,
+    markers: groups.get(name)!,
+  }));
 }
 
 // ============================================================================
@@ -155,10 +265,12 @@ export default function PanelDetailPage() {
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  // Edit mode
+  // Edit mode (panel metadata)
   const [editMode, setEditMode] = useState(false);
   const [editDate, setEditDate] = useState("");
   const [editLab, setEditLab] = useState("");
+
+  // Inline marker editing
   const [editingMarkerId, setEditingMarkerId] = useState<string | null>(null);
   const [editingMarkerValue, setEditingMarkerValue] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -166,6 +278,9 @@ export default function PanelDetailPage() {
   // Delete
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Expandable all-markers section
+  const [allMarkersOpen, setAllMarkersOpen] = useState(false);
 
   // ---- Data fetching ----
   useEffect(() => {
@@ -198,24 +313,22 @@ export default function PanelDetailPage() {
       setEditLab(p.lab_name || "");
       setLoading(false);
 
-      // Load annotations
       const a = await getAnnotationsForPanel(panelId);
       setAnnotations(a);
     }
     load();
   }, [panelId]);
 
-  // ---- Analyzing animation (runs for ~2.5s after data loads) ----
+  // ---- Analyzing animation (2s after data loads) ----
   useEffect(() => {
     if (loading || !panel) return;
     let frame: number;
     const start = Date.now();
-    const duration = 2500;
+    const duration = 2000;
 
     function tick() {
       const elapsed = Date.now() - start;
       const pct = Math.min(elapsed / duration, 1);
-      // Ease-out curve: fast start, slow finish
       const eased = 1 - Math.pow(1 - pct, 3);
       setAnalyzeProgress(eased);
       if (pct < 1) {
@@ -260,7 +373,6 @@ export default function PanelDetailPage() {
     setSavingEdit(true);
     const supabase = createClient();
 
-    // Recalculate status
     const marker = panel.biomarkers.find((b) => b.id === markerId);
     let status: "normal" | "borderline" | "abnormal" = "normal";
     if (marker && marker.ref_range_low !== null && marker.ref_range_high !== null) {
@@ -295,7 +407,6 @@ export default function PanelDetailPage() {
     if (!panel) return;
     setDeleting(true);
     const supabase = createClient();
-    // Delete biomarkers first, then panel
     await supabase.from("biomarkers").delete().eq("panel_id", panel.id);
     await supabase.from("annotations").delete().eq("target_id", panel.id);
     const { error: err } = await supabase.from("panels").delete().eq("id", panel.id);
@@ -308,7 +419,7 @@ export default function PanelDetailPage() {
 
   const userInitials = (user?.display_name || "M")[0].toUpperCase();
 
-  // ---- Loading state ----
+  // ---- Loading ----
   if (loading) {
     return (
       <MemberShell sidebar={buildSidebar("/member/panels")} userInitials=".">
@@ -327,7 +438,7 @@ export default function PanelDetailPage() {
     );
   }
 
-  // ---- Error state ----
+  // ---- Error / not found ----
   if (error || !panel) {
     return (
       <MemberShell sidebar={buildSidebar("/member/panels")} userInitials={userInitials}>
@@ -355,15 +466,30 @@ export default function PanelDetailPage() {
 
   // ---- Derived data ----
   const flagged = panel.biomarkers.filter((b) => b.status !== "normal");
-  const abnormal = panel.biomarkers.filter((b) => b.status === "abnormal");
-  const borderline = panel.biomarkers.filter((b) => b.status === "borderline");
-  const nearBoundary = panel.biomarkers.filter(isNearBoundary);
   const inRange = panel.biomarkers.filter((b) => b.status === "normal");
-  const categories = groupByCategory(panel.biomarkers);
-  const hasFindings = abnormal.length > 0 || borderline.length > 0 || nearBoundary.length > 0;
+  const totalCount = panel.biomarkers.length;
+  const flaggedCount = flagged.length;
+  const inRangeCount = inRange.length;
+
+  // Group in-range markers by system for the "All clear" card
+  const inRangeSystems = groupBySystem(inRange);
+
+  // Group ALL markers by system for the expandable section
+  const allSystems = groupBySystem(panel.biomarkers);
+
+  // Dynamic headline
+  let headlineLine1 = "Your panel looks healthy.";
+  let headlineLine2 = "Everything in range.";
+  if (flaggedCount === 1) {
+    headlineLine1 = "Most of your panel looks healthy.";
+    headlineLine2 = "One marker to keep an eye on.";
+  } else if (flaggedCount >= 2) {
+    headlineLine1 = "Most of your panel looks healthy.";
+    headlineLine2 = `${flaggedCount} markers need attention.`;
+  }
 
   // ============================================================================
-  // Analyzing state
+  // Analyzing animation
   // ============================================================================
   if (analyzing) {
     return (
@@ -385,7 +511,7 @@ export default function PanelDetailPage() {
             transition={{ duration: 0.6 }}
             style={{ maxWidth: 400, width: "100%" }}
           >
-            {/* Pulsing ring */}
+            {/* Pulsing ring - warm gradient */}
             <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.7, 1, 0.7] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -393,7 +519,7 @@ export default function PanelDetailPage() {
                 width: 72,
                 height: 72,
                 borderRadius: "50%",
-                background: `linear-gradient(135deg, ${C.terracottaTint} 0%, ${C.sageTint} 100%)`,
+                background: `linear-gradient(135deg, ${C.terracottaTint} 0%, ${C.butterTint} 50%, ${C.sageTint} 100%)`,
                 border: `2px solid ${C.terracottaSoft}`,
                 margin: "0 auto 28px",
                 display: "flex",
@@ -408,7 +534,7 @@ export default function PanelDetailPage() {
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  border: `2px solid transparent`,
+                  border: "2px solid transparent",
                   borderTopColor: C.terracotta,
                   borderRightColor: C.terracottaSoft,
                 }}
@@ -437,7 +563,7 @@ export default function PanelDetailPage() {
                   color: C.terracotta,
                 }}
               >
-                {panel.biomarkers.length}
+                {totalCount}
               </span>{" "}
               markers...
             </h1>
@@ -456,7 +582,7 @@ export default function PanelDetailPage() {
               that needs attention.
             </p>
 
-            {/* Editorial progress track */}
+            {/* Progress track */}
             <div
               style={{
                 width: "100%",
@@ -486,284 +612,515 @@ export default function PanelDetailPage() {
   }
 
   // ============================================================================
-  // Analysis complete - main content
+  // Main content - results view
   // ============================================================================
   return (
     <MemberShell sidebar={buildSidebar("/member/panels")} userInitials={userInitials}>
-      <div style={{ fontFamily: SYSTEM_FONT }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        style={{ fontFamily: SYSTEM_FONT }}
+      >
         {/* Back link */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <a
-            href="/member/panels"
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: C.inkMuted,
-              textDecoration: "underline",
-              textDecorationColor: C.stone,
-              textUnderlineOffset: 3,
-              letterSpacing: "-0.005em",
-              display: "inline-block",
-              marginBottom: 20,
-            }}
-          >
-            All panels
-          </a>
-        </motion.div>
-
-        {/* NOT DOCTOR REVIEWED badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.05 }}
-          style={{ marginBottom: 16 }}
-        >
-          <span
-            style={{
-              display: "inline-block",
-              padding: "6px 14px",
-              background: C.terracottaTint,
-              border: `1px solid ${C.terracottaSoft}`,
-              borderRadius: 100,
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: C.terracottaDeep,
-            }}
-          >
-            Not doctor reviewed
-          </span>
-        </motion.div>
-
-        {/* Headline: date and lab */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          style={{ marginBottom: 24 }}
-        >
-          {!editMode ? (
-            <>
-              <div
-                style={{
-                  ...EYEBROW,
-                  color: C.terracotta,
-                  marginBottom: 10,
-                }}
-              >
-                Panel analysis
-              </div>
-              <h1
-                style={{
-                  fontSize: "clamp(28px, 4.5vw, 42px)",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.028em",
-                  fontWeight: 600,
-                  color: C.ink,
-                  margin: 0,
-                  marginBottom: 6,
-                }}
-              >
-                {formatLongDate(panel.panel_date)}
-              </h1>
-              {panel.lab_name && (
-                <p
-                  style={{
-                    fontSize: 15,
-                    lineHeight: 1.5,
-                    color: C.inkMuted,
-                    margin: 0,
-                    fontStyle: "italic",
-                    fontFamily: 'Georgia, "Times New Roman", serif',
-                  }}
-                >
-                  Analysed at {panel.lab_name}
-                </p>
-              )}
-            </>
-          ) : (
-            <div
-              style={{
-                padding: "18px 22px",
-                background: C.paper,
-                border: `1px solid ${C.lineCard}`,
-                borderRadius: 18,
-                boxShadow: C.shadowSoft,
-              }}
-            >
-              <div
-                style={{
-                  ...EYEBROW,
-                  color: C.inkMuted,
-                  marginBottom: 14,
-                }}
-              >
-                Edit panel details
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  marginBottom: 14,
-                }}
-              >
-                <div style={{ flex: "1 1 160px" }}>
-                  <div style={{ ...EYEBROW, fontSize: 9, color: C.inkFaint, marginBottom: 6 }}>
-                    Date
-                  </div>
-                  <input
-                    type="date"
-                    value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-                <div style={{ flex: "1 1 160px" }}>
-                  <div style={{ ...EYEBROW, fontSize: 9, color: C.inkFaint, marginBottom: 6 }}>
-                    Lab
-                  </div>
-                  <input
-                    type="text"
-                    value={editLab}
-                    onChange={(e) => setEditLab(e.target.value)}
-                    placeholder="Lab name"
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button
-                  onClick={handleSavePanelEdit}
-                  disabled={savingEdit}
-                  style={{
-                    ...pillButton,
-                    background: savingEdit ? C.stone : C.sage,
-                    color: C.canvasSoft,
-                  }}
-                >
-                  {savingEdit ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditMode(false);
-                    setEditDate(panel.panel_date);
-                    setEditLab(panel.lab_name || "");
-                  }}
-                  style={{
-                    ...pillButton,
-                    background: "transparent",
-                    color: C.inkMuted,
-                    border: `1px solid ${C.lineCard}`,
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Summary card */}
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
+        <a
+          href="/member/panels"
           style={{
-            padding: "20px 24px",
-            background: C.paper,
-            border: `1px solid ${C.lineCard}`,
-            borderRadius: 20,
-            boxShadow: C.shadowCard,
+            fontSize: 13,
+            fontWeight: 600,
+            color: C.inkMuted,
+            textDecoration: "underline",
+            textDecorationColor: C.stone,
+            textUnderlineOffset: 3,
+            letterSpacing: "-0.005em",
+            display: "inline-block",
             marginBottom: 24,
           }}
         >
+          All panels
+        </a>
+
+        {/* ================================================================
+            1. HERO BAND
+            ================================================================ */}
+        <motion.section
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.05 }}
+          className="panel-hero"
+          style={{ marginBottom: 0 }}
+        >
+          {/* LEFT side */}
+          <div style={{ flex: "1 1 400px", minWidth: 0 }}>
+            {/* Review status pill */}
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "6px 14px",
+                background: C.terracottaTint,
+                border: `1px solid ${C.terracottaSoft}`,
+                borderRadius: 100,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase" as const,
+                color: C.terracottaDeep,
+                marginBottom: 16,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: C.terracottaDeep,
+                  flexShrink: 0,
+                }}
+              />
+              Pending doctor review
+            </span>
+
+            {/* Eyebrow: panel date */}
+            {!editMode ? (
+              <>
+                <div style={{ ...EYEBROW, color: C.terracotta, marginBottom: 12 }}>
+                  {formatLongDate(panel.panel_date)}
+                  {panel.lab_name ? ` / ${panel.lab_name}` : ""}
+                </div>
+
+                {/* Headline */}
+                <h1
+                  style={{
+                    fontSize: "clamp(26px, 4vw, 38px)",
+                    lineHeight: 1.15,
+                    letterSpacing: "-0.028em",
+                    fontWeight: 600,
+                    color: C.ink,
+                    margin: "0 0 6px",
+                  }}
+                >
+                  {headlineLine1}
+                  <br />
+                  <span
+                    style={{
+                      fontStyle: "italic",
+                      fontFamily: 'Georgia, "Times New Roman", serif',
+                      color: C.inkMuted,
+                      fontWeight: 400,
+                    }}
+                  >
+                    {headlineLine2}
+                  </span>
+                </h1>
+
+                {/* Intro paragraph */}
+                <p
+                  style={{
+                    fontSize: 15,
+                    lineHeight: 1.65,
+                    color: C.inkMuted,
+                    margin: "14px 0 0",
+                    maxWidth: 480,
+                  }}
+                >
+                  We reviewed{" "}
+                  <strong style={{ color: C.ink, fontWeight: 600 }}>{totalCount}</strong>{" "}
+                  markers from your {formatMonthYear(panel.panel_date)} blood panel.
+                  Here&apos;s what stood out, what&apos;s looking good, and what to do next.
+                </p>
+              </>
+            ) : (
+              /* Edit mode for panel metadata */
+              <div
+                style={{
+                  padding: "18px 22px",
+                  background: C.paper,
+                  border: `1px solid ${C.lineCard}`,
+                  borderRadius: 18,
+                  boxShadow: C.shadowSoft,
+                }}
+              >
+                <div style={{ ...EYEBROW, color: C.inkMuted, marginBottom: 14 }}>
+                  Edit panel details
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ flex: "1 1 160px" }}>
+                    <div style={{ ...EYEBROW, fontSize: 9, color: C.inkFaint, marginBottom: 6 }}>
+                      Date
+                    </div>
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ flex: "1 1 160px" }}>
+                    <div style={{ ...EYEBROW, fontSize: 9, color: C.inkFaint, marginBottom: 6 }}>
+                      Lab
+                    </div>
+                    <input
+                      type="text"
+                      value={editLab}
+                      onChange={(e) => setEditLab(e.target.value)}
+                      placeholder="Lab name"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={handleSavePanelEdit}
+                    disabled={savingEdit}
+                    style={{
+                      ...pillButton,
+                      background: savingEdit ? C.stone : C.sage,
+                      color: C.canvasSoft,
+                    }}
+                  >
+                    {savingEdit ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditMode(false);
+                      setEditDate(panel.panel_date);
+                      setEditLab(panel.lab_name || "");
+                    }}
+                    style={{
+                      ...pillButton,
+                      background: "transparent",
+                      color: C.inkMuted,
+                      border: `1px solid ${C.lineCard}`,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT side - Score ring card */}
           <div
             style={{
+              flex: "0 0 auto",
+              width: 220,
+              padding: "24px 22px",
+              background: C.paper,
+              border: `1px solid ${C.lineCard}`,
+              borderRadius: 20,
+              boxShadow: C.shadowSoft,
               display: "flex",
-              flexWrap: "wrap",
-              gap: 20,
-              alignItems: "baseline",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16,
             }}
           >
-            <SummaryStat
-              value={panel.biomarkers.length}
-              label="markers"
-              color={C.ink}
-            />
-            <span
-              style={{ color: C.lineSoft, fontSize: 20, fontWeight: 300 }}
-            >
-              /
-            </span>
-            <SummaryStat
-              value={flagged.length}
-              label="flagged"
-              color={flagged.length > 0 ? C.terracotta : C.inkFaint}
-            />
-            <span
-              style={{ color: C.lineSoft, fontSize: 20, fontWeight: 300 }}
-            >
-              /
-            </span>
-            <SummaryStat
-              value={inRange.length}
-              label="in range"
-              color={C.good}
-            />
+            <ScoreRing total={totalCount} good={inRangeCount} flagged={flaggedCount} />
+            {/* Legend */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: C.good,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: 13, color: C.inkMuted }}>
+                  In range{" "}
+                  <strong style={{ ...DISPLAY_NUM, fontSize: 13, color: C.ink }}>
+                    {inRangeCount}
+                  </strong>
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: C.caution,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: 13, color: C.inkMuted }}>
+                  Attention{" "}
+                  <strong style={{ ...DISPLAY_NUM, fontSize: 13, color: C.ink }}>
+                    {flaggedCount}
+                  </strong>
+                </span>
+              </div>
+            </div>
           </div>
         </motion.section>
 
-        {/* Quick findings */}
-        {hasFindings && (
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.22 }}
-            style={{ marginBottom: 28 }}
-          >
-            <div
-              style={{
-                ...EYEBROW,
-                color: C.terracotta,
-                marginBottom: 14,
-              }}
-            >
-              Quick findings
+        {/* ================================================================
+            2. DIVIDER
+            ================================================================ */}
+        <div style={{ height: 1, background: C.lineSoft, margin: "32px 0" }} />
+
+        {/* ================================================================
+            3. TWO-COLUMN GRID: Attention + All Clear
+            ================================================================ */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="panel-two-col"
+          style={{ marginBottom: 32 }}
+        >
+          {/* LEFT COLUMN: Needs attention */}
+          <div>
+            <div style={{ ...EYEBROW, color: C.terracotta, marginBottom: 16 }}>
+              Needs attention
             </div>
 
-            {abnormal.length > 0 && (
-              <FindingsGroup
-                label="Outside range"
-                color={C.risk}
-                markers={abnormal}
-              />
+            {flaggedCount === 0 ? (
+              /* Celebration card */
+              <div
+                style={{
+                  padding: "28px 24px",
+                  background: C.sageTint,
+                  border: `1px solid ${C.sageSoft}`,
+                  borderRadius: 22,
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    background: C.sage,
+                    margin: "0 auto 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                    <path
+                      d="M6 11.5L9.5 15L16 7"
+                      stroke="white"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 600,
+                    color: C.sageDeep,
+                    marginBottom: 4,
+                  }}
+                >
+                  Everything in range
+                </div>
+                <div style={{ fontSize: 14, color: C.sage }}>A clean sheet.</div>
+              </div>
+            ) : (
+              /* Flagged marker cards */
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {flagged.map((m) => (
+                  <AttentionCard key={m.id} marker={m} />
+                ))}
+              </div>
             )}
-            {borderline.length > 0 && (
-              <FindingsGroup
-                label="Borderline"
-                color={C.caution}
-                markers={borderline}
-              />
-            )}
-            {nearBoundary.length > 0 && (
-              <FindingsGroup
-                label="Worth watching (within 10% of range edge)"
-                color={C.inkMuted}
-                markers={nearBoundary}
-              />
-            )}
-          </motion.section>
-        )}
+          </div>
 
-        {/* All markers by category */}
+          {/* RIGHT COLUMN: All clear */}
+          <div>
+            <div style={{ ...EYEBROW, color: C.sage, marginBottom: 16 }}>
+              All clear
+            </div>
+
+            <div
+              style={{
+                padding: "24px 22px",
+                background: C.sageTint,
+                border: `1px solid ${C.sageSoft}`,
+                borderRadius: 22,
+              }}
+            >
+              {/* Title with green dot */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 18,
+                }}
+              >
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    background: C.good,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: 17, fontWeight: 600, color: C.sageDeep }}>
+                  {inRangeCount} marker{inRangeCount !== 1 ? "s" : ""} in healthy range
+                </span>
+              </div>
+
+              {/* System pills - 2-col grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 8,
+                }}
+              >
+                {inRangeSystems.map((sys) => (
+                  <div
+                    key={sys.name}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "10px 12px",
+                      background: "rgba(255,255,255,0.7)",
+                      borderRadius: 10,
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="8" fill={C.good} />
+                      <path
+                        d="M5 8.2L7.2 10.4L11 6"
+                        stroke="white"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: C.ink, flex: 1 }}>
+                      {sys.name}
+                    </span>
+                    <span
+                      style={{
+                        ...DISPLAY_NUM,
+                        fontSize: 12,
+                        color: C.inkFaint,
+                      }}
+                    >
+                      {sys.markers.length}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ================================================================
+            4. WHAT TO DO NEXT
+            ================================================================ */}
         <motion.section
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.25 }}
+          style={{ marginBottom: 32 }}
+        >
+          <div style={{ ...EYEBROW, color: C.terracotta, marginBottom: 16 }}>
+            What to do next
+          </div>
+          <div className="panel-ctas">
+            {/* Primary CTA */}
+            <a
+              href="/member/messages"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "14px 24px",
+                background: C.terracotta,
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: SYSTEM_FONT,
+                borderRadius: 100,
+                textDecoration: "none",
+                boxShadow:
+                  "0 6px 14px -6px rgba(201,87,58,0.4), 0 2px 4px rgba(201,87,58,0.18)",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              Have {DOCTOR.firstName} review this panel
+              <span style={{ fontSize: 16 }}>{"->"}</span>
+            </a>
+
+            {/* Secondary: Ask AI */}
+            <a
+              href="/member/discuss"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "14px 24px",
+                background: C.paper,
+                color: C.ink,
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: SYSTEM_FONT,
+                border: `1px solid ${C.lineCard}`,
+                borderRadius: 100,
+                textDecoration: "none",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              Ask Precura AI about this
+              <span style={{ fontSize: 16, color: C.inkFaint }}>{"->"}</span>
+            </a>
+
+            {/* Secondary: Add panel */}
+            <a
+              href="/member/panels/new"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "14px 24px",
+                background: C.paper,
+                color: C.ink,
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: SYSTEM_FONT,
+                border: `1px solid ${C.lineCard}`,
+                borderRadius: 100,
+                textDecoration: "none",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              Add another blood panel
+              <span style={{ fontSize: 16, color: C.inkFaint }}>{"->"}</span>
+            </a>
+          </div>
+        </motion.section>
+
+        {/* ================================================================
+            5. EXPANDABLE: All markers by category
+            ================================================================ */}
+        <motion.section
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
           style={{
@@ -775,62 +1132,96 @@ export default function PanelDetailPage() {
             marginBottom: 28,
           }}
         >
-          <div style={{ padding: "20px 24px 6px" }}>
-            <div
-              style={{
-                ...EYEBROW,
-                color: C.inkMuted,
-                marginBottom: 4,
-              }}
+          <button
+            onClick={() => setAllMarkersOpen(!allMarkersOpen)}
+            style={{
+              width: "100%",
+              padding: "20px 24px",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontFamily: SYSTEM_FONT,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 600, color: C.ink }}>
+              See all {totalCount} markers by category
+            </span>
+            <motion.span
+              animate={{ rotate: allMarkersOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ fontSize: 18, color: C.inkFaint, lineHeight: 1 }}
             >
-              All markers
-            </div>
-          </div>
-          <div style={{ padding: "0 24px 24px" }}>
-            {categories.map((cat, ci) => (
-              <div
-                key={cat.name}
-                style={{ marginTop: ci === 0 ? 8 : 22, marginBottom: 8 }}
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path
+                  d="M4.5 6.75L9 11.25L13.5 6.75"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </motion.span>
+          </button>
+
+          <AnimatePresence>
+            {allMarkersOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{ overflow: "hidden" }}
               >
-                <div
-                  style={{
-                    ...EYEBROW,
-                    fontSize: 9,
-                    color: C.inkFaint,
-                    marginBottom: 10,
-                  }}
-                >
-                  {cat.name}
+                <div style={{ padding: "0 24px 24px" }}>
+                  {allSystems.map((sys, si) => (
+                    <div key={sys.name} style={{ marginTop: si === 0 ? 0 : 22 }}>
+                      <div
+                        style={{
+                          ...EYEBROW,
+                          fontSize: 9,
+                          color: C.inkFaint,
+                          marginBottom: 10,
+                        }}
+                      >
+                        {sys.name}
+                      </div>
+                      {sys.markers.map((m) => (
+                        <AllMarkerRow
+                          key={m.id}
+                          marker={m}
+                          isEditing={editingMarkerId === m.id}
+                          editValue={editingMarkerValue}
+                          onStartEdit={() => {
+                            setEditingMarkerId(m.id);
+                            setEditingMarkerValue(m.value.toString());
+                          }}
+                          onChangeEdit={setEditingMarkerValue}
+                          onSaveEdit={() => handleSaveMarkerEdit(m.id)}
+                          onCancelEdit={() => {
+                            setEditingMarkerId(null);
+                            setEditingMarkerValue("");
+                          }}
+                          saving={savingEdit}
+                        />
+                      ))}
+                    </div>
+                  ))}
                 </div>
-                {cat.markers.map((m) => (
-                  <MarkerRow
-                    key={m.id}
-                    marker={m}
-                    isEditing={editingMarkerId === m.id}
-                    editValue={editingMarkerValue}
-                    onStartEdit={() => {
-                      setEditingMarkerId(m.id);
-                      setEditingMarkerValue(m.value.toString());
-                    }}
-                    onChangeEdit={setEditingMarkerValue}
-                    onSaveEdit={() => handleSaveMarkerEdit(m.id)}
-                    onCancelEdit={() => {
-                      setEditingMarkerId(null);
-                      setEditingMarkerValue("");
-                    }}
-                    saving={savingEdit}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.section>
 
-        {/* Annotations */}
+        {/* ================================================================
+            6. ANNOTATIONS
+            ================================================================ */}
         <motion.section
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.38 }}
+          transition={{ duration: 0.6, delay: 0.35 }}
           style={{
             background: C.paper,
             border: `1px solid ${C.lineCard}`,
@@ -840,13 +1231,7 @@ export default function PanelDetailPage() {
             marginBottom: 28,
           }}
         >
-          <div
-            style={{
-              ...EYEBROW,
-              color: C.inkMuted,
-              marginBottom: 14,
-            }}
-          >
+          <div style={{ ...EYEBROW, color: C.inkMuted, marginBottom: 14 }}>
             Notes ({annotations.length})
           </div>
           {annotations.map((a) => (
@@ -880,25 +1265,21 @@ export default function PanelDetailPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color:
-                      a.author?.role === "doctor" ? C.canvasSoft : C.ink,
+                    color: a.author?.role === "doctor" ? C.canvasSoft : C.ink,
                     fontSize: 8,
                     fontWeight: 700,
                   }}
                 >
                   {(a.author?.display_name || "?")[0].toUpperCase()}
                 </div>
-                <span
-                  style={{ fontSize: 12, fontWeight: 600, color: C.ink }}
-                >
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>
                   {a.author?.display_name || "Unknown"}
                 </span>
                 <span
                   style={{
                     fontSize: 10,
                     color: C.inkFaint,
-                    fontFamily:
-                      '"SF Mono", ui-monospace, monospace',
+                    fontFamily: MONO_FONT,
                   }}
                 >
                   {new Date(a.created_at).toLocaleDateString("en-GB", {
@@ -909,13 +1290,7 @@ export default function PanelDetailPage() {
                   })}
                 </span>
               </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  color: C.inkSoft,
-                }}
-              >
+              <div style={{ fontSize: 14, lineHeight: 1.6, color: C.inkSoft }}>
                 {a.body}
               </div>
             </div>
@@ -956,14 +1331,10 @@ export default function PanelDetailPage() {
                 fontWeight: 600,
                 fontFamily: SYSTEM_FONT,
                 color: C.canvasSoft,
-                background:
-                  savingNote || !noteText.trim() ? C.stone : C.sage,
+                background: savingNote || !noteText.trim() ? C.stone : C.sage,
                 border: "none",
                 borderRadius: 10,
-                cursor:
-                  savingNote || !noteText.trim()
-                    ? "default"
-                    : "pointer",
+                cursor: savingNote || !noteText.trim() ? "default" : "pointer",
               }}
             >
               {savingNote ? "..." : "Add"}
@@ -971,11 +1342,13 @@ export default function PanelDetailPage() {
           </div>
         </motion.section>
 
-        {/* Action bar: Edit / Delete / Add another */}
+        {/* ================================================================
+            7. ACTION BAR: Edit / Delete
+            ================================================================ */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.45 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
           style={{
             display: "flex",
             flexWrap: "wrap",
@@ -1056,167 +1429,335 @@ export default function PanelDetailPage() {
               </button>
             </div>
           )}
-
-          <a
-            href="/member/panels/new"
-            style={{
-              ...pillButton,
-              background: C.terracotta,
-              color: C.canvasSoft,
-              textDecoration: "none",
-              boxShadow:
-                "0 6px 14px -6px rgba(201,87,58,0.4), 0 2px 4px rgba(201,87,58,0.18)",
-            }}
-          >
-            + Add another panel
-          </a>
         </motion.div>
-      </div>
+
+        {/* Responsive styles */}
+        <style jsx global>{`
+          .panel-hero {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            align-items: flex-start;
+          }
+          .panel-two-col {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+          .panel-ctas {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          @media (min-width: 768px) {
+            .panel-hero {
+              flex-direction: row;
+              gap: 32px;
+              align-items: flex-start;
+            }
+            .panel-two-col {
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+            }
+            .panel-ctas {
+              flex-direction: row;
+              gap: 12px;
+            }
+          }
+        `}</style>
+      </motion.div>
     </MemberShell>
   );
 }
 
 // ============================================================================
-// Sub-components
+// Score Ring SVG
 // ============================================================================
 
-function SummaryStat({
-  value,
-  label,
-  color,
+function ScoreRing({
+  total,
+  good,
+  flagged,
 }: {
-  value: number;
-  label: string;
-  color: string;
+  total: number;
+  good: number;
+  flagged: number;
 }) {
+  const size = 110;
+  const stroke = 10;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const goodPct = total > 0 ? good / total : 1;
+  const goodArc = goodPct * circumference;
+  const flaggedArc = (1 - goodPct) * circumference;
+
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-      <span style={{ ...DISPLAY_NUM, fontSize: 28, color }}>{value}</span>
-      <span style={{ fontSize: 14, color: C.inkMuted, fontWeight: 500 }}>
-        {label}
-      </span>
+    <div style={{ position: "relative", width: size, height: size }}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ transform: "rotate(-90deg)" }}
+      >
+        {/* Good arc */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={C.good}
+          strokeWidth={stroke}
+          strokeDasharray={`${goodArc} ${circumference}`}
+          strokeLinecap="round"
+        />
+        {/* Flagged arc */}
+        {flagged > 0 && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={C.caution}
+            strokeWidth={stroke}
+            strokeDasharray={`${flaggedArc} ${circumference}`}
+            strokeDashoffset={-goodArc}
+            strokeLinecap="round"
+          />
+        )}
+      </svg>
+      {/* Center label */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span style={{ ...DISPLAY_NUM, fontSize: 28, color: C.ink }}>{total}</span>
+        <span style={{ fontSize: 11, color: C.inkFaint, marginTop: -2 }}>markers</span>
+      </div>
     </div>
   );
 }
 
-function FindingsGroup({
-  label,
-  color,
-  markers,
-}: {
-  label: string;
-  color: string;
-  markers: Biomarker[];
-}) {
+// ============================================================================
+// Attention Card - flagged marker with range bar
+// ============================================================================
+
+function AttentionCard({ marker }: { marker: Biomarker }) {
+  const m = marker;
+  const color = statusColor(m);
+  const plain = plainOnly(m);
+  const label = m.name_eng || m.short_name;
+
+  // Range bar calculations
+  const hasRange = m.ref_range_low !== null && m.ref_range_high !== null;
+  const low = m.ref_range_low ?? 0;
+  const high = m.ref_range_high ?? 100;
+  const rangeSpan = high - low;
+
+  // Extend the visual track to show values outside range
+  const trackMin = Math.min(low - rangeSpan * 0.3, m.value - rangeSpan * 0.1);
+  const trackMax = Math.max(high + rangeSpan * 0.3, m.value + rangeSpan * 0.1);
+  const trackSpan = trackMax - trackMin;
+
+  // Position the marker dot as a percentage of the track
+  const markerPct = trackSpan > 0 ? ((m.value - trackMin) / trackSpan) * 100 : 50;
+  // Position of the normal range within the track
+  const normalStartPct = trackSpan > 0 ? ((low - trackMin) / trackSpan) * 100 : 20;
+  const normalEndPct = trackSpan > 0 ? ((high - trackMin) / trackSpan) * 100 : 80;
+
   return (
     <div
       style={{
-        padding: "16px 20px",
+        padding: "22px 24px",
         background: C.paper,
         border: `1px solid ${C.lineCard}`,
-        borderRadius: 18,
+        borderRadius: 22,
         boxShadow: C.shadowSoft,
-        marginBottom: 12,
       }}
     >
+      {/* Header row */}
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 12,
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 16,
+          flexWrap: "wrap",
         }}
       >
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: color,
-            flexShrink: 0,
-          }}
-        />
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color,
-            letterSpacing: "-0.005em",
-          }}
-        >
-          {label}
-        </span>
+        <div style={{ minWidth: 0 }}>
+          <span style={{ fontSize: 17, fontWeight: 600, color: C.ink }}>
+            {label}
+          </span>
+          {plain && (
+            <span style={{ fontSize: 14, color: C.inkFaint, marginLeft: 6 }}>
+              ({plain})
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexShrink: 0 }}>
+          <span style={{ ...DISPLAY_NUM, fontSize: 28, color }}>{m.value}</span>
+          <span style={{ fontSize: 12, color: C.inkFaint }}>{m.unit}</span>
+        </div>
       </div>
-      {markers.map((m) => {
-        const dev = deviationPct(m);
-        const devLabel =
-          dev !== null && dev > 0
-            ? `${dev.toFixed(0)}% outside range`
-            : null;
 
-        return (
-          <div
-            key={m.id}
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              justifyContent: "space-between",
-              padding: "10px 0",
-              borderBottom: `1px solid ${C.lineSoft}`,
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: C.ink,
-                  letterSpacing: "-0.005em",
-                  marginBottom: 2,
-                }}
-              >
-                {displayName(m)}
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: C.inkFaint,
-                }}
-              >
-                {m.ref_range_low !== null && m.ref_range_high !== null
-                  ? `Range: ${m.ref_range_low} to ${m.ref_range_high} ${m.unit}`
-                  : `${m.unit}`}
-                {devLabel && (
-                  <span style={{ color, fontWeight: 600, marginLeft: 8 }}>
-                    {devLabel}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <span style={{ ...DISPLAY_NUM, fontSize: 18, color }}>
-                {m.value}
-              </span>
+      {/* Range bar visualization */}
+      {hasRange && (
+        <div style={{ marginBottom: 18 }}>
+          {/* Track container */}
+          <div style={{ position: "relative", height: 52, marginBottom: 6 }}>
+            {/* "You: value" pill above the marker */}
+            <div
+              style={{
+                position: "absolute",
+                left: `${markerPct}%`,
+                transform: "translateX(-50%)",
+                top: 0,
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
               <span
                 style={{
-                  fontSize: 11,
-                  color: C.inkFaint,
-                  marginLeft: 3,
+                  display: "inline-block",
+                  padding: "3px 8px",
+                  background: color,
+                  color: "#fff",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  fontFamily: MONO_FONT,
+                  borderRadius: 6,
+                  whiteSpace: "nowrap",
+                  letterSpacing: "-0.01em",
                 }}
               >
-                {m.unit}
+                You: {m.value}
               </span>
             </div>
+
+            {/* Track */}
+            <div
+              style={{
+                position: "absolute",
+                top: 24,
+                left: 0,
+                right: 0,
+                height: 28,
+                borderRadius: 14,
+                background: C.canvasDeep,
+                overflow: "hidden",
+              }}
+            >
+              {/* Normal range band with green gradient */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${normalStartPct}%`,
+                  width: `${normalEndPct - normalStartPct}%`,
+                  top: 0,
+                  bottom: 0,
+                  background: "linear-gradient(90deg, rgba(78,142,92,0.22) 0%, rgba(78,142,92,0.06) 100%)",
+                  borderLeft: `2px dashed ${C.good}`,
+                }}
+              />
+            </div>
+
+            {/* Marker dot */}
+            <div
+              style={{
+                position: "absolute",
+                left: `${markerPct}%`,
+                top: 28,
+                transform: "translateX(-50%)",
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                background: color,
+                border: "3px solid #fff",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                zIndex: 2,
+              }}
+            />
           </div>
-        );
-      })}
+
+          {/* Range labels below track */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 10,
+              color: C.inkFaint,
+              fontFamily: MONO_FONT,
+            }}
+          >
+            <span>{Math.round(trackMin * 10) / 10}</span>
+            <span>{low} - normal range</span>
+            <span>{high}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Explanation */}
+      <p
+        style={{
+          fontSize: 14,
+          lineHeight: 1.65,
+          color: C.inkMuted,
+          margin: "0 0 14px",
+        }}
+      >
+        {getMarkerExplanation(m)}
+      </p>
+
+      {/* Tip box */}
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          padding: "14px 16px",
+          background: C.butterTint,
+          borderRadius: 12,
+          alignItems: "flex-start",
+        }}
+      >
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            background: C.butter,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1 }}>i</span>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 3 }}>
+            What most people do:
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.55, color: C.inkMuted }}>
+            {getMarkerTip(m)}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function MarkerRow({
+// ============================================================================
+// All Marker Row (expandable section) - editable inline
+// ============================================================================
+
+function AllMarkerRow({
   marker,
   isEditing,
   editValue,
@@ -1235,12 +1776,10 @@ function MarkerRow({
   onCancelEdit: () => void;
   saving: boolean;
 }) {
-  const color =
-    marker.status === "normal"
-      ? C.good
-      : marker.status === "borderline"
-        ? C.caution
-        : C.risk;
+  const m = marker;
+  const color = statusColor(m);
+  const plain = plainOnly(m);
+  const label = m.name_eng || m.short_name;
 
   return (
     <div
@@ -1271,21 +1810,18 @@ function MarkerRow({
               flexShrink: 0,
             }}
           />
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: C.ink,
-              letterSpacing: "-0.005em",
-            }}
-          >
-            {displayName(marker)}
+          <span style={{ fontSize: 13, fontWeight: 500, color: C.ink, letterSpacing: "-0.005em" }}>
+            {label}
+            {plain && (
+              <span style={{ color: C.inkFaint, fontWeight: 400 }}>
+                {" "}({plain})
+              </span>
+            )}
           </span>
         </div>
-        {marker.ref_range_low !== null && marker.ref_range_high !== null && (
+        {m.ref_range_low !== null && m.ref_range_high !== null && (
           <div style={{ fontSize: 11, color: C.inkFaint, marginLeft: 15 }}>
-            Normal range: {marker.ref_range_low} to {marker.ref_range_high}{" "}
-            {marker.unit}
+            Normal range: {m.ref_range_low} to {m.ref_range_high} {m.unit}
           </div>
         )}
       </div>
@@ -1316,17 +1852,10 @@ function MarkerRow({
                 borderRadius: 8,
                 outline: "none",
                 textAlign: "right",
-                boxSizing: "border-box",
+                boxSizing: "border-box" as const,
               }}
             />
-            <span
-              style={{
-                fontSize: 11,
-                color: C.inkFaint,
-              }}
-            >
-              {marker.unit}
-            </span>
+            <span style={{ fontSize: 11, color: C.inkFaint }}>{m.unit}</span>
             <button
               onClick={onSaveEdit}
               disabled={saving}
@@ -1342,7 +1871,7 @@ function MarkerRow({
                 cursor: saving ? "default" : "pointer",
               }}
             >
-              {saving ? "..." : "OK"}
+              {saving ? "..." : "Save"}
             </button>
             <button
               onClick={onCancelEdit}
@@ -1377,12 +1906,8 @@ function MarkerRow({
               gap: 3,
             }}
           >
-            <span style={{ ...DISPLAY_NUM, fontSize: 18, color }}>
-              {marker.value}
-            </span>
-            <span style={{ fontSize: 11, color: C.inkFaint }}>
-              {marker.unit}
-            </span>
+            <span style={{ ...DISPLAY_NUM, fontSize: 18, color }}>{m.value}</span>
+            <span style={{ fontSize: 11, color: C.inkFaint }}>{m.unit}</span>
           </button>
         )}
       </div>
