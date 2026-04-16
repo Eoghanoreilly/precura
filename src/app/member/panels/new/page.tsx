@@ -8,6 +8,7 @@ import { C, SYSTEM_FONT, DISPLAY_NUM, DOCTOR } from "@/components/member/tokens"
 import { buildSidebar } from "@/components/member/data";
 import { createPanel, type NewBiomarkerRow } from "@/lib/data/panels";
 import { getCurrentUser } from "@/lib/data/panels";
+import { lookupMarkerDefaults } from "@/lib/data/marker-defaults";
 
 // ============================================================================
 // Common Swedish blood panel marker presets
@@ -65,6 +66,7 @@ export default function NewPanelPage() {
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [parsing, setParsing] = useState(false);
+  const [info, setInfo] = useState("");
   const [showValidation, setShowValidation] = useState(false);
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -130,8 +132,28 @@ export default function NewPanelPage() {
     }
   }
 
+  // Fill gaps in a row from the Swedish marker lookup table
+  function fillFromDefaults(row: MarkerRow): MarkerRow {
+    const defaults = lookupMarkerDefaults(row.short_name);
+    if (!defaults) return row;
+    return {
+      ...row,
+      unit: row.unit || defaults.unit,
+      ref_range_low: row.ref_range_low || (defaults.ref_low?.toString() ?? ""),
+      ref_range_high: row.ref_range_high || (defaults.ref_high?.toString() ?? ""),
+    };
+  }
+
   function updateRow(id: string, field: keyof MarkerRow, val: string) {
-    setRows(rows.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
+    setRows(rows.map((r) => {
+      if (r.id !== id) return r;
+      const updated = { ...r, [field]: val };
+      // When user types a marker name, auto-fill unit + ref ranges from lookup
+      if (field === "short_name" && val.trim()) {
+        return fillFromDefaults(updated);
+      }
+      return updated;
+    }));
   }
 
   function removeRow(id: string) {
@@ -183,9 +205,21 @@ export default function NewPanelPage() {
             ref_range_low: m.ref_range_low?.toString() ?? "",
             ref_range_high: m.ref_range_high?.toString() ?? "",
           }))
-          .filter((r: MarkerRow) => !isRowEmpty(r));
+          .filter((r: MarkerRow) => !isRowEmpty(r))
+          .map((r: MarkerRow) => fillFromDefaults(r));
+
+        const autoFilled = newRows.filter((r: MarkerRow, i: number) => {
+          const orig = data.markers[i];
+          return orig && (
+            (!orig.unit && r.unit) ||
+            (orig.ref_range_low == null && r.ref_range_low) ||
+            (orig.ref_range_high == null && r.ref_range_high)
+          );
+        }).length;
 
         setRows(newRows.length > 0 ? newRows : [emptyRow()]);
+
+        setInfo(`Extracted ${data.successfully_parsed || newRows.length} markers.${autoFilled > 0 ? ` ${autoFilled} had missing reference ranges auto-filled from standard Swedish values.` : ""} Review before saving.`);
         setShowValidation(false);
       }
 
@@ -708,6 +742,23 @@ export default function NewPanelPage() {
                   {" / "}{incompleteCount} incomplete
                 </span>
               )}
+            </div>
+          )}
+
+          {info && (
+            <div
+              style={{
+                padding: "12px 16px",
+                background: C.sageTint,
+                border: `1px solid ${C.sageSoft}`,
+                borderRadius: 12,
+                fontSize: 13,
+                color: C.sageDeep,
+                marginBottom: 18,
+                lineHeight: 1.5,
+              }}
+            >
+              {info}
             </div>
           )}
 
