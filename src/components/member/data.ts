@@ -4,6 +4,10 @@ import type { GlucoseHeroProps } from "./GlucoseHero";
 import type { MemberSidebarProps } from "./MemberSidebar";
 import { DOCTOR } from "./tokens";
 
+// When true, /member pages fetch from Supabase. When false, use Anna mock data.
+// Toggle this to false to restore demo mode for screenshots/demos.
+export const USE_REAL_DATA = true;
+
 // ============================================================================
 // Sidebar preset - one source of truth for every /member page
 // ============================================================================

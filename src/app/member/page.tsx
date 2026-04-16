@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { StatusHeadline } from "@/components/member/StatusHeadline";
@@ -11,8 +11,9 @@ import { RiskTrajectory } from "@/components/member/RiskTrajectory";
 import { NextStep } from "@/components/member/NextStep";
 import { MemberShell } from "@/components/member/MemberShell";
 import type { MemberSidebarProps } from "@/components/member/MemberSidebar";
-import { DOCTOR } from "@/components/member/tokens";
+import { C, SYSTEM_FONT, DOCTOR } from "@/components/member/tokens";
 import {
+  USE_REAL_DATA,
   buildMarkerChanges,
   buildPanelSummary,
   buildGlucoseHero,
@@ -22,6 +23,8 @@ import {
   NOTE_DATE,
   STATUS_TEXT,
 } from "@/components/member/data";
+import { getCurrentUser, getPanels } from "@/lib/data/panels";
+import type { Profile, PanelWithBiomarkers } from "@/lib/data/types";
 
 // ============================================================================
 // Sidebar presets per user state
@@ -76,7 +79,255 @@ const SIDEBAR_NEW_MEMBER: MemberSidebarProps = {
 };
 
 // ============================================================================
-// State: panel-results-day (Anna, primary)
+// Real data view - fetches from Supabase
+// ============================================================================
+
+function RealDataView() {
+  const [user, setUser] = useState<Profile | null>(null);
+  const [panels, setPanels] = useState<PanelWithBiomarkers[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const u = await getCurrentUser();
+      if (!u) {
+        setLoading(false);
+        return;
+      }
+      setUser(u);
+      const p = await getPanels(u.id);
+      setPanels(p);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <MemberShell
+        sidebar={{
+          user: { name: "...", initials: ".", memberSince: "" },
+          doctor: TOMAS,
+          nextPanel: { eyebrow: "", headline: "", subtext: "" },
+        }}
+        userInitials="."
+      >
+        <div style={{ padding: "60px 0", textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 14,
+              color: C.inkFaint,
+              fontFamily: SYSTEM_FONT,
+            }}
+          >
+            Loading...
+          </div>
+        </div>
+      </MemberShell>
+    );
+  }
+
+  const sidebar: MemberSidebarProps = {
+    user: {
+      name: user?.display_name || "Member",
+      initials: (user?.display_name || "M")[0].toUpperCase(),
+      memberSince: user?.created_at
+        ? `Member since ${new Date(user.created_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`
+        : "",
+    },
+    doctor: TOMAS,
+    nextPanel: {
+      eyebrow: panels.length > 0 ? "Latest panel" : "Get started",
+      headline:
+        panels.length > 0
+          ? new Date(panels[0].panel_date).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "Add your first panel",
+      subtext:
+        panels.length > 0
+          ? `${panels[0].biomarkers.length} markers`
+          : "Upload your blood test data",
+    },
+  };
+
+  const userInitials = (user?.display_name || "M")[0].toUpperCase();
+
+  if (panels.length === 0) {
+    return (
+      <MemberShell sidebar={sidebar} userInitials={userInitials}>
+        <EmptyState userName={user?.display_name || "there"} />
+      </MemberShell>
+    );
+  }
+
+  // Build data from real panels
+  const latest = panels[0];
+  const previous = panels[1];
+  const totalMarkers = latest.biomarkers.length;
+  const flagged = latest.biomarkers.filter(
+    (b) => b.status !== "normal"
+  ).length;
+
+  return (
+    <MemberShell sidebar={sidebar} userInitials={userInitials}>
+      <StatusHeadline
+        text={
+          flagged > 0
+            ? `${flagged} marker${flagged > 1 ? "s" : ""} to review from your latest panel.`
+            : "All markers in range. Looking good."
+        }
+        tone={flagged > 0 ? "attention" : "good"}
+      />
+
+      {panels.length >= 2 && previous && (
+        <WhatMoved
+          markers={buildRealMarkerChanges(latest, previous)}
+          panelTotal={totalMarkers}
+          panelFlagged={flagged}
+          panelInRange={totalMarkers - flagged}
+        />
+      )}
+
+      <NextStep
+        eyebrow="Panels"
+        title={`${panels.length} panel${panels.length > 1 ? "s" : ""} on file. ${totalMarkers} markers in the latest.`}
+        action="/member/panels"
+      />
+
+      <NextStep
+        eyebrow="Add data"
+        title="Add a new blood panel"
+        action="/member/panels/new"
+      />
+    </MemberShell>
+  );
+}
+
+function buildRealMarkerChanges(
+  latest: PanelWithBiomarkers,
+  previous: PanelWithBiomarkers
+): import("@/components/member/WhatMoved").MarkerChange[] {
+  const changes: import("@/components/member/WhatMoved").MarkerChange[] = [];
+
+  for (const m of latest.biomarkers) {
+    const prev = previous.biomarkers.find(
+      (p) => p.short_name === m.short_name
+    );
+    if (!prev) continue;
+    if (prev.value === m.value) continue;
+    changes.push({
+      name: m.short_name,
+      plainName: m.plain_name || m.name_eng || m.short_name,
+      unit: m.unit,
+      previousValue: prev.value,
+      currentValue: m.value,
+      status: m.status,
+    });
+  }
+
+  changes.sort((a, b) => {
+    const sevA = a.status === "normal" ? 0 : 1;
+    const sevB = b.status === "normal" ? 0 : 1;
+    if (sevA !== sevB) return sevB - sevA;
+    const changeA =
+      Math.abs(a.currentValue - a.previousValue) / a.previousValue;
+    const changeB =
+      Math.abs(b.currentValue - b.previousValue) / b.previousValue;
+    return changeB - changeA;
+  });
+
+  return changes.slice(0, 4);
+}
+
+// ============================================================================
+// Empty state - no panels yet
+// ============================================================================
+
+function EmptyState({ userName }: { userName: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      style={{ fontFamily: SYSTEM_FONT }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: C.terracotta,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          marginBottom: 10,
+        }}
+      >
+        Welcome
+      </div>
+      <h1
+        style={{
+          fontSize: "clamp(32px, 5vw, 46px)",
+          lineHeight: 1.1,
+          letterSpacing: "-0.028em",
+          fontWeight: 600,
+          color: C.ink,
+          margin: 0,
+          marginBottom: 14,
+        }}
+      >
+        Hey, {userName}.{" "}
+        <span
+          style={{
+            color: C.inkMuted,
+            fontStyle: "italic",
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontWeight: 500,
+          }}
+        >
+          Let's get your data in.
+        </span>
+      </h1>
+      <p
+        style={{
+          fontSize: 16,
+          lineHeight: 1.6,
+          color: C.inkMuted,
+          margin: 0,
+          marginBottom: 36,
+          maxWidth: 560,
+        }}
+      >
+        Add your first blood panel to get started. Once you have two or more
+        panels, Precura will show you trends, changes, and what to watch.
+      </p>
+
+      <a
+        href="/member/panels/new"
+        style={{
+          display: "inline-block",
+          padding: "16px 28px",
+          background: C.terracotta,
+          color: C.canvasSoft,
+          borderRadius: 100,
+          fontSize: 15,
+          fontWeight: 600,
+          fontFamily: SYSTEM_FONT,
+          textDecoration: "none",
+          letterSpacing: "-0.005em",
+          boxShadow:
+            "0 8px 18px -8px rgba(201,87,58,0.42), 0 2px 6px rgba(201,87,58,0.2)",
+        }}
+      >
+        Add your first panel
+      </a>
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// Mock data views (kept for demo mode when USE_REAL_DATA = false)
 // ============================================================================
 
 function PanelResultsDayView() {
@@ -111,10 +362,6 @@ function PanelResultsDayView() {
   );
 }
 
-// ============================================================================
-// State: between-panels (Anna, secondary)
-// ============================================================================
-
 function BetweenPanelsView() {
   return (
     <>
@@ -141,10 +388,6 @@ function BetweenPanelsView() {
   );
 }
 
-// ============================================================================
-// State: new-member-day-1 (Erik, secondary)
-// ============================================================================
-
 function NewMemberView() {
   return (
     <>
@@ -162,10 +405,6 @@ function NewMemberView() {
   );
 }
 
-// ============================================================================
-// WhileYouWait - new-member editorial section
-// ============================================================================
-
 function WhileYouWait() {
   return (
     <motion.section
@@ -178,8 +417,7 @@ function WhileYouWait() {
         background: "rgba(255,255,255,0.5)",
         border: `1px dashed #D0C9B8`,
         borderRadius: 22,
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
+        fontFamily: SYSTEM_FONT,
         maxWidth: "100%",
       }}
     >
@@ -223,6 +461,13 @@ function WhileYouWait() {
 
 function MemberHomeContent() {
   const params = useSearchParams();
+
+  // Real data mode - no mock state param, fetch from Supabase
+  if (USE_REAL_DATA && !params.get("state")) {
+    return <RealDataView />;
+  }
+
+  // Mock/demo mode
   const state = params.get("state") ?? "panel-results-day";
 
   if (state === "between-panels") {
