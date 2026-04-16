@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MemberShell } from "@/components/member/MemberShell";
@@ -65,6 +65,33 @@ export default function NewPanelPage() {
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [parsing, setParsing] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // A row is "ready" when all three required fields are filled
+  const isRowReady = useCallback((r: MarkerRow) => {
+    return r.short_name.trim() !== "" && r.value.trim() !== "" && r.unit.trim() !== "";
+  }, []);
+
+  // A row is completely empty (no meaningful data at all)
+  const isRowEmpty = useCallback((r: MarkerRow) => {
+    return (
+      r.short_name.trim() === "" &&
+      r.value.trim() === "" &&
+      r.unit.trim() === "" &&
+      r.name_eng.trim() === "" &&
+      r.plain_name.trim() === ""
+    );
+  }, []);
+
+  // A row is "incomplete" when it has some data but is missing a required field
+  const isRowIncomplete = useCallback(
+    (r: MarkerRow) => !isRowReady(r) && !isRowEmpty(r),
+    [isRowReady, isRowEmpty]
+  );
+
+  const readyCount = rows.filter(isRowReady).length;
+  const incompleteCount = rows.filter(isRowIncomplete).length;
 
   function addPreset(preset: Omit<NewBiomarkerRow, "value">) {
     // If there's already a row for this marker, skip
@@ -135,27 +162,31 @@ export default function NewPanelPage() {
       if (data.panel_date) setPanelDate(data.panel_date);
       if (data.lab_name) setLabName(data.lab_name);
 
-      // Convert parsed markers to form rows
+      // Convert parsed markers to form rows, dropping completely empty ones
       if (data.markers && data.markers.length > 0) {
-        const newRows: MarkerRow[] = data.markers.map((m: {
-          short_name: string;
-          name_eng: string;
-          plain_name: string;
-          value: number;
-          unit: string;
-          ref_range_low: number | null;
-          ref_range_high: number | null;
-        }) => ({
-          id: crypto.randomUUID(),
-          short_name: m.short_name,
-          name_eng: m.name_eng,
-          plain_name: m.plain_name,
-          value: m.value.toString(),
-          unit: m.unit,
-          ref_range_low: m.ref_range_low?.toString() ?? "",
-          ref_range_high: m.ref_range_high?.toString() ?? "",
-        }));
-        setRows(newRows);
+        const newRows: MarkerRow[] = data.markers
+          .map((m: {
+            short_name: string;
+            name_eng: string;
+            plain_name: string;
+            value: number;
+            unit: string;
+            ref_range_low: number | null;
+            ref_range_high: number | null;
+          }) => ({
+            id: crypto.randomUUID(),
+            short_name: m.short_name || "",
+            name_eng: m.name_eng || "",
+            plain_name: m.plain_name || "",
+            value: m.value != null && !isNaN(m.value) ? m.value.toString() : "",
+            unit: m.unit || "",
+            ref_range_low: m.ref_range_low?.toString() ?? "",
+            ref_range_high: m.ref_range_high?.toString() ?? "",
+          }))
+          .filter((r: MarkerRow) => !isRowEmpty(r));
+
+        setRows(newRows.length > 0 ? newRows : [emptyRow()]);
+        setShowValidation(false);
       }
 
       setPasteMode(false);
@@ -168,11 +199,31 @@ export default function NewPanelPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return; // hard guard against double-clicks
     setError("");
 
-    const validRows = rows.filter((r) => r.short_name && r.value);
+    // Show validation highlights on all rows
+    setShowValidation(true);
+
+    // Only consider non-empty rows
+    const nonEmptyRows = rows.filter((r) => !isRowEmpty(r));
+    const validRows = nonEmptyRows.filter(isRowReady);
+
     if (validRows.length === 0) {
-      setError("Add at least one marker with a value.");
+      setError("Add at least one marker with a name, value, and unit.");
+      return;
+    }
+
+    // If there are incomplete rows, scroll to the first one and block submit
+    const firstIncomplete = nonEmptyRows.find(isRowIncomplete);
+    if (firstIncomplete) {
+      const el = rowRefs.current[firstIncomplete.id];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      setError(
+        `${incompleteCount} marker${incompleteCount === 1 ? " is" : "s are"} missing required fields (name, value, or unit). Fix or remove them before saving.`
+      );
       return;
     }
 
@@ -466,18 +517,22 @@ export default function NewPanelPage() {
               marginBottom: 20,
             }}
           >
-            {rows.map((row, i) => (
+            {rows.map((row, i) => {
+              const incomplete = showValidation && isRowIncomplete(row);
+              return (
               <motion.div
                 key={row.id}
+                ref={(el) => { rowRefs.current[row.id] = el; }}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: i * 0.03 }}
                 style={{
                   padding: "16px 18px",
-                  background: C.paper,
-                  border: `1px solid ${C.lineCard}`,
+                  background: incomplete ? C.terracottaTint : C.paper,
+                  border: `1px solid ${incomplete ? C.terracottaSoft : C.lineCard}`,
                   borderRadius: 16,
-                  boxShadow: C.shadowSoft,
+                  boxShadow: incomplete ? "none" : C.shadowSoft,
+                  transition: "background 0.2s ease, border-color 0.2s ease",
                 }}
               >
                 <div
@@ -497,7 +552,11 @@ export default function NewPanelPage() {
                         updateRow(row.id, "short_name", e.target.value)
                       }
                       placeholder="e.g. HbA1c"
-                      style={inputStyle}
+                      style={
+                        incomplete && !row.short_name.trim()
+                          ? { ...inputStyle, borderColor: C.terracotta, background: C.terracottaTint }
+                          : inputStyle
+                      }
                     />
                   </Field>
                   <Field label="Value" style={{ flex: "1 1 80px" }}>
@@ -509,7 +568,11 @@ export default function NewPanelPage() {
                         updateRow(row.id, "value", e.target.value)
                       }
                       placeholder="0.0"
-                      style={{ ...inputStyle, ...DISPLAY_NUM, fontSize: 16 }}
+                      style={
+                        incomplete && !row.value.trim()
+                          ? { ...inputStyle, ...DISPLAY_NUM, fontSize: 16, borderColor: C.terracotta, background: C.terracottaTint }
+                          : { ...inputStyle, ...DISPLAY_NUM, fontSize: 16 }
+                      }
                     />
                   </Field>
                   <Field label="Unit" style={{ flex: "1 1 80px" }}>
@@ -520,7 +583,11 @@ export default function NewPanelPage() {
                         updateRow(row.id, "unit", e.target.value)
                       }
                       placeholder="mmol/L"
-                      style={inputStyle}
+                      style={
+                        incomplete && !row.unit.trim()
+                          ? { ...inputStyle, borderColor: C.terracotta, background: C.terracottaTint }
+                          : inputStyle
+                      }
                     />
                   </Field>
                 </div>
@@ -599,7 +666,8 @@ export default function NewPanelPage() {
                   )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
 
           <button
@@ -622,6 +690,27 @@ export default function NewPanelPage() {
             + Add another marker
           </button>
 
+          {/* Marker readiness summary */}
+          {rows.filter((r) => !isRowEmpty(r)).length > 0 && (
+            <div
+              style={{
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: C.inkMuted,
+                marginBottom: 14,
+              }}
+            >
+              <span style={{ fontWeight: 600, color: readyCount > 0 ? C.good : C.inkMuted }}>
+                {readyCount} marker{readyCount !== 1 ? "s" : ""} ready
+              </span>
+              {incompleteCount > 0 && (
+                <span style={{ color: C.terracotta, fontWeight: 600 }}>
+                  {" / "}{incompleteCount} incomplete
+                </span>
+              )}
+            </div>
+          )}
+
           {error && (
             <div
               style={{
@@ -642,6 +731,7 @@ export default function NewPanelPage() {
           <button
             type="submit"
             disabled={saving}
+            onClick={saving ? (e) => e.preventDefault() : undefined}
             style={{
               padding: "14px 28px",
               fontSize: 15,
@@ -653,10 +743,12 @@ export default function NewPanelPage() {
               borderRadius: 100,
               cursor: saving ? "default" : "pointer",
               letterSpacing: "-0.005em",
+              pointerEvents: saving ? "none" : "auto",
               boxShadow: saving
                 ? "none"
                 : "0 8px 18px -8px rgba(201,87,58,0.42), 0 2px 6px rgba(201,87,58,0.2)",
-              transition: "background 0.2s ease",
+              transition: "background 0.2s ease, opacity 0.2s ease",
+              opacity: saving ? 0.6 : 1,
             }}
           >
             {saving ? "Saving..." : "Save panel"}

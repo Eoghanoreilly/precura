@@ -79,8 +79,16 @@ export async function createPanel(
   panelDate: string,
   labName: string,
   biomarkers: NewBiomarkerRow[]
-): Promise<{ panelId: string } | { error: string }> {
+): Promise<{ panelId: string; saved: number; skipped: number } | { error: string }> {
   const supabase = createClient()
+
+  // Filter out rows with NaN value or empty unit before inserting
+  const valid = biomarkers.filter(b => !isNaN(b.value) && b.unit.trim() !== '')
+  const skipped = biomarkers.length - valid.length
+
+  if (valid.length === 0) {
+    return { error: 'No valid markers to save. Every row needs a numeric value and a unit.' }
+  }
 
   const { data: panel, error: panelError } = await supabase
     .from('panels')
@@ -90,7 +98,7 @@ export async function createPanel(
 
   if (panelError || !panel) return { error: panelError?.message || 'Failed to create panel' }
 
-  const rows = biomarkers.map(b => ({
+  const rows = valid.map(b => ({
     panel_id: panel.id,
     short_name: b.short_name,
     name_swe: b.name_swe || null,
@@ -104,9 +112,13 @@ export async function createPanel(
   }))
 
   const { error: bioError } = await supabase.from('biomarkers').insert(rows)
-  if (bioError) return { error: bioError.message }
+  if (bioError) {
+    // Clean up the empty panel shell so it doesn't linger in the database
+    await supabase.from('panels').delete().eq('id', panel.id)
+    return { error: bioError.message }
+  }
 
-  return { panelId: panel.id }
+  return { panelId: panel.id, saved: valid.length, skipped }
 }
 
 function deriveStatus(

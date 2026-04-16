@@ -48,7 +48,10 @@ export default function DiscussPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const prevMessageCountRef = useRef(0);
+  const userIsNearBottomRef = useRef(true);
   const [user, setUser] = useState<Profile | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
@@ -95,10 +98,32 @@ export default function DiscussPage() {
     } catch { /* ignore */ }
   }, [messages, isStreaming]);
 
-  // Auto-scroll to bottom as messages arrive
+  // Track whether user is near the bottom of the scroll area.
+  // We only auto-scroll if they haven't scrolled up to read history.
   useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const onScroll = () => {
+      const threshold = 120;
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      userIsNearBottomRef.current = distanceFromBottom < threshold;
+    };
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Auto-scroll only when a new message is added or during streaming,
+  // and only if the user is already near the bottom.
+  useEffect(() => {
+    const newCount = messages.length;
+    const isNewMessage = newCount > prevMessageCountRef.current;
+    prevMessageCountRef.current = newCount;
+
+    if ((isNewMessage || isStreaming) && userIsNearBottomRef.current) {
+      threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isStreaming]);
 
   const send = useCallback(
     async (text: string) => {
@@ -241,36 +266,48 @@ export default function DiscussPage() {
           width: "100%",
         }}
       >
-        {messages.length === 0 ? (
-          <EmptyState onPick={send} />
-        ) : (
-          <>
-            <Header onClear={clearThread} />
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: 18,
-                paddingBottom: 24,
-              }}
+        <AnimatePresence mode="wait">
+          {messages.length === 0 ? (
+            <EmptyState key="empty" onPick={send} />
+          ) : (
+            <motion.div
+              key="thread"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              ref={scrollContainerRef}
+              style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "auto" }}
             >
-              {messages.map((m, i) => (
-                <MessageBubble
-                  key={i}
-                  role={m.role}
-                  content={m.content}
-                  isStreaming={
+              <Header onClear={clearThread} />
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 18,
+                  paddingBottom: 24,
+                }}
+              >
+                {messages.map((m, i) => {
+                  const isCurrentlyStreaming =
                     isStreaming &&
                     i === messages.length - 1 &&
-                    m.role === "assistant"
-                  }
-                />
-              ))}
-              <div ref={threadEndRef} />
-            </div>
-          </>
-        )}
+                    m.role === "assistant";
+                  return (
+                    <MessageBubble
+                      key={i}
+                      role={m.role}
+                      content={m.content}
+                      isStreaming={isCurrentlyStreaming}
+                      skipEntrance={isCurrentlyStreaming}
+                    />
+                  );
+                })}
+                <div ref={threadEndRef} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {error && <ErrorBar message={error} onDismiss={() => setError(null)} />}
 
@@ -369,7 +406,8 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.4 }}
       style={{
         flex: 1,
         display: "flex",
@@ -487,16 +525,18 @@ function MessageBubble({
   role,
   content,
   isStreaming,
+  skipEntrance,
 }: {
   role: Role;
   content: string;
   isStreaming: boolean;
+  skipEntrance: boolean;
 }) {
   const isUser = role === "user";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={skipEntrance ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
       style={{
@@ -685,6 +725,9 @@ function Composer({
         paddingTop: 16,
         paddingBottom: 8,
         marginTop: 12,
+        minHeight: 110,
+        flexShrink: 0,
+        zIndex: 10,
       }}
     >
       <div
