@@ -21,6 +21,8 @@ interface Turn {
 
 interface RequestBody {
   messages: Turn[];
+  userId?: string;
+  sessionId?: string;
 }
 
 const client = new Anthropic();
@@ -76,14 +78,28 @@ export async function POST(req: Request) {
       }
 
       try {
+        // Build system prompt: real Supabase data if userId provided, Anna mock otherwise
+        let systemPromptText: string;
+        if (body.userId) {
+          const { buildUserContext } = await import("@/lib/data/chat");
+          const { buildRealUserSystemPrompt } = await import("@/lib/discuss/system-prompt");
+          const context = await buildUserContext(body.userId);
+          systemPromptText = buildRealUserSystemPrompt(context, "there");
+        } else {
+          systemPromptText = buildAnnaSystemPrompt();
+        }
+
+        // Haiku for real users (cost-optimized), Opus for demo mode
+        const model = body.userId ? "claude-haiku-4-5-20251001" : "claude-opus-4-6";
+
         const stream = client.messages.stream({
-          model: "claude-opus-4-6",
+          model,
           max_tokens: 4096,
-          thinking: { type: "adaptive" },
+          ...(body.userId ? {} : { thinking: { type: "adaptive" } }),
           system: [
             {
               type: "text",
-              text: buildAnnaSystemPrompt(),
+              text: systemPromptText,
               cache_control: { type: "ephemeral" },
             },
           ],
@@ -97,6 +113,24 @@ export async function POST(req: Request) {
 
         // Collect the final message so we can report usage + stop_reason
         const final = await stream.finalMessage();
+
+        // Extract full text content for persistence
+        const fullContent = final.content
+          .filter((b): b is Anthropic.TextBlock => b.type === "text")
+          .map((b) => b.text)
+          .join("");
+
+        // Persist assistant message to Supabase if session provided
+        if (body.sessionId && fullContent) {
+          const { saveChatMessage } = await import("@/lib/data/chat");
+          await saveChatMessage(
+            body.sessionId,
+            "assistant",
+            fullContent,
+            final.usage.input_tokens,
+            final.usage.output_tokens
+          );
+        }
 
         emit("done", {
           stop_reason: final.stop_reason,

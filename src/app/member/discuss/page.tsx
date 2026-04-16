@@ -4,7 +4,10 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MemberShell } from "@/components/member/MemberShell";
 import { C, SYSTEM_FONT, DOCTOR } from "@/components/member/tokens";
-import { buildSidebar } from "@/components/member/data";
+import { buildSidebar, USE_REAL_DATA } from "@/components/member/data";
+import { getCurrentUser } from "@/lib/data/panels";
+import { createChatSession, saveChatMessage, getUserSessions, getSessionMessages } from "@/lib/data/chat";
+import type { Profile } from "@/lib/data/types";
 
 // ============================================================================
 // /member/discuss
@@ -23,12 +26,21 @@ interface Turn {
 
 const STORAGE_KEY = "precura-discuss-thread-v1";
 
-const SUGGESTED_QUESTIONS = [
+const SUGGESTED_QUESTIONS_REAL = [
+  "What trends do you see in my recent panels?",
+  "Which markers should I pay attention to?",
+  "How do my latest results compare to previous ones?",
+  "Is there anything I should discuss with Dr. Tomas?",
+];
+
+const SUGGESTED_QUESTIONS_MOCK = [
   "Why is my fasting glucose drifting?",
   "Am I at risk for what my mother has?",
   "Is my cholesterol actually a problem?",
   "What should I ask Dr. Tomas next time?",
 ];
+
+const SUGGESTED_QUESTIONS = USE_REAL_DATA ? SUGGESTED_QUESTIONS_REAL : SUGGESTED_QUESTIONS_MOCK;
 
 export default function DiscussPage() {
   const [messages, setMessages] = useState<Turn[]>([]);
@@ -37,32 +49,50 @@ export default function DiscussPage() {
   const [error, setError] = useState<string | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [user, setUser] = useState<Profile | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Load thread from localStorage on mount
+  // Load user and existing session on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setMessages(parsed);
+    async function init() {
+      if (!USE_REAL_DATA) {
+        // Mock mode: load from localStorage
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) setMessages(parsed);
+          }
+        } catch { /* ignore */ }
+        return;
       }
-    } catch {
-      // ignore - treat as empty thread
+
+      const u = await getCurrentUser();
+      if (!u) return;
+      setUser(u);
+
+      // Load most recent session if one exists
+      const sessions = await getUserSessions(u.id);
+      if (sessions.length > 0) {
+        const latest = sessions[0];
+        setSessionId(latest.id);
+        const msgs = await getSessionMessages(latest.id);
+        setMessages(msgs.map(m => ({ role: m.role, content: m.content })));
+      }
     }
+    init();
   }, []);
 
-  // Persist thread whenever it changes (but only if not mid-stream)
+  // Persist to localStorage in mock mode only
   useEffect(() => {
-    if (isStreaming) return;
+    if (USE_REAL_DATA || isStreaming) return;
     try {
       if (messages.length === 0) {
         localStorage.removeItem(STORAGE_KEY);
       } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, [messages, isStreaming]);
 
   // Auto-scroll to bottom as messages arrive
@@ -87,11 +117,26 @@ export default function DiscussPage() {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      // Ensure we have a session for Supabase persistence
+      let currentSessionId = sessionId;
+      if (USE_REAL_DATA && user && !currentSessionId) {
+        currentSessionId = await createChatSession(user.id);
+        setSessionId(currentSessionId);
+      }
+
+      // Save user message to Supabase
+      if (USE_REAL_DATA && currentSessionId) {
+        await saveChatMessage(currentSessionId, "user", trimmed);
+      }
+
       try {
         const response = await fetch("/api/discuss", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: nextMessages }),
+          body: JSON.stringify({
+            messages: nextMessages,
+            ...(USE_REAL_DATA && user ? { userId: user.id, sessionId: currentSessionId } : {}),
+          }),
           signal: controller.signal,
         });
 
@@ -179,15 +224,14 @@ export default function DiscussPage() {
     abortRef.current?.abort();
     setMessages([]);
     setError(null);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
+    setSessionId(null); // Next send will create a fresh session
+    if (!USE_REAL_DATA) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     }
   };
 
   return (
-    <MemberShell sidebar={buildSidebar("/member/discuss")} userInitials="A">
+    <MemberShell sidebar={buildSidebar("/member/discuss")} userInitials={user?.display_name?.[0]?.toUpperCase() || "A"}>
       <div
         style={{
           fontFamily: SYSTEM_FONT,
@@ -548,7 +592,7 @@ function Avatar({ role }: { role: Role }) {
         boxShadow: C.shadowSoft,
       }}
     >
-      {isUser ? "A" : DOCTOR.initials}
+      {isUser ? "Y" : DOCTOR.initials}
     </div>
   );
 }
