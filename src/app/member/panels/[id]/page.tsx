@@ -1066,7 +1066,7 @@ export default function PanelDetailPage() {
               <span style={{ fontSize: 16 }}>{"->"}</span>
             </a>
 
-            {/* Secondary: Ask AI */}
+            {/* Secondary: Ask Precura */}
             <a
               href="/member/discuss"
               style={{
@@ -1086,7 +1086,7 @@ export default function PanelDetailPage() {
                 letterSpacing: "-0.005em",
               }}
             >
-              Ask Precura AI about this
+              Ask Precura about this
               <span style={{ fontSize: 16, color: C.inkFaint }}>{"->"}</span>
             </a>
 
@@ -1433,6 +1433,9 @@ export default function PanelDetailPage() {
 
         {/* Responsive styles */}
         <style jsx global>{`
+          html, body {
+            background: ${C.stone};
+          }
           .panel-hero {
             display: flex;
             flex-direction: column;
@@ -1611,41 +1614,12 @@ function AttentionCard({ marker }: { marker: Biomarker }) {
       {hasRange && (
         <div style={{ marginBottom: 18 }}>
           {/* Track container */}
-          <div style={{ position: "relative", height: 52, marginBottom: 6 }}>
-            {/* "You: value" pill above the marker */}
-            <div
-              style={{
-                position: "absolute",
-                left: `${markerPct}%`,
-                transform: "translateX(-50%)",
-                top: 0,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  padding: "3px 8px",
-                  background: color,
-                  color: "#fff",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  fontFamily: MONO_FONT,
-                  borderRadius: 6,
-                  whiteSpace: "nowrap",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                You: {m.value}
-              </span>
-            </div>
-
+          <div style={{ position: "relative", height: 32, marginBottom: 6 }}>
             {/* Track */}
             <div
               style={{
                 position: "absolute",
-                top: 24,
+                top: 0,
                 left: 0,
                 right: 0,
                 height: 28,
@@ -1673,7 +1647,7 @@ function AttentionCard({ marker }: { marker: Biomarker }) {
               style={{
                 position: "absolute",
                 left: `${markerPct}%`,
-                top: 28,
+                top: 4,
                 transform: "translateX(-50%)",
                 width: 20,
                 height: 20,

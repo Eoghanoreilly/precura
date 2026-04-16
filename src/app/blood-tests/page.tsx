@@ -57,7 +57,7 @@ export default function BloodTestsPage() {
     {
       icon: Clock,
       title: "Results in 3-5 days",
-      desc: "Your results appear in Precura with AI-powered interpretation.",
+      desc: "Your results appear in Precura with expert interpretation.",
       color: "amber",
     },
   ];

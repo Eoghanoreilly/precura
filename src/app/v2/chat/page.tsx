@@ -157,7 +157,7 @@ export default function ChatPage() {
             <Sparkles size={15} style={{ color: "var(--purple)" }} />
           </div>
           <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-            Precura AI
+            Precura
           </p>
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function ChatPage() {
               style={{ color: "var(--amber-text)" }}
             />
             <p className="text-xs leading-relaxed" style={{ color: "var(--amber-text)" }}>
-              AI assistant - not medical advice. Your doctor is always available
+              Health assistant - not medical advice. Your doctor is always available
               for clinical guidance.
             </p>
           </div>

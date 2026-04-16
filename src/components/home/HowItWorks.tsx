@@ -393,7 +393,7 @@ function TeamIllustration() {
   const people = [
     { initials: "MJ", role: "Doctor", bg: C.sageDeep },
     { initials: "LK", role: "Coach", bg: C.terracotta },
-    { initials: "AI", role: "Chat", bg: C.ink },
+    { initials: "PC", role: "Chat", bg: C.ink },
   ];
   return (
     <div

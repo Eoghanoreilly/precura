@@ -164,7 +164,7 @@ export default function ChatPage() {
           </div>
           <div>
             <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-              Precura AI
+              Precura
             </p>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
               Health assistant

@@ -399,7 +399,7 @@ export default function NewPanelPage() {
               Paste your blood test report
             </div>
             <p style={{ fontSize: 13, lineHeight: 1.5, color: C.inkMuted, margin: "0 0 14px" }}>
-              Paste the text from your lab report, email, PDF, or screenshot. AI will extract the markers, values, and reference ranges.
+              Paste the text from your lab report, email, PDF, or screenshot. Precura will extract the markers, values, and reference ranges.
             </p>
             <textarea
               value={pasteText}

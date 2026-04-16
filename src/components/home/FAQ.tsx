@@ -24,8 +24,8 @@ export function FAQ() {
       a: "Yes. Dr. Tomas Kurakovas is a Karolinska-trained GP with over 15 years in primary care, licensed by Socialstyrelsen. He personally reviews every new member's baseline panel, writes the first note, and replies to messages within 24 hours (12 hours on Plus). You see his face, you see his handwriting, you can book a call.",
     },
     {
-      q: "Is the coaching real coaching or just an AI bot?",
-      a: "Real coaching. Your Member plan includes a certified human coach who builds a training plan around your actual blood markers, checks in every week, and adjusts the plan based on your numbers. The AI chat is separate, and it is there for quick questions about your data. The plan itself is written by a person.",
+      q: "Is the coaching real coaching or just a bot?",
+      a: "Real coaching. Your Member plan includes a certified human coach who builds a training plan around your actual blood markers, checks in every week, and adjusts the plan based on your numbers. The chat assistant is separate, and it is there for quick questions about your data. The plan itself is written by a person.",
     },
     {
       q: "Where does my health data live? Is it safe?",

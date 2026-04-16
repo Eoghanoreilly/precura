@@ -152,7 +152,7 @@ export default function ProviderPatientPage() {
               <Sparkles size={13} style={{ color: "var(--accent)" }} />
             </div>
             <p className="text-sm font-bold" style={{ color: "var(--accent)" }}>
-              AI Patient Summary
+              Patient Summary
             </p>
           </div>
 
@@ -259,7 +259,7 @@ export default function ProviderPatientPage() {
             >
               <div className="flex items-center gap-1.5 mb-2">
                 <Sparkles size={10} style={{ color: "var(--accent)" }} />
-                <span className="text-[10px] font-semibold" style={{ color: "var(--accent)" }}>AI Response</span>
+                <span className="text-[10px] font-semibold" style={{ color: "var(--accent)" }}>Response</span>
               </div>
               <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                 {MOCK_AI_RESPONSE}

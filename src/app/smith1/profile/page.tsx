@@ -238,7 +238,7 @@ export default function ProfilePage() {
                 fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
               }}
             >
-              Includes: 2 comprehensive blood tests/year, doctor review of every result, unlimited messaging, AI health assistant, personalized training plan
+              Includes: 2 comprehensive blood tests/year, doctor review of every result, unlimited messaging, health assistant, personalized training plan
             </div>
           </div>
 

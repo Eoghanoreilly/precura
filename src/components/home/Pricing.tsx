@@ -33,7 +33,7 @@ export function Pricing() {
       features: [
         { text: "1 blood panel per year", included: true },
         { text: "Baseline living profile", included: true },
-        { text: "AI chat with your data", included: true },
+        { text: "Chat with your data", included: true },
         { text: "Doctor-reviewed first note", included: true },
         { text: "Ongoing messaging with Dr. Tomas", included: false },
         { text: "Personal coach + training plan", included: false },
@@ -59,7 +59,7 @@ export function Pricing() {
       features: [
         { text: "4 blood panels per year", included: true },
         { text: "Full living profile + 5-year arcs", included: true },
-        { text: "Unlimited AI chat with your data", included: true },
+        { text: "Unlimited chat with your data", included: true },
         { text: "Messaging with Dr. Tomas (24h reply)", included: true },
         { text: "Personal coach + training plan", included: true },
         { text: "Quarterly trajectory reviews", included: true },

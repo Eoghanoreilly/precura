@@ -1338,7 +1338,7 @@ export default function Smith9Dashboard() {
 
           {/* --- AI Patient Summary --- */}
           <Panel>
-            <PanelHeader title="AI Patient Summary" />
+            <PanelHeader title="Patient Summary" />
             <p style={{ fontSize: 11, color: T.textSec, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>
               {AI_PATIENT_SUMMARY}
             </p>

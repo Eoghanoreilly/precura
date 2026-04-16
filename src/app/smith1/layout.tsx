@@ -22,7 +22,7 @@ const NAV_ITEMS = [
   { href: "/smith1/results", label: "Latest Results", icon: Activity },
   { href: "/smith1/risk", label: "Risk Models", icon: Shield },
   { href: "/smith1/messages", label: "Doctor Chat", icon: MessageSquare },
-  { href: "/smith1/chat", label: "AI Assistant", icon: Bot },
+  { href: "/smith1/chat", label: "Health Assistant", icon: Bot },
   { href: "/smith1/training", label: "Training Plan", icon: Dumbbell },
   { href: "/smith1/profile", label: "Profile", icon: User },
 ];

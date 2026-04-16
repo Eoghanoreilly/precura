@@ -865,7 +865,7 @@ export default function DashboardPage() {
                 },
                 {
                   href: "/smith1/chat",
-                  label: "Ask AI Assistant",
+                  label: "Ask Health Assistant",
                   icon: Shield,
                   color: "#7C3AED",
                 },

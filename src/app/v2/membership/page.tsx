@@ -76,9 +76,9 @@ export default function MembershipPage() {
         <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 12 }}>How we compare</p>
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", marginBottom: 32, boxShadow: "var(--shadow-sm)" }}>
           {[
-            { name: "Precura", price: "2,995 SEK/yr", features: ["Risk prediction", "2 blood tests/yr", "Doctor review", "AI chat", "Training plan", "1177 integration"], highlight: true },
+            { name: "Precura", price: "2,995 SEK/yr", features: ["Risk prediction", "2 blood tests/yr", "Doctor review", "Health chat", "Training plan", "1177 integration"], highlight: true },
             { name: "Werlabs single test", price: "~1,500 SEK", features: ["Blood test only", "No interpretation", "No doctor", "No follow-up"], highlight: false },
-            { name: "Function Health (US)", price: "~3,800 SEK/yr", features: ["Blood tests", "AI analysis", "Not in Europe", "No doctor", "No training"], highlight: false },
+            { name: "Function Health (US)", price: "~3,800 SEK/yr", features: ["Blood tests", "Automated analysis", "Not in Europe", "No doctor", "No training"], highlight: false },
           ].map((comp, i) => (
             <div key={comp.name} style={{ padding: "14px 16px", borderBottom: i < 2 ? "1px solid var(--divider)" : "none", background: comp.highlight ? "var(--accent-light)" : "transparent" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>

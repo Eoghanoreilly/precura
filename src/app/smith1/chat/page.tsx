@@ -210,7 +210,7 @@ export default function ChatPage() {
                 fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
               }}
             >
-              AI powered - trained on your health history
+              Trained on your health history
             </p>
           </div>
         </div>

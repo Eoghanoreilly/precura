@@ -6,7 +6,7 @@ import { MessageCircle, TestTube, Calendar } from "lucide-react";
 const actions = [
   {
     href: "/chat",
-    label: "Ask AI",
+    label: "Ask Precura",
     icon: MessageCircle,
     color: "purple",
     bg: "#ede7f6",

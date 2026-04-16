@@ -426,7 +426,7 @@ export default function V2Dashboard() {
       {chatOpen && (
         <div style={{ position: "fixed", bottom: 88, right: 20, width: "calc(100% - 40px)", maxWidth: 380, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 20, boxShadow: "var(--shadow-lg)", zIndex: 49 }}>
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--divider)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Sparkles size={16} style={{ color: "var(--accent)" }} /><span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Precura AI</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Sparkles size={16} style={{ color: "var(--accent)" }} /><span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Precura</span></div>
             <Link href="/v2/doctor" style={{ fontSize: 11, fontWeight: 600, color: "var(--accent)", textDecoration: "none" }}>Message Doctor</Link>
           </div>
           <div style={{ padding: "12px 16px" }}>
