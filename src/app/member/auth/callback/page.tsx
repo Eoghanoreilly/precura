@@ -16,14 +16,21 @@ export default function AuthCallbackPage() {
       const supabase = createClient();
 
       // Check for hash fragment tokens (magic link / OTP verify redirect)
-      const hash = window.location.hash;
+      const hash = window.location.hash.substring(1);
       if (hash && hash.includes("access_token")) {
-        // Supabase client auto-detects hash tokens on init,
-        // but we call getSession to make sure cookies are set
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session && !error) {
-          router.replace("/member");
-          return;
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!error) {
+            router.replace("/member");
+            return;
+          }
         }
       }
 
