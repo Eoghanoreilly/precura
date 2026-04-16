@@ -33,15 +33,13 @@ export async function POST(req: Request) {
     },
   });
 
-  if (error || !data?.properties?.hashed_token) {
+  if (error || !data?.properties?.action_link) {
+    console.error("[dev-login] generateLink failed:", error?.message, JSON.stringify(data));
     return Response.json(
       { error: error?.message || "Failed to generate link." },
       { status: 500 }
     );
   }
 
-  // Build the verification URL that Supabase Auth expects
-  const verifyUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify?token=${data.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(new URL("/member/auth/callback", req.url).origin + "/member/auth/callback")}`;
-
-  return Response.json({ url: verifyUrl });
+  return Response.json({ url: data.properties.action_link });
 }
