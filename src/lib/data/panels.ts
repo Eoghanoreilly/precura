@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { lookupMarkerDefaults } from '@/lib/data/marker-defaults'
 import type { PanelWithBiomarkers, Biomarker, MarkerHistory, Profile } from './types'
 
 export async function getPanels(userId: string): Promise<PanelWithBiomarkers[]> {
@@ -88,6 +89,23 @@ export async function createPanel(
 
   if (valid.length === 0) {
     return { error: 'No valid markers to save. Every row needs a numeric value and a unit.' }
+  }
+
+  // Fill gaps in unit and reference ranges from the Swedish defaults lookup table.
+  // This is the last-resort gap-filler before database insert.
+  for (const b of valid) {
+    const defaults = lookupMarkerDefaults(b.short_name)
+    if (!defaults) continue
+
+    if (!b.unit.trim()) {
+      b.unit = defaults.unit
+    }
+    if (b.ref_range_low === null && defaults.ref_low !== null) {
+      b.ref_range_low = defaults.ref_low
+    }
+    if (b.ref_range_high === null && defaults.ref_high !== null) {
+      b.ref_range_high = defaults.ref_high
+    }
   }
 
   const { data: panel, error: panelError } = await supabase

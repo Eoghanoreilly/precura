@@ -251,7 +251,7 @@ export default function NewPanelPage() {
       setError(result.error);
       setSaving(false);
     } else {
-      router.push("/member/panels");
+      router.push(`/member/panels/${result.panelId}`);
     }
   }
 
