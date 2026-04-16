@@ -360,7 +360,7 @@ function Header({ onClear }: { onClear: () => void }) {
             margin: 0,
           }}
         >
-          Your specialist,{" "}
+          Precura AI{" "}
           <span
             style={{
               color: C.inkMuted,
@@ -369,7 +369,7 @@ function Header({ onClear }: { onClear: () => void }) {
               fontWeight: 500,
             }}
           >
-            has read your file.
+            is reviewing your data.
           </span>
         </h1>
       </div>
@@ -439,7 +439,7 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
           marginBottom: 14,
         }}
       >
-        Ask anything about your file.{" "}
+        Ask anything about your health data.{" "}
         <span
           style={{
             color: C.inkMuted,
@@ -448,7 +448,7 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
             fontWeight: 500,
           }}
         >
-          Your specialist has read all of it.
+          Precura AI has read your panels.
         </span>
       </h1>
       <p
@@ -457,15 +457,27 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
           lineHeight: 1.6,
           color: C.inkMuted,
           margin: 0,
-          marginBottom: 32,
+          marginBottom: 12,
           maxWidth: 560,
         }}
       >
-        Every panel since 2021, every note from Dr. Tomas, every message, your
-        family history, your training plan. The assistant has read all of it
-        and will cite specific markers and dates when answering. It will not
-        invent numbers, and it will offer to draft a message to Dr. Tomas
-        whenever the answer needs a human.
+        Precura AI reviews every blood panel and annotation you've uploaded.
+        It will cite specific markers and dates when answering and won't
+        invent numbers. This is not Dr. Tomas - it's an AI assistant.
+      </p>
+      <p
+        style={{
+          fontSize: 14,
+          lineHeight: 1.5,
+          color: C.inkFaint,
+          margin: 0,
+          marginBottom: 32,
+          maxWidth: 560,
+          fontStyle: "italic",
+          fontFamily: 'Georgia, "Times New Roman", serif',
+        }}
+      >
+        Want to talk to Dr. Tomas directly? Ask the AI to set up a consultation.
       </p>
       <div
         style={{
@@ -564,7 +576,7 @@ function MessageBubble({
             textAlign: isUser ? "right" : "left",
           }}
         >
-          {isUser ? "You" : "Your specialist"}
+          {isUser ? "You" : "Precura AI"}
         </div>
         <div
           style={{
@@ -804,8 +816,8 @@ function Composer({
           fontFamily: 'Georgia, "Times New Roman", serif',
         }}
       >
-        Your specialist has your full file. It won't invent numbers, and it
-        will tell you when to ask Dr. Tomas instead.
+        Precura AI reviews your uploaded panels. It won't invent numbers.
+        Not a substitute for medical advice from Dr. Tomas.
       </div>
     </form>
   );
