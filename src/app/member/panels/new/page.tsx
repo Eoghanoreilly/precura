@@ -62,6 +62,9 @@ export default function NewPanelPage() {
   const [rows, setRows] = useState<MarkerRow[]>([emptyRow()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [pasteMode, setPasteMode] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [parsing, setParsing] = useState(false);
 
   function addPreset(preset: Omit<NewBiomarkerRow, "value">) {
     // If there's already a row for this marker, skip
@@ -107,6 +110,60 @@ export default function NewPanelPage() {
   function removeRow(id: string) {
     if (rows.length === 1) return;
     setRows(rows.filter((r) => r.id !== id));
+  }
+
+  async function handleParse() {
+    if (!pasteText.trim()) return;
+    setParsing(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/parse-panel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: pasteText }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to parse.");
+        setParsing(false);
+        return;
+      }
+
+      // Fill in date and lab if parsed
+      if (data.panel_date) setPanelDate(data.panel_date);
+      if (data.lab_name) setLabName(data.lab_name);
+
+      // Convert parsed markers to form rows
+      if (data.markers && data.markers.length > 0) {
+        const newRows: MarkerRow[] = data.markers.map((m: {
+          short_name: string;
+          name_eng: string;
+          plain_name: string;
+          value: number;
+          unit: string;
+          ref_range_low: number | null;
+          ref_range_high: number | null;
+        }) => ({
+          id: crypto.randomUUID(),
+          short_name: m.short_name,
+          name_eng: m.name_eng,
+          plain_name: m.plain_name,
+          value: m.value.toString(),
+          unit: m.unit,
+          ref_range_low: m.ref_range_low?.toString() ?? "",
+          ref_range_high: m.ref_range_high?.toString() ?? "",
+        }));
+        setRows(newRows);
+      }
+
+      setPasteMode(false);
+      setPasteText("");
+    } catch {
+      setError("Failed to parse the report. Try again or enter markers manually.");
+    }
+    setParsing(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -199,6 +256,128 @@ export default function NewPanelPage() {
             name and value are required.
           </p>
         </motion.div>
+
+        {/* Paste or manual toggle */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+          <button
+            type="button"
+            onClick={() => setPasteMode(false)}
+            style={{
+              padding: "9px 18px",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: SYSTEM_FONT,
+              color: !pasteMode ? C.canvasSoft : C.inkSoft,
+              background: !pasteMode ? C.ink : "transparent",
+              border: `1px solid ${!pasteMode ? C.ink : C.lineCard}`,
+              borderRadius: 100,
+              cursor: "pointer",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            Manual entry
+          </button>
+          <button
+            type="button"
+            onClick={() => setPasteMode(true)}
+            style={{
+              padding: "9px 18px",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: SYSTEM_FONT,
+              color: pasteMode ? C.canvasSoft : C.inkSoft,
+              background: pasteMode ? C.ink : "transparent",
+              border: `1px solid ${pasteMode ? C.ink : C.lineCard}`,
+              borderRadius: 100,
+              cursor: "pointer",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            Paste report
+          </button>
+        </div>
+
+        {pasteMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              padding: "22px 24px",
+              background: C.paper,
+              border: `1px solid ${C.lineCard}`,
+              borderRadius: 18,
+              boxShadow: C.shadowSoft,
+              marginBottom: 28,
+            }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 600, color: C.inkMuted, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 10 }}>
+              Paste your blood test report
+            </div>
+            <p style={{ fontSize: 13, lineHeight: 1.5, color: C.inkMuted, margin: "0 0 14px" }}>
+              Paste the text from your lab report, email, PDF, or screenshot. AI will extract the markers, values, and reference ranges.
+            </p>
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              placeholder={"Paste your blood test results here...\n\nExample:\nfP-Glukos  5.4 mmol/L  (ref 4.0-6.0)\nHbA1c  38 mmol/mol  (ref 27-42)\nKolesterol  5.2 mmol/L  (ref 3.0-5.0)"}
+              rows={8}
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                fontSize: 14,
+                fontFamily: '"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace',
+                color: C.ink,
+                background: C.canvasSoft,
+                border: `1px solid ${C.lineCard}`,
+                borderRadius: 12,
+                outline: "none",
+                boxSizing: "border-box",
+                resize: "vertical",
+                lineHeight: 1.6,
+              }}
+            />
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <button
+                type="button"
+                onClick={handleParse}
+                disabled={parsing || !pasteText.trim()}
+                style={{
+                  padding: "12px 24px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: SYSTEM_FONT,
+                  color: C.canvasSoft,
+                  background: parsing || !pasteText.trim() ? C.stone : C.terracotta,
+                  border: "none",
+                  borderRadius: 100,
+                  cursor: parsing || !pasteText.trim() ? "default" : "pointer",
+                  boxShadow: parsing || !pasteText.trim() ? "none" : "0 6px 14px -6px rgba(201,87,58,0.4)",
+                }}
+              >
+                {parsing ? "Parsing..." : "Extract markers"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPasteMode(false); setPasteText(""); }}
+                style={{
+                  padding: "12px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: SYSTEM_FONT,
+                  color: C.inkMuted,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  textDecorationColor: C.stone,
+                  textUnderlineOffset: 3,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {/* Panel metadata */}
