@@ -246,6 +246,74 @@ function LoginContent() {
                 ? "Sending..."
                 : "Send magic link"}
             </button>
+
+            {/* Dev quick login - skip the email round-trip */}
+            <div
+              style={{
+                marginTop: 16,
+                paddingTop: 16,
+                borderTop: `1px solid ${C.lineSoft}`,
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: C.inkFaint,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  marginBottom: 10,
+                }}
+              >
+                Dev quick login
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["eoghan@vestego.com"].map((devEmail) => (
+                  <button
+                    key={devEmail}
+                    type="button"
+                    disabled={status === "sending"}
+                    onClick={async () => {
+                      setStatus("sending");
+                      setErrorMsg("");
+                      try {
+                        const res = await fetch("/api/dev-login", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: devEmail }),
+                        });
+                        const data = await res.json();
+                        if (data.url) {
+                          window.location.href = data.url;
+                        } else {
+                          setStatus("error");
+                          setErrorMsg(data.error || "Dev login failed.");
+                        }
+                      } catch {
+                        setStatus("error");
+                        setErrorMsg("Dev login failed.");
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "10px 14px",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      fontFamily: SYSTEM_FONT,
+                      color: C.inkSoft,
+                      background: C.canvasSoft,
+                      border: `1px solid ${C.lineCard}`,
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      letterSpacing: "-0.005em",
+                    }}
+                  >
+                    {devEmail.split("@")[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
           </form>
         )}
 
