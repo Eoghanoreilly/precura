@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { label: "Home", href: "/member" },
   { label: "Discuss", href: "/member/discuss" },
   { label: "Blood panels", href: "/member/panels" },
-  { label: "Doctor messages", href: "/member/messages" },
+  { label: "Notes", href: "/member/messages" },
   { label: "Training", href: "/member/training" },
   { label: "Settings", href: "/member/profile" },
 ];
