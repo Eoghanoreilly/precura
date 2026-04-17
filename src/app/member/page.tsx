@@ -1115,22 +1115,42 @@ function StateB({
       {/* Doctor progress */}
       <DoctorProgressTrack />
 
-      {/* Passive next step */}
-      <div style={{ marginTop: 20 }}>
-        <div
+      {/* Actions */}
+      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+        <a
+          href="/member/discuss"
           style={{
-            padding: "18px 22px",
+            display: "block",
+            padding: "14px 24px",
             background: C.canvasSoft,
             border: `1px solid ${C.lineCard}`,
             borderRadius: 14,
             fontSize: 14,
-            color: C.inkMuted,
-            lineHeight: 1.5,
+            color: C.ink,
+            textDecoration: "none",
+            fontFamily: SYSTEM_FONT,
+            textAlign: "center",
           }}
         >
-          Your results are with Dr. {DOCTOR.firstName}. We&apos;ll notify you
-          when his notes are ready.
-        </div>
+          Ask Precura about your results
+        </a>
+        <a
+          href="/member/panels/new"
+          style={{
+            display: "block",
+            padding: "14px 24px",
+            background: C.canvasSoft,
+            border: `1px solid ${C.lineCard}`,
+            borderRadius: 14,
+            fontSize: 14,
+            color: C.ink,
+            textDecoration: "none",
+            fontFamily: SYSTEM_FONT,
+            textAlign: "center",
+          }}
+        >
+          Add another blood panel
+        </a>
       </div>
     </motion.div>
   );
