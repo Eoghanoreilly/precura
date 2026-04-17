@@ -3625,6 +3625,7 @@ function AdaptiveHomeView() {
         html,
         body {
           background: ${C.stone};
+          overflow-x: hidden;
         }
         @keyframes spin {
           to {
@@ -3658,6 +3659,8 @@ function AdaptiveHomeView() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 8px;
+          max-width: 100%;
+          overflow: hidden;
         }
         @media (min-width: 768px) {
           .stateb-grid {
@@ -3747,6 +3750,7 @@ function MockDemoView() {
         html,
         body {
           background: ${C.stone};
+          overflow-x: hidden;
         }
       `}</style>
     </MemberShell>
