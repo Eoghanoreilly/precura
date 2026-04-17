@@ -156,8 +156,9 @@ function determineState(
     return "G";
   }
 
-  // F: New results (panel created in last 7 days, no doctor annotation on it yet)
+  // F: New results (panel created in last 7 days, 2+ panels to compare, no doctor annotation on it yet)
   if (
+    panels.length >= 2 &&
     latestPanelDate > sevenDaysAgo &&
     latestPanelDoctorNotes.length === 0
   ) {
