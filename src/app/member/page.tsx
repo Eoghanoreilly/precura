@@ -643,45 +643,43 @@ function SystemsGrid({
   }
 
   return (
-    <div className="systems-grid">
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {systems.map((s) => {
         const isOpen = expanded === s.name;
         const markers = getMarkersForSystem(s.name);
         return (
           <div key={s.name}>
             <div
-              onClick={() => setExpanded(isOpen ? null : s.name)}
+              onClick={() => markers.length > 0 && setExpanded(isOpen ? null : s.name)}
               style={{
-                padding: "12px 14px",
-                background: s.flagged
-                  ? C.terracottaTint
-                  : "rgba(255,255,255,0.7)",
-                borderRadius: isOpen ? "12px 12px 0 0" : 12,
-                fontSize: 15,
-                color: s.flagged ? C.terracottaDeep : C.sageDeep,
+                padding: "14px 18px",
+                background: s.flagged ? C.terracottaTint : "white",
+                border: `1px solid ${s.flagged ? C.terracottaSoft : C.lineCard}`,
+                borderRadius: isOpen ? "14px 14px 0 0" : 14,
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
+                gap: 10,
                 cursor: markers.length > 0 ? "pointer" : "default",
-                transition: "border-radius 0.2s",
+                transition: "border-radius 0.15s",
               }}
             >
-              <span
+              <div
                 style={{
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: s.flagged ? C.caution : C.good,
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: s.flagged ? C.caution : C.good,
+                  flexShrink: 0,
                 }}
-              >
-                {s.flagged ? "!" : "\u2713"}
+              />
+              <span style={{ fontSize: 15, fontWeight: 500, color: C.ink, flex: 1 }}>
+                {s.name}
               </span>
-              {s.name}
               <span
                 style={{
-                  marginLeft: "auto",
                   ...DISPLAY_NUM,
-                  fontSize: 12,
-                  color: s.flagged ? C.terracotta : C.sage,
+                  fontSize: 13,
+                  color: s.flagged ? C.caution : C.inkFaint,
                 }}
               >
                 {s.count}
@@ -689,10 +687,11 @@ function SystemsGrid({
               {markers.length > 0 && (
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: 10,
                     color: C.inkFaint,
                     transform: isOpen ? "rotate(180deg)" : "rotate(0)",
                     transition: "transform 0.2s",
+                    marginLeft: 2,
                   }}
                 >
                   &#9662;
@@ -702,42 +701,39 @@ function SystemsGrid({
             {isOpen && markers.length > 0 && (
               <div
                 style={{
-                  background: s.flagged
-                    ? C.terracottaTint
-                    : "rgba(255,255,255,0.7)",
-                  borderRadius: "0 0 12px 12px",
-                  padding: "4px 14px 10px",
-                  borderTop: `1px solid ${s.flagged ? C.terracottaSoft : C.sageSoft}`,
+                  background: s.flagged ? C.terracottaTint : "white",
+                  border: `1px solid ${s.flagged ? C.terracottaSoft : C.lineCard}`,
+                  borderTop: "none",
+                  borderRadius: "0 0 14px 14px",
+                  padding: "2px 18px 12px",
                 }}
               >
-                {markers.map((m) => (
+                {markers.map((m, i) => (
                   <div
                     key={m.id}
                     style={{
                       display: "flex",
                       alignItems: "baseline",
                       justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: `1px solid ${s.flagged ? "rgba(239,181,155,0.3)" : "rgba(203,218,204,0.4)"}`,
-                      gap: 8,
+                      padding: "10px 0",
+                      borderBottom: i < markers.length - 1 ? `1px solid ${C.lineSoft}` : "none",
+                      gap: 10,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
                       <div
                         style={{
                           width: 6,
                           height: 6,
                           borderRadius: "50%",
                           background:
-                            m.status === "normal"
-                              ? C.good
-                              : m.status === "borderline"
-                                ? C.caution
-                                : C.risk,
+                            m.status === "normal" ? C.good
+                              : m.status === "borderline" ? C.caution
+                              : C.risk,
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ fontSize: 13, color: C.ink }}>
+                      <span style={{ fontSize: 14, color: C.ink }}>
                         {m.plain_name || m.name_eng || m.short_name}
                       </span>
                     </div>
@@ -745,18 +741,16 @@ function SystemsGrid({
                       <span
                         style={{
                           ...DISPLAY_NUM,
-                          fontSize: 14,
+                          fontSize: 15,
                           color:
-                            m.status === "normal"
-                              ? C.good
-                              : m.status === "borderline"
-                                ? C.caution
-                                : C.risk,
+                            m.status === "normal" ? C.ink
+                              : m.status === "borderline" ? C.caution
+                              : C.risk,
                         }}
                       >
                         {m.value}
                       </span>
-                      <span style={{ fontSize: 11, color: C.inkFaint, marginLeft: 3 }}>
+                      <span style={{ fontSize: 11, color: C.inkFaint, marginLeft: 4 }}>
                         {m.unit}
                       </span>
                     </div>
