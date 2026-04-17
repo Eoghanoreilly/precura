@@ -199,7 +199,75 @@ function getPlainName(shortName: string, biomarker?: Biomarker): string {
 }
 
 function getCategoryForMarker(shortName: string): string {
-  return CATEGORY_MAP[shortName] || "Other";
+  // Direct match first
+  if (CATEGORY_MAP[shortName]) return CATEGORY_MAP[shortName];
+
+  // Strip Swedish specimen prefixes (P-, fP-, S-, B-, Pt-, Erc(B)-) and try again
+  const stripped = shortName
+    .replace(/^(fP-|Erc\(B\)-|Pt-|P-|S-|B-|U-)/, "")
+    .trim();
+  if (CATEGORY_MAP[stripped]) return CATEGORY_MAP[stripped];
+
+  // Lowercase fuzzy matching for common variants
+  const lower = stripped.toLowerCase();
+  const FUZZY: Record<string, string> = {
+    "alat": "Liver",
+    "asat": "Liver",
+    "ggt": "Liver",
+    "alp": "Liver",
+    "bilirubin": "Liver",
+    "kolesterol": "Cholesterol",
+    "ldl-kolesterol": "Cholesterol",
+    "hdl-kolesterol": "Cholesterol",
+    "triglycerid": "Cholesterol",
+    "triglycerider": "Cholesterol",
+    "apolipoprotein a1": "Cholesterol",
+    "apolipoprotein b": "Cholesterol",
+    "apo b/apo a1": "Cholesterol",
+    "glukos": "Blood sugar",
+    "hba1c": "Blood sugar",
+    "tsh": "Thyroid",
+    "t4, fritt": "Thyroid",
+    "t3, fritt": "Thyroid",
+    "ft4": "Thyroid",
+    "ft3": "Thyroid",
+    "kreatinin": "Kidney",
+    "egfr": "Kidney",
+    "cystatin": "Kidney",
+    "hemoglobin": "Iron / blood",
+    "ferritin": "Iron / blood",
+    "järn": "Iron / blood",
+    "jarn": "Iron / blood",
+    "kobalamin": "Iron / blood",
+    "b12": "Iron / blood",
+    "folat": "Iron / blood",
+    "erytrocyter": "Iron / blood",
+    "evf": "Iron / blood",
+    "mch": "Iron / blood",
+    "mcv": "Iron / blood",
+    "leukocyter": "Iron / blood",
+    "trombocyter": "Iron / blood",
+    "crp": "Inflammation",
+    "sr": "Inflammation",
+    "testosteron": "Hormones",
+    "shbg": "Hormones",
+    "igf-1": "Hormones",
+    "kortisol": "Hormones",
+    "psa": "Hormones",
+    "25-oh vitamin d": "Vitamins",
+    "d-vitamin": "Vitamins",
+    "vitamin d": "Vitamins",
+    "natrium": "Minerals",
+    "kalium": "Minerals",
+    "kalcium": "Minerals",
+    "calcium": "Minerals",
+    "magnesium": "Minerals",
+    "urat": "Minerals",
+    "homocystein": "Other",
+  };
+
+  if (FUZZY[lower]) return FUZZY[lower];
+  return "Other";
 }
 
 function groupBiomarkersBySystem(
