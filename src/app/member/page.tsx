@@ -560,47 +560,145 @@ function PillDot({ color }: { color: string }) {
 
 function SystemsGrid({
   systems,
+  biomarkers,
 }: {
   systems: { name: string; count: number; flagged: boolean }[];
+  biomarkers?: Biomarker[];
 }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  function getMarkersForSystem(systemName: string): Biomarker[] {
+    if (!biomarkers) return [];
+    return biomarkers.filter(
+      (b) => getCategoryForMarker(b.short_name) === systemName
+    );
+  }
+
   return (
     <div className="systems-grid">
-      {systems.map((s) => (
-        <div
-          key={s.name}
-          style={{
-            padding: "12px 14px",
-            background: s.flagged ? C.terracottaTint : "rgba(255,255,255,0.7)",
-            borderRadius: 12,
-            fontSize: 15,
-            color: s.flagged ? C.terracottaDeep : C.sageDeep,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: 15,
-              color: s.flagged ? C.caution : C.good,
-            }}
-          >
-            {s.flagged ? "!" : "\u2713"}
-          </span>
-          {s.name}
-          <span
-            style={{
-              marginLeft: "auto",
-              ...DISPLAY_NUM,
-              fontSize: 12,
-              color: s.flagged ? C.terracotta : C.sage,
-            }}
-          >
-            {s.count}
-          </span>
-        </div>
-      ))}
+      {systems.map((s) => {
+        const isOpen = expanded === s.name;
+        const markers = getMarkersForSystem(s.name);
+        return (
+          <div key={s.name}>
+            <div
+              onClick={() => setExpanded(isOpen ? null : s.name)}
+              style={{
+                padding: "12px 14px",
+                background: s.flagged
+                  ? C.terracottaTint
+                  : "rgba(255,255,255,0.7)",
+                borderRadius: isOpen ? "12px 12px 0 0" : 12,
+                fontSize: 15,
+                color: s.flagged ? C.terracottaDeep : C.sageDeep,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: markers.length > 0 ? "pointer" : "default",
+                transition: "border-radius 0.2s",
+              }}
+            >
+              <span
+                style={{
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: s.flagged ? C.caution : C.good,
+                }}
+              >
+                {s.flagged ? "!" : "\u2713"}
+              </span>
+              {s.name}
+              <span
+                style={{
+                  marginLeft: "auto",
+                  ...DISPLAY_NUM,
+                  fontSize: 12,
+                  color: s.flagged ? C.terracotta : C.sage,
+                }}
+              >
+                {s.count}
+              </span>
+              {markers.length > 0 && (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: C.inkFaint,
+                    transform: isOpen ? "rotate(180deg)" : "rotate(0)",
+                    transition: "transform 0.2s",
+                  }}
+                >
+                  &#9662;
+                </span>
+              )}
+            </div>
+            {isOpen && markers.length > 0 && (
+              <div
+                style={{
+                  background: s.flagged
+                    ? C.terracottaTint
+                    : "rgba(255,255,255,0.7)",
+                  borderRadius: "0 0 12px 12px",
+                  padding: "4px 14px 10px",
+                  borderTop: `1px solid ${s.flagged ? C.terracottaSoft : C.sageSoft}`,
+                }}
+              >
+                {markers.map((m) => (
+                  <div
+                    key={m.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      padding: "8px 0",
+                      borderBottom: `1px solid ${s.flagged ? "rgba(239,181,155,0.3)" : "rgba(203,218,204,0.4)"}`,
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background:
+                            m.status === "normal"
+                              ? C.good
+                              : m.status === "borderline"
+                                ? C.caution
+                                : C.risk,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ fontSize: 13, color: C.ink }}>
+                        {m.plain_name || m.name_eng || m.short_name}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <span
+                        style={{
+                          ...DISPLAY_NUM,
+                          fontSize: 14,
+                          color:
+                            m.status === "normal"
+                              ? C.good
+                              : m.status === "borderline"
+                                ? C.caution
+                                : C.risk,
+                        }}
+                      >
+                        {m.value}
+                      </span>
+                      <span style={{ fontSize: 11, color: C.inkFaint, marginLeft: 3 }}>
+                        {m.unit}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1171,7 +1269,7 @@ function StateB({
               />
               {inRange} markers in healthy range
             </div>
-            <SystemsGrid systems={systems} />
+            <SystemsGrid systems={systems} biomarkers={panel.biomarkers} />
           </div>
         </div>
 
@@ -1525,7 +1623,7 @@ function StateC({
           />
           {inRange} markers in healthy range
         </div>
-        <SystemsGrid systems={systems} />
+        <SystemsGrid systems={systems} biomarkers={panel.biomarkers} />
       </div>
 
       {/* Next steps */}
@@ -1900,7 +1998,7 @@ function StateD({
               />
               Body systems
             </div>
-            <SystemsGrid systems={systems} />
+            <SystemsGrid systems={systems} biomarkers={panels.flatMap(p => p.biomarkers)} />
           </div>
 
           {/* Doctor review history */}
@@ -2566,7 +2664,7 @@ function StateF({
           {total} markers / {inRange} in range
           {borderline > 0 ? ` / ${borderline} borderline` : ""}
         </div>
-        <SystemsGrid systems={systems} />
+        <SystemsGrid systems={systems} biomarkers={panels.flatMap(p => p.biomarkers)} />
       </div>
 
       {/* CTAs */}
