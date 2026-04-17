@@ -1,8 +1,10 @@
 # Precura - Project Handover Document
 
-**Date:** April 1, 2026
-**Author:** Claude Opus 4.6 (AI pair programmer)
+**Last updated:** April 18, 2026
+**Previous version:** April 1, 2026
+**Author:** Claude Opus 4.6 (pair programmer)
 **Project Owner:** Eoghan O'Reilly
+**Medical Co-founder:** Dr. Tomas Kurakovas
 **Repository:** https://github.com/Eoghanoreilly/precura
 **Live URL:** https://precura-wine.vercel.app
 
@@ -10,61 +12,112 @@
 
 ## 1. What Is This Project
 
-Precura ("pre" + "cura" = prediction is the cure) is a predictive health platform being built for the Swedish market. Co-founded by Eoghan O'Reilly (engineer, personal trainer) and a medical doctor friend based in Sweden.
+Precura ("pre" + "cura" = prediction is the cure) is a predictive health platform for the Swedish market. Co-founded by Eoghan O'Reilly (engineer, personal trainer) and Dr. Tomas Kurakovas (licensed GP).
 
-The core thesis: healthcare is reactive. Patients get diagnosed with conditions like Type 2 diabetes that could have been predicted years earlier from existing data. Precura uses validated clinical risk models (FINDRISC, SCORE2, FRAX) combined with blood test analysis, AI chat, and doctor consultations to put predictive health intelligence directly in patients' hands.
+The core thesis: healthcare is reactive. Patients get diagnosed with conditions like Type 2 diabetes that could have been predicted years earlier from existing data. Precura uses validated clinical risk models (FINDRISC, SCORE2, FRAX) combined with blood test analysis, doctor consultations, and a chat assistant to put predictive health intelligence directly in patients' hands.
 
-The project exists as two parallel prototypes in the same codebase:
-- **v1** - Original MVP demo focused on FINDRISC diabetes risk scoring
-- **v2** - Full platform prototype with 1177 integration, multi-model risk, doctor messaging, provider portal, training plans, and membership model
+### What exists in the codebase
 
-**v2 is the current focus.** v1 remains untouched as a reference.
+The project has evolved through several phases, all coexisting in one Next.js app:
+
+- **Welcome Kit home page** at `/` - the public-facing landing page. Warm Airbnb-host aesthetic, cream/butter/terracotta/sage palette.
+- **v1** (`/src/app/login`, `/src/app/onboarding`, etc.) - original MVP demo with FINDRISC risk scoring. Untouched, kept as reference.
+- **v2** (`/src/app/v2/`) - full platform prototype with mock data (Anna Bergstrom). 1177 integration, multi-model risk, doctor messaging, provider portal, training plans. Still runs on mock data.
+- **Smith prototypes** (`/src/app/smith1` through `smith15`) - 15 frozen design explorations for the logged-in experience. Reference material only.
+- **Member app** (`/src/app/member/`) - THE ACTIVE FOCUS. Real Supabase backend, real auth, real blood panel data. This is what was built in the April 16-18 session.
 
 ---
 
-## 2. Current State of the Codebase
+## 2. Current State (April 18, 2026)
 
-### What's Built and Working (v2)
+### What was built in the April 16-18 session
 
-| Page | Route | Status | Description |
-|------|-------|--------|-------------|
-| Login | `/v2/login` | Working | Mock BankID with two demo users |
-| 1177 Connect | `/v2/connect` | Working | Animated data import flow, routes to dashboard |
-| Dashboard | `/v2/dashboard` | Working, needs card selection | 29 numbered cards, responsive grid, floating chat |
-| Health | `/v2/health` | Working | Risk models, blood markers, conditions, medications, family history |
-| Blood Tests | `/v2/blood-tests` | Working | Order journey with status tracking |
-| Blood Results | `/v2/blood-tests/results` | Working | Doctor's note, range bars, sparklines |
-| Doctor | `/v2/doctor` | Working | iMessage-style messaging, consultation history |
-| AI Chat | `/v2/chat` | Working | Mock responses referencing patient's full history |
-| Training | `/v2/training` | Working | Real workout program (exercises, sets, reps) |
-| Membership | `/v2/membership` | Working | Annual/monthly pricing, competitor comparison |
-| Profile | `/v2/profile` | Working | Settings, FHIR export, membership management |
-| Provider Dashboard | `/v2/provider/dashboard` | Working | Doctor's view, patient queue, population stats |
-| Provider Patient | `/v2/provider/patient` | Working | AI summary, AI Q&A, screening scores, trends |
-| Provider Vardcentral | `/v2/provider/vardcentral` | Working | B2B investor demo, population health insights |
+This was a major building session. The entire `/member/*` surface moved from mock data to a real Supabase backend. Everything listed below is deployed and working at https://precura-wine.vercel.app.
 
-### What's NOT Built Yet
+#### Supabase backend (EU Stockholm)
 
-| Feature | Priority | Notes |
-|---------|----------|-------|
-| `/v2/onboarding` | HIGH | Comprehensive multi-tool onboarding (PHQ-9, GAD-7, AUDIT-C, FINDRISC, SCORE2, EQ-5D). Currently the connect page skips straight to dashboard. |
-| `/v2/provider/triage` | MEDIUM | Triage nurse view with patient urgency queue |
-| `/v2/provider/trainer` | MEDIUM | Trainer's view of clients with health-relevant data |
-| Dashboard card selection | HIGH | 29 cards are numbered - owner needs to pick which to keep |
-| Real workout logging | MEDIUM | Currently shows exercises but no completion/logging UI |
-| Article content pages | LOW | Article cards link to chat, should link to real content |
-| New user flow (Erik) | MEDIUM | Erik goes through connect -> dashboard but has no personalized data |
-| Package-adaptive UI | MEDIUM | Dashboard should adapt based on user's membership tier |
-| Light/dark mode toggle | LOW | Currently light mode only |
+- **Project:** "Project Precura" (ID: `xturbbklghicpgucwhwy`)
+- **Region:** EU Stockholm
+- **Schema tables:** `profiles`, `panels`, `biomarkers`, `annotations`, `chat_sessions`, `chat_messages`
+- **RLS policies:** Mutual read between the 2 allowlisted users, personal write only
+- **Auto-profile trigger:** `handle_new_user()` fires on `auth.users` insert, creates a `profiles` row automatically
+- **Migration:** `supabase/migrations/001_initial_schema.sql`, applied via `npx supabase db push`
+- **Supabase CLI:** Linked to the project, config at `supabase/config.toml`
 
-### Known Issues
+#### Authentication
 
-1. **Onboarding 404**: New user (Erik) goes connect -> should go to onboarding, but `/v2/onboarding` doesn't exist. Currently routes to dashboard as workaround.
-2. **Dashboard card numbers visible**: The `#N` labels are for design review and should be removed once cards are selected.
-3. **Some v2 sub-pages may still reference old training metrics**: Any page referencing `progressMetrics`, `steps`, or `active minutes` from the old training plan data needs updating.
-4. **Legacy dependencies**: `@nivo/*` and `recharts` packages are still in `package.json` but are not imported by any v2 page. Can be removed.
-5. **Provider pages not linked from main flow**: Provider portal pages exist but there's no navigation from the patient app to them. They're accessed by directly visiting the URLs.
-6. **Images load from Unsplash CDN**: Currently using direct Unsplash URLs. For production, images should be self-hosted or use Next.js Image optimization with configured remote patterns.
+- Magic link auth via Supabase (no BankID - overkill for 2 users)
+- Email allowlist enforced at middleware level (`ALLOWED_EMAILS` env var)
+- Dev quick login endpoint at `/api/dev-login` using `admin.generateLink()` - skips email during development
+- Client-side auth callback at `/member/auth/callback` handles hash fragment tokens from magic link redirects
+- Login page at `/member/login` with magic link form + dev quick login button (dev-only)
+
+#### Blood panel management
+
+- `/member/panels/new` - manual entry form with 13 Swedish biomarker presets (HbA1c, fP-Glukos, Kolesterol, LDL, HDL, Triglycerider, CRP, TSH, ALAT, ASAT, Hemoglobin, Kreatinin, Ferritin)
+- **Paste-and-parse:** `/api/parse-panel` uses Claude Haiku to extract markers from pasted free-text lab reports
+- **55-marker Swedish lookup table** at `src/lib/data/marker-defaults.ts` for auto-filling units and reference ranges
+- Auto-fill happens visibly in the form (user sees it populate) AND as a safety net on save
+- Panel save with validation: red highlights on incomplete rows, scroll to first error, prevents double-clicks, cleans up orphaned panels on failure
+- `/member/panels/[id]` - panel detail page with animated analysis progress, "Not Doctor Reviewed" badge, range bars, findings grouped by severity, editable markers, annotations, delete functionality
+
+#### Member home page - adaptive 7-state architecture
+
+The home page is one adaptive page with 7 states, not 7 different pages. State detection runs with fallthrough priority: G > F > E > D > C > B > A.
+
+| State | Condition | What renders |
+|-------|-----------|-------------|
+| A | No data | Welcome message, how it works explainer, upload CTA |
+| B | First panel uploaded, no doctor review | Headline, flagged markers with range bars, body systems compact grid, Dr. Tomas progress track, action buttons |
+| C | Doctor reviewed (1 panel) | Doctor's letter as hero |
+| D | Multiple panels | 2-column layout, sparklines, trajectory chart, doctor notes |
+| E | Steady state | Stability sparklines, seasonal context, aged doctor note |
+| F | New results arrived (2+ panels) | WhatMoved hero comparison |
+| G | New doctor note | Peak premium moment, doctor letter as hero |
+
+Layout rules:
+- Single column for early states (A/B/C)
+- Two-column grid for mature states (D/E/F/G), only activates at 1200px+ to account for MemberShell sidebar
+- Hidden zones don't render at all - no placeholders, no "coming soon"
+- Peak moments (new results, doctor note) push that content to hero position
+
+Body systems shown as a compact grid (2-col mobile, 3-col tablet, 4-col desktop) with inline mini range bars showing WHERE values sit in the reference range, plus the key value displayed.
+
+#### Discuss (chat) page
+
+- Chat history view: list of previous sessions with date and preview
+- Session persistence in Supabase (replaced localStorage)
+- Real user data context: system prompt built from Supabase panels + annotations at `src/lib/discuss/system-prompt.ts`
+- Claude Haiku model for cost efficiency (Opus kept for demo mode)
+- Prompt caching on system prompt via `cache_control: { type: 'ephemeral' }`
+- Fixed jank: rAF-throttled scroll, stable scroll container, no entrance animation on streaming messages
+- All "AI" references removed - it's "Precura" everywhere in the UI
+
+#### Annotations system
+
+- Create/view/delete notes on panels at `/member/panels/[id]`
+- `/member/messages` repurposed as annotation feed ("Notes" in sidebar)
+- Author attribution with role badges (doctor vs. member)
+
+#### Sitewide changes
+
+- All "AI" references purged from 14 files (22 replacements total)
+- Category mapping handles real Swedish lab names (P-ALAT, S-TSH, fP-Triglycerid, etc.) via prefix stripping + fuzzy matching in `src/components/member/data.ts`
+- Environment variables set on Vercel (5 vars: Supabase URL, anon key, service role key, Anthropic key, allowed emails)
+- Multiple deploys to production
+
+### What's NOT built / current blockers
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| Tomas's email in ALLOWED_EMAILS | BLOCKER | Currently placeholder. Must be updated before he can log in |
+| Notification system | HIGH | Tomas doesn't know when panels are uploaded. No email/push notifications |
+| Sign-out | MEDIUM | No sign-out button wired to Supabase auth |
+| Profile page | MEDIUM | Still shows hardcoded data, not pulling from Supabase |
+| Training page | LOW | Still on mock data |
+| Old /login page | LOW | Anna/Erik demo login still exists alongside /member/login |
+| Panel edit/delete from home | LOW | Only available from panel detail page |
+| `/v2/onboarding` | DEFERRED | Multi-tool onboarding (PHQ-9, GAD-7, etc.) not yet built |
 
 ---
 
@@ -76,21 +129,24 @@ The project exists as two parallel prototypes in the same codebase:
 | React | 19.2.4 | UI library |
 | TypeScript | 5.x | Type safety |
 | Tailwind CSS | 4.x | Styling (CSS-based config with `@theme inline`) |
+| Supabase | @supabase/supabase-js + @supabase/ssr | Backend: Postgres, Auth, RLS |
+| Anthropic SDK | @anthropic-ai/sdk | Claude API for chat |
 | Apache ECharts | 6.0.0 | Charts and visualizations |
 | echarts-for-react | 3.0.6 | React wrapper for ECharts |
-| echarts-gl | 2.0.9 | 3D chart support (used in chart gallery only) |
 | lucide-react | 1.7.0 | Icons |
 | Vercel | - | Hosting and deployment |
 | Node.js | 20.x | Runtime (via nvm) |
 
-### Legacy Dependencies (can be removed)
+### Legacy dependencies (can be removed)
 - `@nivo/core`, `@nivo/line`, `@nivo/bullet`, `@nivo/bar`, `@nivo/tooltip` - replaced by ECharts
 - `recharts` - replaced by ECharts
+- `echarts-gl` - only used in temporary chart gallery
 
-### Important Config
+### Important config
 - `.npmrc` has `legacy-peer-deps=true` for echarts-gl compatibility
 - `.nvmrc` specifies Node 20
 - No `tailwind.config.ts` - Tailwind v4 uses CSS-based config in `globals.css`
+- `AGENTS.md` warns about Next.js 16 breaking changes - always consult `node_modules/next/dist/docs/` before writing route handlers or middleware
 
 ---
 
@@ -98,301 +154,290 @@ The project exists as two parallel prototypes in the same codebase:
 
 ```
 precura/
-  .npmrc                          # legacy-peer-deps=true
-  .nvmrc                          # Node 20
-  CLAUDE.md                       # AI coding instructions
-  SPEC.md                         # Product specification (780 lines)
-  HANDOVER.md                     # This file
+  .env.local                        # Secrets (gitignored)
+  .env.local.example                # Template with placeholder values
+  .npmrc                            # legacy-peer-deps=true
+  .nvmrc                            # Node 20
+  AGENTS.md                         # Next.js 16 specific guidance
+  CLAUDE.md                         # Project instructions for Claude Code
+  HANDOVER.md                       # This file
+  SPEC.md                           # Product specification (780 lines)
+  middleware.ts                     # Auth + allowlist enforcement on /member/*
   package.json
+
+  supabase/
+    config.toml                     # Supabase CLI config (linked to project)
+    migrations/
+      001_initial_schema.sql        # Full schema: profiles, panels, biomarkers, annotations, chat
 
   src/
     app/
-      globals.css                 # Design system: CSS variables, animations, responsive classes
-      layout.tsx                  # Root layout (Apple system fonts, metadata)
-      page.tsx                    # v1 landing page
+      globals.css                   # Design system: CSS variables, animations, responsive classes
+      layout.tsx                    # Root layout (Apple system fonts, metadata)
+      page.tsx                      # Welcome Kit home page (/)
 
-      # v1 pages (original MVP demo)
+      # API routes
+      api/
+        dev-login/route.ts          # Dev-only quick login via admin.generateLink()
+        discuss/route.ts            # Streaming chat - Claude Haiku, prompt caching, Supabase context
+        parse-panel/route.ts        # Claude Haiku parses pasted lab text into structured markers
+
+      # Member app (ACTIVE FOCUS - real Supabase data)
+      member/
+        layout.tsx                  # MemberShell wrapper
+        page.tsx                    # Adaptive 7-state home page (A through G)
+        auth/callback/page.tsx      # Magic link token handler
+        discuss/page.tsx            # Chat with session persistence
+        login/page.tsx              # Magic link + dev quick login
+        messages/page.tsx           # Annotation feed ("Notes" in sidebar)
+        panels/
+          page.tsx                  # Panel list
+          new/page.tsx              # Manual entry form + paste-and-parse
+          [id]/page.tsx             # Panel detail: range bars, findings, annotations
+        profile/page.tsx            # Settings (still hardcoded)
+        training/page.tsx           # Workout program (still mock data)
+
+      # v1 pages (original MVP demo - untouched)
       login/page.tsx
       onboarding/page.tsx
       results/page.tsx
       dashboard/page.tsx
-      health/page.tsx
-      risk/diabetes/page.tsx
-      blood-tests/page.tsx
-      blood-tests/results/page.tsx
-      chat/page.tsx
-      consultations/page.tsx
-      profile/page.tsx
-      charts/page.tsx             # Temporary chart gallery (can be removed)
+      # ... etc
 
-      # v2 pages (full platform prototype - THE FOCUS)
+      # v2 pages (full platform prototype - still mock data)
       v2/
-        login/page.tsx            # Mock BankID
-        connect/page.tsx          # 1177 data import
-        dashboard/page.tsx        # Main page, 29 numbered cards, responsive
-        health/page.tsx           # Deep health view
-        blood-tests/page.tsx      # Order tracking
-        blood-tests/results/page.tsx  # Results + doctor's note
-        doctor/page.tsx           # iMessage-style messaging
-        chat/page.tsx             # AI chat with full history
-        training/page.tsx         # Real workout program
-        membership/page.tsx       # Pricing
-        profile/page.tsx          # Settings
-        provider/
-          dashboard/page.tsx      # Doctor's main view
-          patient/page.tsx        # Individual patient (AI summary + Q&A)
-          vardcentral/page.tsx    # B2B population health (investor demo)
+        login/page.tsx              # Mock BankID (Anna/Erik)
+        connect/page.tsx            # 1177 data import
+        dashboard/page.tsx          # 29 numbered cards
+        health/page.tsx             # Deep health view
+        # ... etc
 
-    components/                   # v1 shared components
-      BottomNav.tsx               # v1 bottom tab navigation
-      Header.tsx                  # v1 header bar
-      ImagePlaceholder.tsx        # Gradient placeholders
-      QuickActions.tsx            # v1 action buttons (legacy)
-      RiskCard.tsx                # v1 risk card (legacy)
+      # Smith prototypes (frozen, reference only)
+      smith1/ through smith15/
+
+    components/
+      home/                         # Welcome Kit home page components
+      member/
+        data.ts                     # Data layer - Supabase queries + Swedish marker category mapping
+        GlucoseHero.tsx             # Glucose trend visualization
+        MemberShell.tsx             # App shell with sidebar + responsive layout
+        MemberSidebar.tsx           # Navigation sidebar
+        MobileDrawer.tsx            # Mobile navigation drawer
+        NextStep.tsx                # Action card component
+        NoteFromDoctor.tsx          # Doctor note display
+        RiskTrajectory.tsx          # Risk trend chart
+        StatusHeadline.tsx          # Dynamic headline based on state
+        tokens.ts                   # Design tokens (colors, spacing)
+        WhatMoved.tsx               # Panel comparison component
 
     lib/
-      auth.ts                     # Mock auth (localStorage)
-      findrisc.ts                 # FINDRISC calculator + plain-language helpers
-      mock-data.ts                # v1 mock patient data
-      blood-test-data.ts          # v1 blood test panels and results
-      prompts.ts                  # AI system prompt template
-      user-state.ts               # v1 user phase state machine
+      auth.ts                       # Legacy mock auth (v1/v2)
+      findrisc.ts                   # FINDRISC calculator
+      mock-data.ts                  # v1 mock data
+      blood-test-data.ts            # v1 blood test data
+      prompts.ts                    # Legacy prompt template
+      user-state.ts                 # v1 phase state machine
+
+      data/                         # Supabase data layer
+        annotations.ts              # Annotation CRUD
+        chat.ts                     # Chat session + message persistence
+        marker-defaults.ts          # 55-marker Swedish lookup table (units, ref ranges)
+        panels.ts                   # Panel + biomarker CRUD
+        types.ts                    # Shared TypeScript types
+
+      discuss/
+        system-prompt.ts            # Builds system prompt from real Supabase data
+
+      supabase/
+        client.ts                   # Browser-side Supabase client
+        middleware.ts               # Session refresh + allowlist check
+        server.ts                   # Server-side Supabase client (cookies)
+
       v2/
-        mock-patient.ts           # v2 comprehensive 5-year patient record (THE KEY DATA FILE)
+        mock-patient.ts             # Anna Bergstrom mock (still used by /v2/* pages)
 ```
 
 ---
 
-## 5. Mock Data Architecture
+## 5. Supabase Schema
 
-### v2 Mock Patient (`src/lib/v2/mock-patient.ts`)
+### Tables
 
-This is the most important data file. It contains a complete, coherent 5-year medical history for Anna Bergstrom that tells a real clinical story:
+**profiles** (extends auth.users via trigger)
+- `id` (uuid, FK to auth.users)
+- `email`, `display_name`, `role` (enum: member/doctor/admin)
+- `created_at`
+- Auto-created by `handle_new_user()` trigger on auth.users insert
 
-**The Story:** Anna's fasting glucose has been slowly rising from 5.0 to 5.8 mmol/L over 5 years. Each individual blood test looked "normal" so no single doctor flagged it. Combined with her mother's Type 2 diabetes diagnosis at 58 and her father's heart attack at 65, she's on a trajectory toward T2D that the healthcare system missed. Precura connects the dots.
+**panels**
+- `id`, `user_id` (FK to profiles), `panel_date`, `lab_name`, `panel_type`
+- `created_at`
 
-**Data includes:**
-- `PATIENT` - profile, membership, contact info
-- `CONDITIONS` - active and resolved medical conditions with ICD-10 codes
-- `MEDICATIONS` - current + historical with prescriber info
-- `MEDICATION_HISTORY` - past medications no longer taken
-- `VACCINATIONS` - full vaccination record
-- `ALLERGIES` - known allergies and reactions
-- `DOCTOR_VISITS` - 8 visits over 4 years with summaries
-- `BLOOD_TEST_HISTORY` - 6 test sessions (2021-2026) with 5-10 markers each
-- `FAMILY_HISTORY` - 4 relatives with conditions and age at diagnosis
-- `BIOMETRICS_HISTORY` - 8 data points (2021-2026) tracking weight, waist, BMI, BP
-- `SCREENING_SCORES` - FINDRISC (12), PHQ-9 (4), GAD-7 (3), AUDIT-C (3), EQ-5D, SCORE2 (3%)
-- `RISK_ASSESSMENTS` - multi-model risk with factors, trends, and summaries
-- `MESSAGES` - 4-message doctor-patient conversation thread
-- `DOCTOR_NOTES` - 2 detailed clinical notes from consultations
-- `TRAINING_PLAN` - 3-day/week program with exercises, sets, reps, weights
-- `AI_PATIENT_SUMMARY` - pre-written AI summary for the provider view
+**biomarkers**
+- `id`, `panel_id` (FK to panels)
+- `name_swe`, `name_eng`, `short_name`, `plain_name`
+- `value`, `unit`, `ref_range_low`, `ref_range_high`
+- `status` (enum: normal/low/high/critical)
+- `category`
+- `created_at`
 
-**Helper functions:**
-- `getMarkerHistory(shortName)` - returns all values for a specific blood marker across all test sessions
-- `getLatestMarker(shortName)` - returns the most recent value for a marker
+**annotations**
+- `id`, `target_type` (panel/biomarker), `target_id`
+- `author_user_id` (FK to profiles), `body`
+- `created_at`
+
+**chat_sessions**
+- `id`, `user_id`, `title`, `created_at`
+
+**chat_messages**
+- `id`, `session_id` (FK to chat_sessions)
+- `role` (user/assistant), `content`
+- `tokens_in`, `tokens_out`
+- `created_at`
+
+### RLS Policies
+
+- Both allowlisted users can read all data (trusted mutual-review setup)
+- Only the row owner can write/edit/delete their own data
+- Email allowlist enforced at middleware AND at auth layer
 
 ---
 
-## 6. Design System
+## 6. Environment Variables
+
+Defined in `.env.local` (gitignored). Template at `.env.local.example`.
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xturbbklghicpgucwhwy.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...      # Safe to expose, RLS enforces access
+SUPABASE_SERVICE_ROLE_KEY=eyJ...          # Server-side only, NEVER expose
+ANTHROPIC_API_KEY=sk-ant-...              # For /api/discuss and /api/parse-panel
+ALLOWED_EMAILS=eoghan@vestego.com,tomas@example.com
+```
+
+All 5 vars are also set on Vercel (Settings > Environment Variables).
+
+---
+
+## 7. Design System
 
 ### Typography
-Apple system fonts only. Defined in `layout.tsx` (no Google Fonts imported):
+Apple system fonts only. Defined in `layout.tsx`:
 - Body: `-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif`
-- Mono (data/numbers): `"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace`
+- Mono: `"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace`
+- NEVER use Google Fonts (DM Sans, Space Mono, Inter, Roboto are banned)
 
 ### Color Tokens (CSS variables in `globals.css`)
-```
-Backgrounds: --bg (#f8f9fa), --bg-card (#fff), --bg-elevated (#f1f3f5), --bg-warm (#fef7ee)
-Text: --text (#1a1a2e), --text-secondary (#555770), --text-muted (#8b8da3), --text-faint (#b8bac6)
-Borders: --border (#e6e8ed), --divider (#eef0f4)
-Accent: --accent (#5c6bc0), --accent-light (#e8eaf6)
-Health: --green/#4caf50, --amber/#ff9800, --red/#ef5350, --teal/#26a69a, --blue/#42a5f5, --purple/#7c4dff
-Each health color has -bg and -text variants
-Shadows: --shadow-sm, --shadow-md, --shadow-lg
-```
+- Backgrounds: `--bg`, `--bg-card`, `--bg-elevated`, `--bg-warm`
+- Text: `--text`, `--text-secondary`, `--text-muted`, `--text-faint`
+- Health: `--green/--amber/--red/--teal/--blue/--purple` (each has `-bg` and `-text`)
+- Brand: `--accent` (#5c6bc0), `--accent-light` (#e8eaf6)
+- Shadows: `--shadow-sm`, `--shadow-md`, `--shadow-lg`
 
-### Responsive Breakpoints (defined in `globals.css`)
-```css
-.v2-container: max-width 448px (mobile) -> 640px (tablet) -> 1080px (desktop) -> 1200px (wide)
-.v2-grid: flex-column (mobile) -> flex-row with sidebar (desktop 1024px+)
-.v2-sidebar: hidden (mobile) -> 320px column (desktop) -> 360px (wide)
-.v2-health-grid: 2 columns (mobile) -> 4 columns (desktop)
-.v2-article-grid: 1 column (mobile) -> 2 columns (tablet 640px+)
-```
+### Layout
+- Light mode only. Warm, friendly aesthetic
+- Mobile-first with responsive breakpoints
+- Desktop 2-column grid activates at 1200px+ (accounting for MemberShell sidebar)
+- Cards: `rounded-2xl` or `rounded-3xl`, `border: 1px solid var(--border)`, `boxShadow: var(--shadow-sm)`
+- NO left border accents on cards
 
-### Chart Styles (approved by the owner)
-All interactive charts use Apache ECharts. Simple bars/indicators use CSS.
-1. Bell curve: gradient zones green-to-red, labeled "Avg" and "You" markers
-2. Range bar: green zone highlighted, triangle marker pointing down
-3. Zone bar: colored segments, white dot marker
-4. Trend line: zone background bands, gradient line
-5. Gauge: text-centric zone bar with triangle (no arc gauges)
-6. Sparkline: gradient line, endpoint dot only
-7. Factor breakdown: donut with legend
-
-### Critical Design Rules
-- NO left border accents on cards (AI giveaway)
-- NO bottom tab bars on v2 pages
-- All medical terms include plain English: "HbA1c (long-term blood sugar)"
-- Risk labels say "X risk" not just "X" (e.g., "Low risk" for bone health)
-- Training tracks workouts (exercises/sets/reps/weights) NEVER steps or active minutes
-- Real Unsplash images, not gradient placeholders
-- Quality over speed always
+### Chart Styles (approved)
+- Range bar: green zone highlighted, triangle marker
+- Zone bar: colored segments, white dot marker
+- Sparkline: gradient line, endpoint dot only
+- Trend line: zone background bands, gradient line
+- Use Apache ECharts for interactive charts, CSS for simple bars/indicators
 
 ---
 
-## 7. Revenue Model
+## 8. Design Decisions (locked in)
 
-### Packages (planned, not finalized)
+These are decided. Do not re-debate without the user.
 
-| Package | Price | Includes |
-|---------|-------|----------|
-| Basic (one-off) | ~995 SEK | 1 blood test, 1 doctor session, risk assessment, limited AI chat (~30 messages) |
-| Annual | 2,995 SEK/yr | 2 blood tests, ongoing doctor messaging, unlimited AI, risk monitoring, 3-month training plan |
-| Platinum | ~4,995 SEK/yr | 4 blood tests, priority doctor access, 6-month training plan, full screening suite |
-| Add-on blood test | 795 SEK | Additional test anytime |
-
-### Revenue Streams
-1. Membership subscriptions (primary)
-2. Add-on blood tests
-3. B2B SaaS for vardcentraler (future)
-4. Training plan add-ons
-5. Partner referrals (physiotherapy, specialist consultations)
-
----
-
-## 8. Clinical Models and Screening Tools
-
-### Currently Implemented
-- **FINDRISC** (Finnish Diabetes Risk Score) - 8 questions, score 0-26, validated for 10-year T2D prediction. Full implementation in `src/lib/findrisc.ts` with scoring, plain-language helpers, what-if recalculation.
-
-### Planned for v2 Onboarding (not yet built)
-- **PHQ-9** - 9-question depression screening (score 0-27, cutoffs at 5/10/15/20)
-- **GAD-7** - 7-question anxiety screening (score 0-21, cutoffs at 5/10/15)
-- **AUDIT-C** - 3-question alcohol use screening (WHO-developed)
-- **EQ-5D-5L** - 5-question quality of life assessment (EU standard)
-- **SCORE2** - cardiovascular risk model (calibrated for Swedish population)
-- **FRAX** - fracture/bone health risk assessment
-
-Mock scores for all of these are already in `mock-patient.ts` under `SCREENING_SCORES`.
+1. **Never use the word "AI" anywhere in the product.** Not in UI, copy, labels, buttons, or conversation about the product. It's "Precura" or describe what it does.
+2. **Never call it "dogfood."** Internal planning docs use the term; the product is just Precura.
+3. **Doctor review is automatic** - it's part of the service, not something the user requests. No "request review" buttons.
+4. **No fake promises.** No "48 hours" delivery estimates, no "we'll notify you" unless notification actually works.
+5. **Body systems as compact grid** with inline range bars showing WHERE values sit in the reference range.
+6. **Adaptive home page with 7 states**, not 7 different pages. Hidden zones don't render at all.
+7. **Peak moments push to hero.** New results or a new doctor note take the hero position.
+8. **Single column for early states** (A/B/C), **two-column for mature states** (D/E/F/G).
+9. **Magic-link auth, not BankID.** Overkill for 2 users.
+10. **Claude Haiku for chat** - cost-optimized for personal use. Easy swap to Sonnet/Opus later.
+11. **Manual biomarker entry** - no PDF parsing in this phase. Paste-and-parse added as a compromise.
+12. **Swedish marker name handling:** prefix stripping (`P-`, `S-`, `fP-`, `B-`, `Hb-`) + fuzzy matching to map real lab names to categories.
+13. **No em dashes, en dashes, or unicode arrows** - anywhere, in any content. Hyphens and ASCII only.
 
 ---
 
-## 9. Key Decisions Made During Development
+## 9. Key Architecture Patterns
 
-### Design Evolution
-1. Started with dark mode (tegen-misfits inspired) -> switched to light mode (Google Labs inspired)
-2. Started with DM Sans + Space Mono fonts -> switched to Apple system fonts (SF Pro)
-3. Started with recharts -> tried Nivo (broke) -> settled on Apache ECharts
-4. Started with gradient image placeholders -> switched to real Unsplash images
-5. Started with bottom tab navigation -> removed tabs entirely (single page with floating chat)
+### Swedish biomarker name mapping (`src/components/member/data.ts`)
 
-### UX Decisions
-1. Dashboard has no tabs - everything flows from one scrollable page with cards
-2. Avatar top-right leads to profile/settings (no "You" tab needed)
-3. Chat is a floating bubble, not a tab - available on every page
-4. Doctor messaging is iMessage-style, not a booking page
-5. Training tracks real workouts, not steps/minutes
-6. Blood test ordering is a journey (ordered -> booked -> sample -> processing -> results), not a product page
-7. v2 dashboard has 29 numbered cards - owner picks which to keep
+Real Swedish lab reports use prefixed names like `P-ALAT`, `S-TSH`, `fP-Triglycerid`. The category mapping:
+1. Strips known prefixes: `P-`, `S-`, `fP-`, `B-`, `Hb-`
+2. Normalizes to lowercase
+3. Matches against a lookup table to assign body system categories
+4. Falls back to "Other" if no match
 
-### Technical Decisions
-1. No backend for demo - all state in localStorage
-2. v2 runs alongside v1 in the same Next.js app (separate route tree)
-3. Mock data tells a coherent 5-year clinical story (not random numbers)
-4. Responsive layout: mobile single column, desktop two-column with sidebar
+### 55-marker lookup table (`src/lib/data/marker-defaults.ts`)
+
+Pre-populated with Swedish standard markers. Each entry has:
+- `name_swe`, `name_eng`, `short_name`, `plain_name` (plain English)
+- `unit`, `ref_range_low`, `ref_range_high`
+- `category`
+
+Used for: preset buttons in the entry form, auto-fill after paste-and-parse, safety-net fill on save.
+
+### Paste-and-parse (`/api/parse-panel`)
+
+Uses Claude Haiku to extract structured marker data from pasted free-text lab reports. Returns JSON array of markers. The form then auto-fills with visible animation so the user sees what was extracted and can verify/edit.
+
+### Chat system prompt (`src/lib/discuss/system-prompt.ts`)
+
+Builds a context block from the user's real Supabase data:
+- All panels with biomarker values
+- All annotations
+- User profile info
+- Injected as the system message with `cache_control: { type: 'ephemeral' }` for prompt caching
+
+### State detection (member home page)
+
+Priority-based fallthrough: G > F > E > D > C > B > A.
+- Checks for: new doctor note (G), new results with 2+ panels (F), age of latest note (E), multiple panels (D), doctor-reviewed panel (C), any panel (B), nothing (A)
+- Each state renders its own component tree
+- States that don't match render nothing
 
 ---
 
 ## 10. User Flows
 
-### Returning User (Anna Bergstrom - Annual Member)
+### Real user (Eoghan or Tomas)
 ```
-v2/login -> (Anna) -> v2/dashboard
-From dashboard, can access:
-  -> v2/health (deep data view)
-  -> v2/blood-tests (order tracking)
-  -> v2/blood-tests/results (results + doctor's note)
-  -> v2/doctor (messaging)
-  -> v2/chat (AI chat via floating bubble)
-  -> v2/training (workout program)
-  -> v2/membership (plan management)
-  -> v2/profile (settings, via avatar top-right)
+/member/login -> magic link email -> /member/auth/callback -> /member (home)
+From home:
+  -> /member/panels/new (upload blood test)
+  -> /member/panels/[id] (view panel detail, annotations)
+  -> /member/discuss (chat about data)
+  -> /member/messages (annotation feed / notes)
+  -> /member/profile (settings)
+  -> /member/training (workout program)
 ```
 
-### New User (Erik Lindqvist)
+### Demo user (Anna Bergstrom - mock data)
 ```
-v2/login -> (Erik) -> v2/connect (1177 import) -> v2/dashboard
-NOTE: v2/onboarding not yet built. Currently skips to dashboard.
-Planned flow: connect -> onboarding (10 steps with screening tools) -> results reveal -> dashboard
-```
-
-### Provider / Investor Demo
-```
-v2/provider/dashboard (doctor's view, patient queue)
-v2/provider/patient (individual patient, AI summary, AI Q&A)
-v2/provider/vardcentral (B2B population health - THE PITCH)
+/v2/login -> (Anna) -> /v2/dashboard
+Uses mock data from src/lib/v2/mock-patient.ts
+Still works, separate from the real /member/* flow
 ```
 
 ---
 
-## 11. Market Context (See SPEC.md for Full Details)
-
-- **50% of Swedish T2D cases go undiagnosed** despite patients visiting primary care
-- **COSMIC** (the new national EHR system) is failing - privacy breaches, medication errors, doctors calling it "the biggest fiasco"
-- **Function Health** (US) proved the model: $100M ARR, $2.5B valuation, 200K subscribers at $365/year. NOT in Europe.
-- **EHDS** (European Health Data Space) regulation entered force March 2025 - patient data portability across EU by 2029
-- **Sweden** has 180+ digital health startups, $2.23B VC funding, and a population that's highly digitally literate
-- **No European competitor** combines prediction + blood testing + doctor consultations + training plans + ongoing monitoring
-
----
-
-## 12. What Needs to Happen Next
-
-### Immediate (Demo Polish)
-1. Owner selects which dashboard cards to keep from the 29 options
-2. Remove card number labels after selection
-3. Build `/v2/onboarding` with PHQ-9, GAD-7, AUDIT-C, FINDRISC, EQ-5D screening tools
-4. Build new user flow (Erik) with personalized data
-5. Polish responsive layout on all v2 pages (some still narrow on desktop)
-6. Replace remaining gradient placeholders with real images
-7. Remove legacy dependencies (@nivo/*, recharts)
-
-### Short-term (Product)
-1. Real BankID authentication (Criipto or Signicat)
-2. Supabase backend (PostgreSQL + RLS, EU region)
-3. Real AI chat (Claude API)
-4. Payment integration (Stripe)
-5. Lab partnership for blood tests
-
-### Medium-term (Growth)
-1. SCORE2 cardiovascular risk model
-2. FRAX bone health model
-3. Push notifications
-4. Workout logging and completion tracking
-5. B2B vardcentral dashboard
-6. Nordic expansion (Norway, Denmark, Finland)
-
-### Long-term (Scale)
-1. EHDS integration (FHIR-ready data)
-2. Population health intelligence
-3. Research partnerships
-4. EU-wide expansion
-
----
-
-## 13. Development Environment Setup
+## 11. Development Environment
 
 ```bash
-# Clone
-git clone https://github.com/Eoghanoreilly/precura.git
-cd precura
-
 # Node version
-nvm install 20
-nvm use 20
+source ~/.nvm/nvm.sh && nvm use 20
 
 # Install
 npm install
@@ -406,54 +451,76 @@ npm run build
 
 # Deploy
 npx vercel --yes --prod --scope moonflows-projects-9c4fc1f9
+
+# Supabase CLI (linked to project)
+npx supabase db push    # Apply migrations
 ```
 
-### Key Environment Notes
-- Node 20+ required (Next.js 16 requirement)
-- `.npmrc` has `legacy-peer-deps=true` for echarts-gl
-- No environment variables needed for the demo (all mock data)
-- For future real AI chat: will need `ANTHROPIC_API_KEY` env var
-- For future real auth: will need BankID provider credentials
-- Vercel team scope: `moonflows-projects-9c4fc1f9`
+### Vercel
+- Team: `moonflows-projects-9c4fc1f9`
+- Production URL: `https://precura-wine.vercel.app`
+- All 5 env vars set in Vercel dashboard
+
+### Supabase
+- Project: "Project Precura" (ID: `xturbbklghicpgucwhwy`)
+- Region: EU Stockholm
+- Dashboard: https://supabase.com/dashboard/project/xturbbklghicpgucwhwy
 
 ---
 
-## 14. Working With This Codebase - Tips
+## 12. What Needs to Happen Next
 
-### Where to Find Things
-- **Design tokens**: `src/app/globals.css` (CSS variables, responsive classes, animations)
-- **v2 mock data**: `src/lib/v2/mock-patient.ts` (THE most important data file)
-- **v1 mock data**: `src/lib/mock-data.ts` + `src/lib/blood-test-data.ts`
-- **Risk scoring**: `src/lib/findrisc.ts` (FINDRISC calculator + helpers)
-- **User state**: `src/lib/user-state.ts` (phase machine for v1)
+### Immediate
+1. Add Tomas's real email to `ALLOWED_EMAILS` (both `.env.local` and Vercel)
+2. Wire sign-out button to Supabase auth
+3. Build notification system (email when panels uploaded, when annotations added)
+4. Profile page: pull real data from Supabase profiles table
+5. Remove old `/login` page or redirect to `/member/login`
 
-### Patterns Used
-- All pages are `"use client"` (client-side rendering with localStorage)
-- Inline styles with CSS variables: `style={{ background: "var(--bg-card)" }}`
-- No Tailwind utility classes for colors (all via CSS variables)
-- Tailwind used for spacing, flexbox, grid, border-radius
-- ECharts for interactive charts, CSS for simple bars/indicators
-- Unsplash images via direct URLs (no API key needed)
+### Short-term
+1. Doctor review workflow for Tomas
+2. Panel comparison / diff view (WhatMoved component for State F)
+3. Sparkline trends on home page for returning users
+4. Training page wired to real data
+5. Mobile polish pass on all /member/* pages
 
-### What NOT to Do
-- Don't use Google Fonts (DM Sans, Space Mono, Inter, Roboto are banned)
-- Don't use left border accents on cards
-- Don't add bottom tab navigation to v2 pages
-- Don't track steps, active minutes, or any data that requires a wearable
-- Don't show risk levels without the word "risk" (say "Low risk" not "Low")
-- Don't use medical jargon without plain English in parentheses
-- Don't push directly to main without building first
-- Don't use Nivo or recharts for new charts (use ECharts)
+### Medium-term
+1. PDF upload and auto-parse (skip manual entry)
+2. Real BankID authentication
+3. Payment integration (Stripe)
+4. Expand beyond 2 users (waitlist/invite system)
+5. v2 onboarding with screening tools (PHQ-9, GAD-7, FINDRISC, etc.)
+
+### Long-term
+1. 1177 automated data import
+2. EHDS integration (FHIR-ready)
+3. B2B vardcentral dashboard
+4. Nordic expansion
 
 ---
 
-## 15. Reference Documents
+## 13. Revenue Model (planned, not active)
+
+| Package | Price | Includes |
+|---------|-------|----------|
+| Basic (one-off) | ~995 SEK | 1 blood test, 1 doctor session, risk assessment |
+| Annual | 2,995 SEK/yr | 2 blood tests, ongoing doctor messaging, unlimited chat, risk monitoring, training plan |
+| Platinum | ~4,995 SEK/yr | 4 blood tests, priority doctor access, full screening suite |
+
+Not active. No payments infrastructure exists. Current phase is founder testing on real data.
+
+---
+
+## 14. Reference Documents
 
 | Document | Location | Description |
 |----------|----------|-------------|
-| CLAUDE.md | `/CLAUDE.md` | AI coding instructions, build commands, design rules |
-| SPEC.md | `/SPEC.md` | Full product spec: problem, solution, pages, data model, revenue, roadmap, competitive landscape, regulatory, research sources |
+| CLAUDE.md | `/CLAUDE.md` | Project instructions for Claude Code |
+| SPEC.md | `/SPEC.md` | Full product spec (780 lines) |
 | HANDOVER.md | `/HANDOVER.md` | This file |
-| AGENTS.md | `/AGENTS.md` | Next.js 16 specific guidance (auto-generated) |
-| Global CLAUDE.md | `~/.claude/CLAUDE.md` | Eoghan's global preferences for all projects |
-| Memory files | `~/.claude/projects/-Users-eoghan/memory/` | Persistent context: project decisions, feedback, preferences |
+| AGENTS.md | `/AGENTS.md` | Next.js 16 specific guidance |
+| Design spec | `~/.claude/projects/.../specs/2026-04-16-personal-dogfood-v0-design.md` | Design decisions for the real-data build |
+| Implementation plan | `~/.claude/projects/.../specs/2026-04-16-personal-dogfood-v0-plan.md` | 14-task plan (mostly completed) |
+| Previous session handover | `~/.claude/projects/.../handover/2026-04-16-dogfood-v0-session.md` | Planning session before the build |
+| Global CLAUDE.md | `~/.claude/CLAUDE.md` | Eoghan's global preferences |
+| Memory files | `~/.claude/projects/-Users-eoghan/memory/` | Persistent context: decisions, feedback, preferences |
