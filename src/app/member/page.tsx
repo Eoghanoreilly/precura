@@ -332,43 +332,48 @@ function RangeBar({
   const high = refHigh ?? value * 2;
   const scaleMax = Math.max(high * 1.5, value * 1.3);
   const greenLeftPct = (low / scaleMax) * 100;
-  const greenRightPct = 100 - (high / scaleMax) * 100;
-  const dotPct = Math.min(Math.max((value / scaleMax) * 100, 2), 98);
+  const greenWidthPct = ((high - low) / scaleMax) * 100;
+  const dotPct = Math.min(Math.max((value / scaleMax) * 100, 3), 97);
 
   return (
     <div>
       <div
         style={{
           position: "relative",
-          height: 10,
+          height: 28,
           background: C.stone,
-          borderRadius: 5,
+          borderRadius: 14,
+          overflow: "hidden",
         }}
       >
+        {/* Green normal zone */}
         <div
           style={{
             position: "absolute",
             top: 0,
             bottom: 0,
             left: `${greenLeftPct}%`,
-            right: `${greenRightPct}%`,
+            width: `${greenWidthPct}%`,
             background:
-              "linear-gradient(90deg, rgba(78,142,92,0.2), rgba(78,142,92,0.06))",
-            borderRadius: 5,
+              "linear-gradient(90deg, rgba(78,142,92,0.22), rgba(78,142,92,0.12))",
+            borderRadius: 14,
           }}
         />
+        {/* Value dot */}
         <div
           style={{
             position: "absolute",
             top: "50%",
             left: `${dotPct}%`,
             transform: "translate(-50%, -50%)",
-            width: 14,
-            height: 14,
+            width: 18,
+            height: 18,
             borderRadius: "50%",
             background: color,
-            border: "2.5px solid white",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            border: "3px solid white",
+            boxShadow:
+              "0 1px 3px rgba(0,0,0,0.18), 0 4px 8px rgba(0,0,0,0.08)",
+            zIndex: 1,
           }}
         />
       </div>
@@ -376,14 +381,15 @@ function RangeBar({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 10,
+          fontSize: 12,
           color: C.inkFaint,
-          marginTop: 4,
+          marginTop: 6,
+          padding: "0 2px",
         }}
       >
-        <span>0</span>
+        <span>{low} {refLow !== null ? "" : ""}</span>
         <span style={{ color: C.good, fontWeight: 600 }}>
-          {low} - normal
+          {low} - {high} normal
         </span>
         <span>{Math.round(scaleMax)}</span>
       </div>
@@ -558,13 +564,7 @@ function SystemsGrid({
   systems: { name: string; count: number; flagged: boolean }[];
 }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 8,
-      }}
-    >
+    <div className="systems-grid">
       {systems.map((s) => (
         <div
           key={s.name}
@@ -572,7 +572,7 @@ function SystemsGrid({
             padding: "12px 14px",
             background: s.flagged ? C.terracottaTint : "rgba(255,255,255,0.7)",
             borderRadius: 12,
-            fontSize: 13,
+            fontSize: 15,
             color: s.flagged ? C.terracottaDeep : C.sageDeep,
             display: "flex",
             alignItems: "center",
@@ -582,7 +582,7 @@ function SystemsGrid({
           <span
             style={{
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 15,
               color: s.flagged ? C.caution : C.good,
             }}
           >
@@ -592,10 +592,9 @@ function SystemsGrid({
           <span
             style={{
               marginLeft: "auto",
-              fontFamily: MONO_FONT,
-              fontSize: 11,
+              ...DISPLAY_NUM,
+              fontSize: 12,
               color: s.flagged ? C.terracotta : C.sage,
-              fontWeight: 600,
             }}
           >
             {s.count}
@@ -955,6 +954,25 @@ function StateA({ userName }: { userName: string }) {
 // STATE B: First panel, no review
 // ============================================================================
 
+function StateBMarkerExplanation(marker: Biomarker): string {
+  const name = marker.short_name;
+  const isVitD =
+    name === "D-vitamin" || name === "25-OH-Vitamin-D" || name === "Vit D";
+  const season = getSeasonalContext();
+
+  if (isVitD && marker.status === "borderline") {
+    return `Your vitamin D is slightly below the reference range. In Sweden, this is one of the most common findings, especially during the darker months. ${season.body} Dr. ${DOCTOR.firstName} will include this in your review.`;
+  }
+  if (isVitD && marker.status === "abnormal") {
+    return `Your vitamin D is clearly below the recommended level. Living in Sweden, low sunlight exposure is the most common cause. A daily D3 supplement (1000-2000 IU) typically brings levels back within a few months. Dr. ${DOCTOR.firstName} will advise on dosage.`;
+  }
+
+  if (marker.status === "borderline") {
+    return `This result sits just outside the normal reference range. It may reflect recent diet, stress, or natural variation rather than a clinical issue. Dr. ${DOCTOR.firstName} will put it in context with the rest of your panel.`;
+  }
+  return `This marker falls outside the expected range and deserves a closer look. Dr. ${DOCTOR.firstName} will assess whether it needs follow-up or monitoring.`;
+}
+
 function StateB({
   panel,
   systems,
@@ -971,186 +989,450 @@ function StateB({
     <motion.div
       {...fadeUp}
       transition={{ duration: 0.6 }}
-      style={{ maxWidth: 640, margin: "0 auto", fontFamily: SYSTEM_FONT }}
+      style={{ fontFamily: SYSTEM_FONT }}
     >
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ ...PILL_TERRA, marginBottom: 16 }}>
-          <PillDot color={C.terracotta} />
-          Pending doctor review
-        </div>
-        <div style={{ ...EYEBROW, color: C.terracotta, marginBottom: 10 }}>
-          {panelDate}
-        </div>
-        <h1
-          style={{
-            fontSize: "clamp(26px, 4vw, 38px)",
-            fontWeight: 600,
-            color: C.ink,
-            lineHeight: 1.15,
-            letterSpacing: "-0.025em",
-            margin: 0,
-          }}
-        >
-          Your first results are in.{" "}
-          <span
+      <div className="stateb-grid">
+        {/* ============================================================
+            LEFT COLUMN - Main content
+            ============================================================ */}
+        <div>
+          {/* Pending pill */}
+          <div style={{ ...PILL_TERRA, marginBottom: 16 }}>
+            <PillDot color={C.terracotta} />
+            Pending doctor review
+          </div>
+
+          {/* Panel date eyebrow */}
+          <div style={{ ...EYEBROW, color: C.terracotta, marginBottom: 10 }}>
+            {panelDate}
+          </div>
+
+          {/* Headline */}
+          <h1
             style={{
-              fontStyle: "italic",
-              fontFamily: SERIF_FONT,
-              fontWeight: 400,
-              color: C.inkMuted,
+              fontSize: "clamp(28px, 3.5vw, 38px)",
+              fontWeight: 600,
+              color: C.ink,
+              lineHeight: 1.15,
+              letterSpacing: "-0.025em",
+              margin: 0,
             }}
           >
-            {inRange} of {total} markers look good.
-          </span>
-        </h1>
-        <p
-          style={{
-            fontSize: 15,
-            color: C.inkMuted,
-            lineHeight: 1.6,
-            marginTop: 10,
-            maxWidth: 560,
-          }}
-        >
-          We&apos;ve reviewed your panel.{" "}
-          {flagged.length > 0
-            ? `${flagged.length} marker${flagged.length > 1 ? "s" : ""} need${flagged.length === 1 ? "s" : ""} a closer look.`
-            : "Everything looks healthy."}{" "}
-          Dr. {DOCTOR.firstName} will review your results and write you a
-          personal note.
-        </p>
-      </div>
+            Your first results are in.{" "}
+            <span
+              style={{
+                fontStyle: "italic",
+                fontFamily: SERIF_FONT,
+                fontWeight: 400,
+                color: C.inkMuted,
+              }}
+            >
+              {inRange} of {total} markers look good.
+            </span>
+          </h1>
 
-      {/* Flagged markers */}
-      {flagged.map((marker) => (
-        <div
-          key={marker.id}
-          style={{ ...CARD_STYLE, padding: 22, marginBottom: 20 }}
-        >
+          {/* Sub */}
+          <p
+            style={{
+              fontSize: 15,
+              color: C.inkMuted,
+              lineHeight: 1.6,
+              marginTop: 12,
+            }}
+          >
+            {flagged.length > 0
+              ? `${flagged.length} marker${flagged.length > 1 ? "s" : ""} need${flagged.length === 1 ? "s" : ""} a closer look.`
+              : "Everything looks healthy."}{" "}
+            Dr. {DOCTOR.firstName} will review your results and write you a
+            personal note.
+          </p>
+
+          {/* Flagged markers - full-width cards */}
+          {flagged.length > 0 && (
+            <div style={{ marginTop: 28 }}>
+              <div
+                style={{
+                  ...EYEBROW,
+                  color: C.terracotta,
+                  marginBottom: 14,
+                }}
+              >
+                Needs attention
+              </div>
+              {flagged.map((marker) => (
+                <div
+                  key={marker.id}
+                  style={{
+                    ...CARD_STYLE,
+                    boxShadow: C.shadowCard,
+                    padding: 24,
+                    marginBottom: 16,
+                  }}
+                >
+                  {/* Marker header row */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      marginBottom: 14,
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 600,
+                          color: C.ink,
+                        }}
+                      >
+                        {marker.short_name}
+                      </span>{" "}
+                      <span style={{ fontSize: 12, color: C.inkFaint }}>
+                        ({getPlainName(marker.short_name, marker)})
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        ...DISPLAY_NUM,
+                        fontSize: 24,
+                        color:
+                          marker.status === "abnormal" ? C.risk : C.caution,
+                      }}
+                    >
+                      {marker.value}{" "}
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: C.inkFaint,
+                          fontWeight: 400,
+                        }}
+                      >
+                        {marker.unit}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Range bar */}
+                  <RangeBar
+                    value={marker.value}
+                    refLow={marker.ref_range_low}
+                    refHigh={marker.ref_range_high}
+                    color={
+                      marker.status === "abnormal" ? C.risk : C.caution
+                    }
+                  />
+
+                  {/* Explanation */}
+                  <p
+                    style={{
+                      fontSize: 15,
+                      color: C.inkMuted,
+                      lineHeight: 1.6,
+                      marginTop: 16,
+                      marginBottom: 0,
+                    }}
+                  >
+                    {StateBMarkerExplanation(marker)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Body systems */}
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "baseline",
+              ...CARD_SAGE_STYLE,
+              padding: 24,
+              marginTop: 28,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: C.sageDeep,
+                marginBottom: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: C.good,
+                }}
+              />
+              {inRange} markers in healthy range
+            </div>
+            <SystemsGrid systems={systems} />
+          </div>
+        </div>
+
+        {/* ============================================================
+            RIGHT COLUMN - Sidebar
+            ============================================================ */}
+        <div className="stateb-sidebar">
+          {/* Doctor card */}
+          <div
+            style={{
+              ...CARD_STYLE,
+              boxShadow: C.shadowCard,
+              padding: 24,
+              marginBottom: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                marginBottom: 18,
+              }}
+            >
+              <div style={DOC_AVATAR}>{DOCTOR.initials}</div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: C.ink,
+                  }}
+                >
+                  {DOCTOR.name}
+                </div>
+                <div style={{ fontSize: 12, color: C.inkFaint }}>
+                  {DOCTOR.title}
+                </div>
+                <div style={{ fontSize: 12, color: C.inkFaint }}>
+                  Licensed GP
+                </div>
+              </div>
+            </div>
+
+            {/* Progress dots */}
+            <div style={{ marginTop: 4 }}>
+              <div
+                style={{
+                  ...EYEBROW,
+                  color: C.inkFaint,
+                  marginBottom: 12,
+                }}
+              >
+                Review status
+              </div>
+              {[
+                { label: "Panel received", done: true, active: false },
+                { label: "Under review", done: false, active: true },
+                { label: "Notes ready", done: false, active: false },
+              ].map((step, i) => (
+                <div
+                  key={step.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    marginBottom: i < 2 ? 0 : 0,
+                  }}
+                >
+                  {/* Dot + connecting line */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      width: 16,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        background: step.done
+                          ? C.good
+                          : step.active
+                            ? "white"
+                            : "white",
+                        border: step.done
+                          ? "none"
+                          : step.active
+                            ? `2px solid ${C.terracotta}`
+                            : `2px solid ${C.sageSoft}`,
+                        boxShadow: step.active
+                          ? "0 0 0 3px rgba(201,87,58,0.15)"
+                          : "none",
+                        flexShrink: 0,
+                      }}
+                    />
+                    {i < 2 && (
+                      <div
+                        style={{
+                          width: 2,
+                          height: 18,
+                          background: step.done ? C.good : C.stone,
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      color: step.done
+                        ? C.inkMuted
+                        : step.active
+                          ? C.ink
+                          : C.inkFaint,
+                      fontWeight: step.active ? 600 : 400,
+                      paddingBottom: i < 2 ? 10 : 0,
+                    }}
+                  >
+                    {step.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Panel info card */}
+          <div
+            style={{
+              ...CARD_STYLE,
+              boxShadow: C.shadowSoft,
+              padding: 24,
+              marginBottom: 16,
+            }}
+          >
+            <div
+              style={{
+                ...EYEBROW,
+                color: C.inkFaint,
+                marginBottom: 12,
+              }}
+            >
+              Panel details
+            </div>
+            {[
+              { label: "Date", value: formatShortDate(panel.panel_date) },
+              { label: "Lab", value: panel.lab_name || "Standard lab" },
+              { label: "Total markers", value: String(total) },
+              {
+                label: "Flagged",
+                value: String(flagged.length),
+              },
+            ].map((row) => (
+              <div
+                key={row.label}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  padding: "8px 0",
+                  borderBottom: `1px solid ${C.lineSoft}`,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 15,
+                    color: C.inkMuted,
+                  }}
+                >
+                  {row.label}
+                </span>
+                <span
+                  style={{
+                    ...DISPLAY_NUM,
+                    fontSize: 15,
+                    color: C.ink,
+                  }}
+                >
+                  {row.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Action cards */}
+          <Link
+            href="/member/discuss"
+            style={{
+              display: "block",
+              textDecoration: "none",
               marginBottom: 10,
             }}
           >
-            <div>
-              <span
-                style={{ fontSize: 15, fontWeight: 600, color: C.ink }}
-              >
-                {marker.short_name}
-              </span>{" "}
-              <span style={{ fontSize: 13, color: C.inkFaint }}>
-                ({getPlainName(marker.short_name, marker)})
-              </span>
-            </div>
             <div
               style={{
-                ...DISPLAY_NUM,
-                fontSize: 24,
-                color:
-                  marker.status === "abnormal" ? C.risk : C.caution,
+                ...CARD_STYLE,
+                boxShadow: C.shadowSoft,
+                padding: "16px 24px",
+                fontSize: 15,
+                color: C.ink,
+                fontWeight: 600,
+                textAlign: "center",
+                cursor: "pointer",
+                transition: "box-shadow 0.15s ease",
               }}
             >
-              {marker.value}{" "}
-              <span
-                style={{
-                  fontSize: 12,
-                  color: C.inkFaint,
-                  fontWeight: 400,
-                }}
-              >
-                {marker.unit}
-              </span>
+              Ask Precura about your results
             </div>
-          </div>
-          <RangeBar
-            value={marker.value}
-            refLow={marker.ref_range_low}
-            refHigh={marker.ref_range_high}
-            color={marker.status === "abnormal" ? C.risk : C.caution}
-          />
-          <p
+          </Link>
+          <Link
+            href="/member/panels/new"
             style={{
-              fontSize: 14,
-              color: C.inkMuted,
-              lineHeight: 1.6,
-              marginTop: 14,
+              display: "block",
+              textDecoration: "none",
+              marginBottom: 16,
             }}
           >
-            {marker.status === "borderline"
-              ? `Slightly outside the normal range. This is a common finding in Sweden and Dr. ${DOCTOR.firstName} will review it in detail.`
-              : `Outside the reference range. Dr. ${DOCTOR.firstName} will assess this and include it in your review.`}
-          </p>
-        </div>
-      ))}
+            <div
+              style={{
+                ...CARD_STYLE,
+                boxShadow: C.shadowSoft,
+                padding: "16px 24px",
+                fontSize: 15,
+                color: C.ink,
+                fontWeight: 600,
+                textAlign: "center",
+                cursor: "pointer",
+              }}
+            >
+              Add another blood panel
+            </div>
+          </Link>
 
-      {/* Body systems */}
-      <div style={{ ...CARD_SAGE_STYLE, padding: 20, marginBottom: 20 }}>
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: C.sageDeep,
-            marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
+          {/* Health journey teaser */}
           <div
             style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: C.good,
+              padding: "20px 24px",
+              background: C.butterTint,
+              border: `1px solid ${C.butterSoft}`,
+              borderRadius: 18,
             }}
-          />
-          {inRange} markers in healthy range
+          >
+            <p
+              style={{
+                fontSize: 15,
+                color: C.inkMuted,
+                lineHeight: 1.6,
+                fontStyle: "italic",
+                fontFamily: SERIF_FONT,
+                margin: 0,
+              }}
+            >
+              This is your first panel. As you add more over time, Precura
+              will track trends, flag changes, and give you a clearer picture
+              of where your health is heading.
+            </p>
+          </div>
         </div>
-        <SystemsGrid systems={systems} />
-      </div>
-
-      {/* Doctor progress */}
-      <DoctorProgressTrack />
-
-      {/* Actions */}
-      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-        <a
-          href="/member/discuss"
-          style={{
-            display: "block",
-            padding: "14px 24px",
-            background: C.canvasSoft,
-            border: `1px solid ${C.lineCard}`,
-            borderRadius: 14,
-            fontSize: 14,
-            color: C.ink,
-            textDecoration: "none",
-            fontFamily: SYSTEM_FONT,
-            textAlign: "center",
-          }}
-        >
-          Ask Precura about your results
-        </a>
-        <a
-          href="/member/panels/new"
-          style={{
-            display: "block",
-            padding: "14px 24px",
-            background: C.canvasSoft,
-            border: `1px solid ${C.lineCard}`,
-            borderRadius: 14,
-            fontSize: 14,
-            color: C.ink,
-            textDecoration: "none",
-            fontFamily: SYSTEM_FONT,
-            textAlign: "center",
-          }}
-        >
-          Add another blood panel
-        </a>
       </div>
     </motion.div>
   );
@@ -3176,6 +3458,34 @@ function AdaptiveHomeView() {
             grid-template-columns: 2fr 1fr;
             gap: 24px;
             align-items: start;
+          }
+        }
+        /* State B responsive grid */
+        .stateb-grid {
+          display: block;
+        }
+        .stateb-sidebar {
+          margin-top: 32px;
+        }
+        .systems-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        @media (min-width: 768px) {
+          .stateb-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+            align-items: start;
+          }
+          .stateb-sidebar {
+            margin-top: 0;
+            position: sticky;
+            top: 24px;
+          }
+          .systems-grid {
+            grid-template-columns: 1fr 1fr 1fr;
           }
         }
       `}</style>
