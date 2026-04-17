@@ -626,6 +626,45 @@ function PillDot({ color }: { color: string }) {
 // System pills grid
 // ============================================================================
 
+function getKeyMarker(markers: Biomarker[]): Biomarker | null {
+  // Return the "most interesting" marker: flagged first, then the one closest to range edge
+  const flagged = markers.filter((m) => m.status !== "normal");
+  if (flagged.length > 0) return flagged[0];
+  if (markers.length === 0) return null;
+  // Pick the marker closest to its range boundary
+  let closest = markers[0];
+  let closestDist = Infinity;
+  for (const m of markers) {
+    if (m.ref_range_low != null && m.ref_range_high != null) {
+      const range = m.ref_range_high - m.ref_range_low;
+      if (range > 0) {
+        const distLow = Math.abs(m.value - m.ref_range_low) / range;
+        const distHigh = Math.abs(m.value - m.ref_range_high) / range;
+        const dist = Math.min(distLow, distHigh);
+        if (dist < closestDist) { closestDist = dist; closest = m; }
+      }
+    }
+  }
+  return closest;
+}
+
+function MiniRangeBar({ marker }: { marker: Biomarker }) {
+  const low = marker.ref_range_low ?? 0;
+  const high = marker.ref_range_high ?? marker.value * 2;
+  const scaleMax = high * 1.5;
+  const greenLeft = (low / scaleMax) * 100;
+  const greenRight = 100 - (high / scaleMax) * 100;
+  const dotPos = Math.min(Math.max((marker.value / scaleMax) * 100, 2), 98);
+  const dotColor = marker.status === "normal" ? C.good : marker.status === "borderline" ? C.caution : C.risk;
+
+  return (
+    <div style={{ position: "relative", height: 6, background: C.stone, borderRadius: 3, width: "100%" }}>
+      <div style={{ position: "absolute", top: 0, bottom: 0, left: `${greenLeft}%`, right: `${greenRight}%`, background: `rgba(78,142,92,0.18)`, borderRadius: 3 }} />
+      <div style={{ position: "absolute", top: "50%", left: `${dotPos}%`, transform: "translate(-50%,-50%)", width: 10, height: 10, borderRadius: "50%", background: dotColor, border: "2px solid white", boxShadow: `0 1px 3px rgba(0,0,0,0.15)` }} />
+    </div>
+  );
+}
+
 function SystemsGrid({
   systems,
   biomarkers,
@@ -643,125 +682,108 @@ function SystemsGrid({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {systems.map((s) => {
-        const isOpen = expanded === s.name;
-        const markers = getMarkersForSystem(s.name);
-        return (
-          <div key={s.name}>
+    <>
+      <div className="systems-compact-grid">
+        {systems.map((s) => {
+          const markers = getMarkersForSystem(s.name);
+          const key = getKeyMarker(markers);
+
+          return (
             <div
-              onClick={() => markers.length > 0 && setExpanded(isOpen ? null : s.name)}
+              key={s.name}
+              onClick={() => markers.length > 0 && setExpanded(expanded === s.name ? null : s.name)}
               style={{
-                padding: "14px 18px",
+                padding: "14px 16px",
                 background: s.flagged ? C.terracottaTint : "white",
                 border: `1px solid ${s.flagged ? C.terracottaSoft : C.lineCard}`,
-                borderRadius: isOpen ? "14px 14px 0 0" : 14,
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
+                borderRadius: 14,
                 cursor: markers.length > 0 ? "pointer" : "default",
-                transition: "border-radius 0.15s",
+                transition: "box-shadow 0.15s",
               }}
             >
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: s.flagged ? C.caution : C.good,
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontSize: 15, fontWeight: 500, color: C.ink, flex: 1 }}>
-                {s.name}
-              </span>
-              <span
-                style={{
-                  ...DISPLAY_NUM,
-                  fontSize: 13,
-                  color: s.flagged ? C.caution : C.inkFaint,
-                }}
-              >
-                {s.count}
-              </span>
-              {markers.length > 0 && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: C.inkFaint,
-                    transform: isOpen ? "rotate(180deg)" : "rotate(0)",
-                    transition: "transform 0.2s",
-                    marginLeft: 2,
-                  }}
-                >
-                  &#9662;
-                </span>
-              )}
-            </div>
-            {isOpen && markers.length > 0 && (
-              <div
-                style={{
-                  background: s.flagged ? C.terracottaTint : "white",
-                  border: `1px solid ${s.flagged ? C.terracottaSoft : C.lineCard}`,
-                  borderTop: "none",
-                  borderRadius: "0 0 14px 14px",
-                  padding: "2px 18px 12px",
-                }}
-              >
-                {markers.map((m, i) => (
-                  <div
-                    key={m.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      justifyContent: "space-between",
-                      padding: "10px 0",
-                      borderBottom: i < markers.length - 1 ? `1px solid ${C.lineSoft}` : "none",
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background:
-                            m.status === "normal" ? C.good
-                              : m.status === "borderline" ? C.caution
-                              : C.risk,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span style={{ fontSize: 14, color: C.ink }}>
-                        {m.plain_name || m.name_eng || m.short_name}
-                      </span>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <span
-                        style={{
-                          ...DISPLAY_NUM,
-                          fontSize: 15,
-                          color:
-                            m.status === "normal" ? C.ink
-                              : m.status === "borderline" ? C.caution
-                              : C.risk,
-                        }}
-                      >
-                        {m.value}
-                      </span>
-                      <span style={{ fontSize: 11, color: C.inkFaint, marginLeft: 4 }}>
-                        {m.unit}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{s.name}</span>
+                {key && (
+                  <span style={{ ...DISPLAY_NUM, fontSize: 14, color: s.flagged ? C.caution : C.good }}>
+                    {key.value}
+                    <span style={{ fontSize: 10, color: C.inkFaint, fontWeight: 400, marginLeft: 2 }}>{key.unit}</span>
+                  </span>
+                )}
               </div>
-            )}
+              {key && <MiniRangeBar marker={key} />}
+              {!key && (
+                <div style={{ height: 6, background: C.good, borderRadius: 3, opacity: 0.2 }} />
+              )}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                <span style={{ fontSize: 11, color: C.inkFaint }}>
+                  {key ? (key.plain_name || key.name_eng || key.short_name) : ""}
+                </span>
+                <span style={{ fontSize: 10, color: C.inkFaint }}>{s.count}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Expanded detail overlay */}
+      {expanded && (() => {
+        const markers = getMarkersForSystem(expanded);
+        const sys = systems.find((s) => s.name === expanded);
+        if (!markers.length) return null;
+        return (
+          <div
+            style={{
+              marginTop: 12,
+              background: "white",
+              border: `1px solid ${sys?.flagged ? C.terracottaSoft : C.lineCard}`,
+              borderRadius: 16,
+              padding: "16px 20px",
+              boxShadow: C.shadowCard,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: C.ink }}>{expanded}</span>
+              <span
+                onClick={() => setExpanded(null)}
+                style={{ fontSize: 12, color: C.inkFaint, cursor: "pointer", padding: "4px 8px" }}
+              >
+                Close
+              </span>
+            </div>
+            {markers.map((m, i) => (
+              <div
+                key={m.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "10px 0",
+                  borderBottom: i < markers.length - 1 ? `1px solid ${C.lineSoft}` : "none",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: C.ink, fontWeight: 500 }}>
+                    {m.plain_name || m.name_eng || m.short_name}
+                  </div>
+                  {m.ref_range_low != null && m.ref_range_high != null && (
+                    <div style={{ fontSize: 11, color: C.inkFaint, marginTop: 2 }}>
+                      Range: {m.ref_range_low} - {m.ref_range_high} {m.unit}
+                    </div>
+                  )}
+                </div>
+                <div style={{ width: 80, flexShrink: 0 }}>
+                  <MiniRangeBar marker={m} />
+                </div>
+                <div style={{ ...DISPLAY_NUM, fontSize: 15, color: m.status === "normal" ? C.ink : m.status === "borderline" ? C.caution : C.risk, flexShrink: 0, minWidth: 50, textAlign: "right" }}>
+                  {m.value}
+                  <span style={{ fontSize: 10, color: C.inkFaint, fontWeight: 400, marginLeft: 2 }}>{m.unit}</span>
+                </div>
+              </div>
+            ))}
           </div>
         );
-      })}
-    </div>
+      })()}
+    </>
   );
 }
 
@@ -3632,6 +3654,11 @@ function AdaptiveHomeView() {
           grid-template-columns: 1fr 1fr;
           gap: 8px;
         }
+        .systems-compact-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
         @media (min-width: 768px) {
           .stateb-grid {
             display: grid;
@@ -3646,6 +3673,15 @@ function AdaptiveHomeView() {
           }
           .systems-grid {
             grid-template-columns: 1fr 1fr 1fr;
+          }
+          .systems-compact-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+          }
+        }
+        @media (min-width: 1024px) {
+          .systems-compact-grid {
+            grid-template-columns: repeat(4, 1fr);
           }
         }
       `}</style>
