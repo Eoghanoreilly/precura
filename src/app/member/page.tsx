@@ -3646,6 +3646,8 @@ function AdaptiveHomeView() {
         /* State B responsive grid */
         .stateb-grid {
           display: block;
+          max-width: 100%;
+          overflow: hidden;
         }
         .stateb-sidebar {
           margin-top: 32px;
@@ -3662,12 +3664,13 @@ function AdaptiveHomeView() {
           max-width: 100%;
           overflow: hidden;
         }
-        @media (min-width: 768px) {
+        @media (min-width: 1200px) {
           .stateb-grid {
             display: grid;
-            grid-template-columns: 1fr 360px;
+            grid-template-columns: 1fr 300px;
             gap: 24px;
             align-items: start;
+            max-width: 100%;
           }
           .stateb-sidebar {
             margin-top: 0;

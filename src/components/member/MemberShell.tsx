@@ -148,6 +148,7 @@ export function MemberShell({
           max-width: 100%;
           padding: 28px 20px 56px;
           box-sizing: border-box;
+          overflow: hidden;
         }
 
         @media (min-width: 640px) {
