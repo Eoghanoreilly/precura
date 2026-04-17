@@ -701,12 +701,12 @@ function SystemsGrid({
                 transition: "box-shadow 0.15s",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{s.name}</span>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink, flex: "0 1 auto" }}>{s.name}</span>
                 {key && (
-                  <span style={{ ...DISPLAY_NUM, fontSize: 14, color: s.flagged ? C.caution : C.good }}>
+                  <span style={{ ...DISPLAY_NUM, fontSize: 14, color: s.flagged ? C.caution : C.good, flexShrink: 0 }}>
                     {key.value}
-                    <span style={{ fontSize: 10, color: C.inkFaint, fontWeight: 400, marginLeft: 2 }}>{key.unit}</span>
+                    <span style={{ fontSize: 10, color: C.inkFaint, fontWeight: 400, marginLeft: 3 }}>{key.unit}</span>
                   </span>
                 )}
               </div>
