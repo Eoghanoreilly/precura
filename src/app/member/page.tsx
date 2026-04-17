@@ -1016,8 +1016,8 @@ function StateB({
           {flagged.length > 0
             ? `${flagged.length} marker${flagged.length > 1 ? "s" : ""} need${flagged.length === 1 ? "s" : ""} a closer look.`
             : "Everything looks healthy."}{" "}
-          Dr. {DOCTOR.firstName} will have personal notes for you within 48
-          hours.
+          Request a review from Dr. {DOCTOR.firstName} and he'll write you a
+          personal note.
         </p>
       </div>
 
