@@ -1016,7 +1016,7 @@ function StateB({
           {flagged.length > 0
             ? `${flagged.length} marker${flagged.length > 1 ? "s" : ""} need${flagged.length === 1 ? "s" : ""} a closer look.`
             : "Everything looks healthy."}{" "}
-          Request a review from Dr. {DOCTOR.firstName} and he'll write you a
+          Dr. {DOCTOR.firstName} will review your results and write you a
           personal note.
         </p>
       </div>
