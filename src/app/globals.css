@@ -402,12 +402,13 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
-/* ==========================================
-   RESPONSIVE LAYOUT SYSTEM
-   Mobile: single column, full width
-   Tablet: wider container
-   Desktop: multi-column grid
-   ========================================== */
+/* ============================================================================
+   v2 PROTOTYPE LAYOUT CLASSES (DO NOT USE IN /member/* OR NEW CODE)
+   These classes (.v2-container, .v2-grid, .v2-main, .v2-sidebar,
+   .v2-article-grid, .v2-health-grid) back the Anna Bergstrom mock prototype
+   at /v2/*. They will be retired when /v2/* migrates to PageShell in a later
+   spec. New code must use the layout primitives from src/components/layout/.
+   ============================================================================ */
 
 .v2-container {
   max-width: 448px;
