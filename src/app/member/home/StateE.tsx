@@ -53,7 +53,7 @@ export function StateE({ panels }: StateEProps) {
         body={
           <>
             <p>{season.body}</p>
-            <p>Your last panel sits well within range and your doctor's most recent note does not flag anything new.</p>
+            <p>Your last panel sits well within range, and the most recent note from your doctor does not flag anything new.</p>
           </>
         }
       />
