@@ -1063,7 +1063,6 @@ export default function PanelDetailPage() {
               }}
             >
               Have {DOCTOR.firstName} review this panel
-              <span style={{ fontSize: 16 }}>{"->"}</span>
             </a>
 
             {/* Secondary: Ask Precura */}
@@ -1087,7 +1086,6 @@ export default function PanelDetailPage() {
               }}
             >
               Ask Precura about this
-              <span style={{ fontSize: 16, color: C.inkFaint }}>{"->"}</span>
             </a>
 
             {/* Secondary: Add panel */}
@@ -1111,7 +1109,6 @@ export default function PanelDetailPage() {
               }}
             >
               Add another blood panel
-              <span style={{ fontSize: 16, color: C.inkFaint }}>{"->"}</span>
             </a>
           </div>
         </motion.section>
