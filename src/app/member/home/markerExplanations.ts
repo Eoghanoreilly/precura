@@ -176,8 +176,20 @@ const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
   },
 };
 
-export function getMarkerExplanation(shortName: string): MarkerExplanation | null {
+const GENERIC_EXPLANATION: MarkerExplanation = {
+  what:
+    "This marker is part of a standard blood panel. Every marker has a reference range, which is the typical range for a healthy adult population.",
+  why: ({ value, refLow, refHigh, unit, status }) => {
+    if (status === "normal") {
+      return `At ${value} ${unit} your value sits inside the reference range (${refLow} - ${refHigh}). No action needed on this one.`;
+    }
+    const direction = status === "high" ? "above" : status === "low" ? "below" : "outside";
+    return `At ${value} ${unit} your value is ${direction} the reference range (${refLow} - ${refHigh} ${unit}). A single out-of-range marker is not a diagnosis. If your doctor's review has not landed yet, they will flag anything worth discussing.`;
+  },
+};
+
+export function getMarkerExplanation(shortName: string): MarkerExplanation {
   // Strip known Swedish prefixes before lookup
   const stripped = shortName.replace(/^(P-|S-|fP-|B-|Hb-)/, "");
-  return MARKER_EXPLANATIONS[stripped] ?? MARKER_EXPLANATIONS[shortName] ?? null;
+  return MARKER_EXPLANATIONS[stripped] ?? MARKER_EXPLANATIONS[shortName] ?? GENERIC_EXPLANATION;
 }

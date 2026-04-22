@@ -87,24 +87,20 @@ export function SystemTile({ system, marker }: SystemTileProps) {
         )}
       </div>
 
-      {explanation && (
-        <>
-          <button
-            className="systile-explain-btn"
-            onClick={() => setExpanded((e) => !e)}
-            aria-expanded={expanded}
-          >
-            {expanded ? "Collapse" : "Explain more"}
-          </button>
-          {expanded && (
-            <div className="systile-explain-body">
-              <p className="systile-explain-what">{explanation.what}</p>
-              <p className="systile-explain-why">
-                {explanation.why({ value, refLow, refHigh, unit, status })}
-              </p>
-            </div>
-          )}
-        </>
+      <button
+        className="systile-explain-btn"
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+      >
+        {expanded ? "Collapse" : "Explain more"}
+      </button>
+      {expanded && (
+        <div className="systile-explain-body">
+          <p className="systile-explain-what">{explanation.what}</p>
+          <p className="systile-explain-why">
+            {explanation.why({ value, refLow, refHigh, unit, status })}
+          </p>
+        </div>
       )}
 
       <style jsx>{`
@@ -168,16 +164,18 @@ export function SystemTile({ system, marker }: SystemTileProps) {
           border-radius: 5px;
           background: linear-gradient(
             to right,
-            var(--health-risk) 0%,
-            var(--health-risk) 8%,
-            var(--health-caution) 20%,
-            var(--health-good) 35%,
-            var(--health-good) 65%,
-            var(--health-caution) 80%,
-            var(--health-risk) 92%,
-            var(--health-risk) 100%
+            #E8A5A5 0%,
+            #E8A5A5 8%,
+            #EDC9A0 20%,
+            #F0D89A 30%,
+            #B9D4B0 40%,
+            #B9D4B0 60%,
+            #F0D89A 70%,
+            #EDC9A0 80%,
+            #E8A5A5 92%,
+            #E8A5A5 100%
           );
-          opacity: 0.85;
+          opacity: 1;
         }
 
         .systile-range-marker {
