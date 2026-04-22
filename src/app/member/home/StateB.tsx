@@ -3,9 +3,7 @@
 import React from "react";
 import { EditorialColumn, Hero, SubGrid, SystemTile, Button } from "@/components/layout";
 import type { PanelWithBiomarkers, Annotation, Biomarker } from "@/lib/data/types";
-import type { SystemTileMarker } from "@/components/layout";
 import { BodySystemsGrid } from "./blocks/BodySystemsGrid";
-import { DoctorProgressTrack } from "./blocks/DoctorProgressTrack";
 import { getFlaggedMarkers, getCategoryForMarker } from "./categoryMap";
 import { getPlainName } from "./plainNames";
 
@@ -21,21 +19,17 @@ const SECTION_TITLE_STYLE: React.CSSProperties = {
   color: "var(--ink-faint)",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  marginBottom: "var(--sp-4)",
-  margin: 0,
+  margin: "0 0 var(--sp-4)",
 };
 
-// Translate the Biomarker.status ("normal" | "borderline" | "abnormal") into
-// SystemTile's direction-aware status ("normal" | "low" | "high" | "critical")
-// by comparing value to its reference range.
-function mapStatus(m: Biomarker): SystemTileMarker["status"] {
-  if (m.status === "normal") return "normal";
-  const low = m.ref_range_low;
-  const high = m.ref_range_high;
-  if (m.status === "abnormal") return "critical";
-  if (high != null && m.value > high) return "high";
-  if (low != null && m.value < low) return "low";
-  return "high";
+function mapStatus(
+  status: Biomarker["status"],
+  value: number,
+  refHigh: number,
+): "normal" | "low" | "high" | "critical" {
+  if (status === "normal") return "normal";
+  if (status === "abnormal") return "critical";
+  return value > refHigh ? "high" : "low";
 }
 
 export function StateB({ panels }: StateBProps) {
@@ -43,7 +37,7 @@ export function StateB({ panels }: StateBProps) {
   if (!latest) return null;
 
   const biomarkers = latest.biomarkers ?? [];
-  const flagged = getFlaggedMarkers(biomarkers).slice(0, 3);
+  const flagged = getFlaggedMarkers(biomarkers);
 
   const headline = flagged.length > 0
     ? `Your first panel flagged ${flagged.length} marker${flagged.length > 1 ? "s" : ""}. Here is what is happening.`
@@ -52,42 +46,44 @@ export function StateB({ panels }: StateBProps) {
   return (
     <EditorialColumn>
       <Hero
-        tone="quiet"
+        tone="warm"
         eyebrow={<em style={{ fontFamily: "var(--font-serif)", color: "var(--sage-deep)" }}>Your first panel</em>}
         display={headline}
         body={<p>A licensed doctor is reviewing this panel. You will see a note here when the review is done.</p>}
-        ctas={<Button tone="secondary" href={`/member/panels/${latest.id}`}>See the full panel</Button>}
+        ctas={<Button tone="sage" href={`/member/panels/${latest.id}`}>See the full panel</Button>}
       />
 
       {flagged.length > 0 && (
         <section style={{ marginBottom: "var(--sp-8)" }}>
-          <h2 style={{ ...SECTION_TITLE_STYLE, marginBottom: "var(--sp-4)" }}>Flagged markers</h2>
+          <h2 style={SECTION_TITLE_STYLE}>Flagged markers</h2>
           <SubGrid columns={3}>
-            {flagged.map((m) => (
-              <SystemTile
-                key={m.id}
-                system={getCategoryForMarker(m.short_name)}
-                marker={{
-                  shortName: m.short_name,
-                  value: m.value,
-                  unit: m.unit,
-                  refLow: m.ref_range_low ?? 0,
-                  refHigh: m.ref_range_high ?? 1,
-                  status: mapStatus(m),
-                  plainName: getPlainName(m.short_name, m),
-                }}
-              />
-            ))}
+            {flagged.slice(0, 3).map((m) => {
+              const refLow = m.ref_range_low ?? 0;
+              const refHigh = m.ref_range_high ?? 1;
+              return (
+                <SystemTile
+                  key={m.id}
+                  system={getCategoryForMarker(m.short_name)}
+                  marker={{
+                    shortName: m.short_name,
+                    value: m.value,
+                    unit: m.unit,
+                    refLow,
+                    refHigh,
+                    status: mapStatus(m.status, m.value, refHigh),
+                    plainName: getPlainName(m.short_name, m),
+                  }}
+                />
+              );
+            })}
           </SubGrid>
         </section>
       )}
 
-      <section style={{ marginBottom: "var(--sp-8)" }}>
-        <h2 style={{ ...SECTION_TITLE_STYLE, marginBottom: "var(--sp-4)" }}>Body systems</h2>
+      <section>
+        <h2 style={SECTION_TITLE_STYLE}>Body systems</h2>
         <BodySystemsGrid biomarkers={biomarkers} />
       </section>
-
-      <DoctorProgressTrack />
     </EditorialColumn>
   );
 }
