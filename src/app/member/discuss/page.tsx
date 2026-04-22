@@ -498,7 +498,7 @@ function HistoryView({
           alignItems: "center",
           gap: 10,
           padding: "16px 24px",
-          background: C.terracotta,
+          background: C.sageDeep,
           color: "#fff",
           border: "none",
           borderRadius: 16,
@@ -508,7 +508,7 @@ function HistoryView({
           letterSpacing: "-0.005em",
           cursor: "pointer",
           boxShadow:
-            "0 8px 18px -8px rgba(201,87,58,0.42), 0 2px 6px rgba(201,87,58,0.2)",
+            "0 8px 18px -8px rgba(68,90,74,0.42), 0 2px 6px rgba(68,90,74,0.2)",
           marginBottom: 32,
           transition: "transform 0.15s ease",
         }}
@@ -1235,7 +1235,7 @@ function Composer({
             flexShrink: 0,
             padding: "10px 20px",
             background:
-              disabled || value.trim().length === 0 ? C.stone : C.terracotta,
+              disabled || value.trim().length === 0 ? C.stone : C.sageDeep,
             color: C.canvasSoft,
             border: "none",
             borderRadius: 100,
@@ -1248,7 +1248,7 @@ function Composer({
             boxShadow:
               disabled || value.trim().length === 0
                 ? "none"
-                : "0 8px 18px -8px rgba(201,87,58,0.42), 0 2px 6px rgba(201,87,58,0.2)",
+                : "0 8px 18px -8px rgba(68,90,74,0.42), 0 2px 6px rgba(68,90,74,0.2)",
             transition: "background 0.2s ease",
           }}
         >
