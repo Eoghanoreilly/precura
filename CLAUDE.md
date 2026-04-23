@@ -39,13 +39,16 @@ npx supabase db push     # Apply migrations to remote
 
 ## Project Overview
 
-Precura is a predictive health platform. Multiple versions coexist:
+Precura is a predictive health platform. Multiple surfaces coexist:
 
-- **Welcome Kit** home page at `/` (canonical since 2026-04-13). Components in `src/components/home/*`. Warm Airbnb-host aesthetic, cream/butter/terracotta/sage palette, editorial type, single-CTA hero.
-- **Member app** (`/src/app/member/`) - THE ACTIVE FOCUS. Real Supabase backend with auth, blood panel management, chat, annotations. Two real users (Eoghan + Dr. Tomas).
-- **v1** (`/src/app/`) - Original MVP demo with FINDRISC risk scoring. Untouched.
-- **v2** (`/src/app/v2/`) - Full platform prototype with mock data (Anna Bergstrom). Still works, separate from /member.
-- **Smith prototypes** (`/src/app/smith1` through `smith15`) - 15 frozen design explorations. Reference only. Do not touch.
+- **Welcome Kit** at `/`. Components in `src/components/home/*`. Warm Airbnb-host aesthetic. Not yet on the shared token system; still its own palette.
+- **Member app** (`/src/app/member/`). Real Supabase backend. Home + `/discuss` rewritten on the editorial design system (PRs #11 + #12, 2026-04-22 to 04-23). Panel detail partially migrated (SystemTile reuse). Remaining pages (panels list, new panel, messages, profile, training) still on the `MemberShell` shim.
+- **Doctor portal** (`/src/app/doctor/`) - NEW in PR #14 (2026-04-23). Dual-pane daily driver at `/doctor`, tabbed patient file at `/doctor/patient/[id]`, magic-link + role-gated middleware, `profiles.role in (doctor, both)`.
+- **Layout primitives** (`/src/components/layout/`) - 8 shared primitives (PR #11). `PageShell`, `SideRail`, `EditorialColumn`, `Hero`, `SubGrid`, `NarrativeCard`, `SystemTile`, `ActionList` + `Button`. Used by member home, discuss, and the doctor portal.
+- **Doctor concepts** (`/src/app/doctor/concepts/*`) - 6 design-exploration artifacts from PR #13 kept for reference. Do not touch.
+- **v1** (`/src/app/`) - Original MVP demo. Frozen reference.
+- **v2** (`/src/app/v2/`) - Full platform mock prototype. Frozen reference.
+- **Smith prototypes** (`/src/app/smith1` through `smith15`) - Frozen reference. Do not touch.
 
 **Live URL:** https://precura-wine.vercel.app
 **GitHub:** https://github.com/Eoghanoreilly/precura
@@ -66,59 +69,87 @@ NEXT_PUBLIC_SUPABASE_URL        # Supabase project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY   # Public anon key (safe to expose, RLS enforces)
 SUPABASE_SERVICE_ROLE_KEY       # Server-side only, NEVER expose in client code
 ANTHROPIC_API_KEY               # For /api/discuss and /api/parse-panel
-ALLOWED_EMAILS                  # Comma-separated, enforced by middleware on /member/*
+ALLOWED_EMAILS                  # Comma-separated, enforced by middleware on /member/* and /doctor/*
 ```
 
 ### Key Directories
 ```
-src/app/member/        # Member app (real data, real auth - THE FOCUS)
+src/app/member/        # Member app (real data, real auth)
+src/app/doctor/        # Doctor portal (real data, role-gated)
+src/app/doctor/concepts/  # Six design-exploration concepts from PR #13 (reference only)
 src/app/api/           # API routes (discuss, parse-panel, dev-login)
-src/app/v2/            # v2 prototype (mock data, separate from /member)
+src/app/v2/            # v2 prototype (frozen, mock data)
+src/components/layout/ # Shared editorial primitives (PR #11)
 src/components/home/   # Welcome Kit home page components
-src/components/member/ # Member app components (MemberShell, data layer, charts)
-src/lib/data/          # Supabase data helpers (panels, annotations, chat, types)
+src/components/member/ # Member app components (MemberShell shim, charts)
+src/lib/data/          # Supabase data helpers (panels, annotations, chat, doctor, types)
 src/lib/supabase/      # Supabase client/server/middleware helpers
 src/lib/discuss/       # Chat system prompt builder
-src/lib/v2/            # v2 mock data (mock-patient.ts - still used by /v2/*)
-middleware.ts          # Root middleware - auth session refresh + email allowlist
+src/lib/v2/            # v2 mock data (frozen)
+middleware.ts          # Root middleware - matches /member/:path* AND /doctor/:path*
 supabase/migrations/   # Database schema migrations
 ```
 
 ### Member App Page Map
 ```
 /member/login              # Magic link auth + dev quick login
-/member/auth/callback      # Handles magic link token from email
-/member                    # Adaptive 7-state home page
-/member/panels/new         # Manual biomarker entry + paste-and-parse
-/member/panels/[id]        # Panel detail: range bars, findings, annotations, edit
-/member/discuss            # Chat with real data context, session persistence
-/member/messages           # Annotation feed ("Notes" in sidebar)
-/member/profile            # Settings (still hardcoded data)
+/member/auth/callback      # Handles magic link token; reads ?next= to route doctors to /doctor
+/member                    # Adaptive 7-state home page (PR #11 editorial rewrite)
+/member/panels/new         # Manual biomarker entry + paste-and-parse (still MemberShell shim)
+/member/panels/[id]        # Panel detail: SystemTile-based marker cards (partial PR #11 migration)
+/member/panels             # Panel list (still MemberShell shim)
+/member/discuss            # Editorial chat (PR #12 rewrite)
+/member/messages           # Annotation feed ("Notes")
+/member/profile            # Settings (still hardcoded)
 /member/training           # Workout program (still mock data)
+```
+
+### Doctor Portal Page Map (NEW, PR #14)
+```
+/doctor/login              # Magic link + "Sign in as doctor" dev quick login
+/doctor                    # Dual-pane home: urgency-sorted patient list + case log + composer
+/doctor/patient/[id]       # Tabbed patient file (Overview / Panels / Notes / Chat)
+/doctor/concepts           # Index of 6 design-exploration pages (reference)
+/doctor/concepts/<slug>    # Six concept pages (triage/pipeline/briefing/inbox/workbench/messages)
 ```
 
 ### API Routes
 ```
 /api/discuss               # Streaming chat - Claude Haiku, prompt caching, Supabase context
 /api/parse-panel           # Claude Haiku extracts markers from pasted lab text
-/api/dev-login             # Dev-only quick login via admin.generateLink()
+/api/dev-login             # Dev quick login: verifies server-side, sets cookies on response
+                           # Optional body: { email, role?, redirect? } - role flips profile before auth
 ```
 
 ### Adaptive Home Page State Machine
 
-The member home page (`/member/page.tsx`) has 7 states with priority-based detection (G > F > E > D > C > B > A):
+The member home page is a thin router at `src/app/member/page.tsx` (96 lines after PR #11). State detection lives in `src/app/member/home/determineState.ts` and each state renders in its own file under `src/app/member/home/`. Priority fallthrough: G > F > E > D > C > B > A.
 
-| State | Condition | Layout |
-|-------|-----------|--------|
-| A | No data | Single column, welcome + CTA |
-| B | First panel, no doctor review | Single column, flagged markers + body systems grid |
-| C | Doctor reviewed (1 panel) | Single column, doctor letter hero |
-| D | Multiple panels | Two-column, sparklines + trajectory |
-| E | Steady state | Two-column, stability view |
-| F | New results (2+ panels) | Two-column, WhatMoved hero |
-| G | New doctor note | Two-column, doctor letter hero |
+| State | Condition | Template | Hero |
+|-------|-----------|----------|------|
+| A | No data | Narrative | Warm welcome + CTA |
+| B | First panel, no review | Home-Data | Quiet hero + 3-up flagged + 3-up body systems |
+| C | Doctor reviewed (1 panel) | Narrative | Warm doctor letter + 3-up body systems |
+| D | Multiple panels | Home-Data | Quiet trajectory hero + 2-up trajectory / note + 4-up sparklines |
+| E | Steady state | Narrative | Quiet steady hero + 3-up body systems (lower contrast) |
+| F | New results | Home-Data | Warm WhatMoved reveal + 3-up body systems + 2-up flagged |
+| G | New doctor note | Narrative | Warm doctor letter + "New" pill eyebrow + 3-up body systems |
 
-Hidden zones render nothing - no placeholders. Two-column layout activates at 1200px+.
+Responsive column widths: 720 (tablet) -> 880 (laptop) -> 1040 (desktop) -> 1160 (large). `SubGrid` collapses by container width via `@container` queries, not viewport. Hidden zones render nothing.
+
+### Doctor Portal Architecture
+
+Role-gated via middleware: `/doctor/*` requires `profiles.role in (doctor, both)`. Strict doctors on `/member/*` redirect to `/doctor`.
+
+Daily-driver home at `/doctor`:
+- Left pane: `useDoctorData` loads all allowlisted users (minus self), computes a rollup per patient (`pending_review | awaiting_patient | active | stale | new_member`), sorts by urgency (`src/app/doctor/home/sortPatients.ts`)
+- Right pane: selected patient's case log (annotations timeline) + flagged-marker chip strip + sticky sage composer (`Cmd/Ctrl+Return` to post)
+- First-load right pane: deterministic morning summary built from the rollup (`src/app/doctor/home/buildMorningSummary.ts`)
+
+Patient file at `/doctor/patient/[id]`:
+- Tabs: Overview (Precura summary + latest panel `BodySystemsGrid` + flagged `SystemTile` grid), Panels (chronological list linking to `/member/panels/[id]`), Notes (composer + full annotation timeline), Chat (read-only view of patient's Precura conversations)
+
+Doctor annotations always attach to a panel (`target_type: 'panel'`). General patient notes deferred.
 
 ### Supabase Schema
 Tables: `profiles`, `panels`, `biomarkers`, `annotations`, `chat_sessions`, `chat_messages`

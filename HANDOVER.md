@@ -1,8 +1,8 @@
 # Precura - Project Handover Document
 
-**Last updated:** April 18, 2026
-**Previous version:** April 1, 2026
-**Author:** Claude Opus 4.6 (pair programmer)
+**Last updated:** April 23, 2026
+**Previous versions:** April 18, 2026; April 1, 2026
+**Author:** Claude Opus 4.7 (pair programmer)
 **Project Owner:** Eoghan O'Reilly
 **Medical Co-founder:** Dr. Tomas Kurakovas
 **Repository:** https://github.com/Eoghanoreilly/precura
@@ -20,15 +20,46 @@ The core thesis: healthcare is reactive. Patients get diagnosed with conditions 
 
 The project has evolved through several phases, all coexisting in one Next.js app:
 
-- **Welcome Kit home page** at `/` - the public-facing landing page. Warm Airbnb-host aesthetic, cream/butter/terracotta/sage palette.
-- **v1** (`/src/app/login`, `/src/app/onboarding`, etc.) - original MVP demo with FINDRISC risk scoring. Untouched, kept as reference.
-- **v2** (`/src/app/v2/`) - full platform prototype with mock data (Anna Bergstrom). 1177 integration, multi-model risk, doctor messaging, provider portal, training plans. Still runs on mock data.
-- **Smith prototypes** (`/src/app/smith1` through `smith15`) - 15 frozen design explorations for the logged-in experience. Reference material only.
-- **Member app** (`/src/app/member/`) - THE ACTIVE FOCUS. Real Supabase backend, real auth, real blood panel data. This is what was built in the April 16-18 session.
+- **Welcome Kit home page** at `/` - the public-facing landing page. Warm Airbnb-host aesthetic, cream/butter/terracotta/sage palette. Not yet on the shared token system.
+- **v1** (`/src/app/login`, `/src/app/onboarding`, etc.) - original MVP demo with FINDRISC risk scoring. Frozen reference.
+- **v2** (`/src/app/v2/`) - full platform prototype with mock data (Anna Bergstrom). Frozen reference.
+- **Smith prototypes** (`/src/app/smith1` through `smith15`) - 15 frozen design explorations.
+- **Member app** (`/src/app/member/`) - real Supabase data. Home page and `/discuss` rebuilt on the editorial design system in PRs #11 + #12 (2026-04-22). Other member pages still render through the `MemberShell` shim.
+- **Doctor portal** (`/src/app/doctor/`) - NEW in PR #14 (2026-04-23). Dual-pane daily driver + tabbed patient file view. Gated by `profiles.role in (doctor, both)` via middleware.
+- **Design-exploration concepts** (`/src/app/doctor/concepts/*`) - six parallel-agent doctor-portal concepts preserved as reference (PR #13).
+- **Layout primitives** (`/src/components/layout/`) - 8 shared primitives (`PageShell`, `SideRail`, `EditorialColumn`, `Hero`, `SubGrid`, `NarrativeCard`, `SystemTile`, `ActionList`) plus `Button`. Consumed by both member and doctor surfaces. Tokens live in `globals.css` as CSS custom properties.
 
 ---
 
-## 2. Current State (April 18, 2026)
+## 2. Current State (April 23, 2026)
+
+### What was built in the April 22-23 sprint
+
+Five major PRs shipped end-to-end:
+
+**PR #11 (2026-04-22) - Responsive foundation + home editorial redesign.**
+The old `src/app/member/page.tsx` was a 3,779-line monolith that capped content at 980px and had an out-of-order CSS media-query cascade. Replaced with:
+- Full CSS custom-property token set in `globals.css` (type with `clamp()`, space, color, radius, shadow)
+- 8 layout primitives in `src/components/layout/` (see section 4)
+- Home rewritten as a 96-line router + per-state files in `src/app/member/home/`
+- `MemberShell` became a thin shim around `PageShell` so non-home pages kept working
+- `SystemTile` gained a pastel banded range bar and an "Explain more" expansion backed by `markerExplanations.ts` (15 common Swedish markers plus a generic fallback)
+- All primary action buttons on `/member/*` shifted from terracotta to sage
+- Panel detail page reuses `SystemTile` for the per-marker cards
+
+**PR #12 (2026-04-23) - `/member/discuss` editorial migration.**
+Chat page rewritten from a 1,336-line monolith to an 85-line router. Transcript-style messages (no bubbles), sticky sage composer with Cmd/Ctrl+Return shortcut, editorial session cards, `EditorialColumn variant="narrow"` (720px) so the reading column does not sprawl.
+
+**PR #13 (2026-04-23) - Doctor portal design exploration.**
+Six independent design agents ran in parallel, each writing a compilable Next.js concept page under `src/app/doctor/concepts/*` with a unique structural constraint (triage queue, Kanban pipeline, morning-briefing memo, unified inbox, workbench database, dual-pane messages). Mock patient data shared across all six at `src/app/doctor/concepts/mockPatients.ts`. Index at `/doctor/concepts`. The Gmail-style dual-pane `messages` concept was picked as the winner.
+
+**PR #14 (2026-04-23) - Doctor portal v1 production build.**
+`/doctor` home (dual-pane, left = urgency-sorted patient list, right = case log + sticky composer + first-load morning summary). `/doctor/patient/[id]` tabbed file view (Overview / Panels / Notes / Chat). `/doctor/login` + shared `/member/auth/callback?next=/doctor`. Middleware matcher extended to `/doctor/:path*` with role gating (`profiles.role in (doctor, both)`) and reverse redirect (strict doctors away from `/member`).
+
+**PRs #15-18 - Dev quick login hardening.**
+Incremental fixes to the "Sign in as doctor" dev button on `/doctor/login`. Final shape in PR #18: the endpoint uses the service-role key to upgrade the target account's role to `'both'`, then runs `admin.generateLink` + SSR `verifyOtp` server-side and attaches session cookies to the response. The client navigates same-origin with cookies already set. Zero cross-origin hop, zero dependency on Supabase's Site URL or Redirect URL allowlist.
+
+Full session notes at `~/.claude/projects/-Users-eoghan-Desktop-precura/handover/2026-04-23-session-state.md`.
 
 ### What was built in the April 16-18 session
 
@@ -110,14 +141,17 @@ Body systems shown as a compact grid (2-col mobile, 3-col tablet, 4-col desktop)
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| Tomas's email in ALLOWED_EMAILS | BLOCKER | Currently placeholder. Must be updated before he can log in |
-| Notification system | HIGH | Tomas doesn't know when panels are uploaded. No email/push notifications |
-| Sign-out | MEDIUM | No sign-out button wired to Supabase auth |
-| Profile page | MEDIUM | Still shows hardcoded data, not pulling from Supabase |
-| Training page | LOW | Still on mock data |
-| Old /login page | LOW | Anna/Erik demo login still exists alongside /member/login |
-| Panel edit/delete from home | LOW | Only available from panel detail page |
-| `/v2/onboarding` | DEFERRED | Multi-tool onboarding (PHQ-9, GAD-7, etc.) not yet built |
+| Tomas's email in ALLOWED_EMAILS | BLOCKER | Must be added (env var + Vercel) before he can log in via his real email. Dev quick login still works on Eoghan's account promoted to `role='both'`. |
+| Notification system | HIGH | Neither side gets notified when the other acts. No email, no push. |
+| Sign-out | MEDIUM | No sign-out button wired to Supabase auth on either surface. |
+| `/member/profile` | MEDIUM | Still hardcoded, not pulling from Supabase. Still on `MemberShell` shim. |
+| `/member/panels`, `/member/panels/new` | MEDIUM | Still on `MemberShell` shim. Haven't been rebuilt on new primitives. |
+| `/member/messages` | MEDIUM | Still on `MemberShell` shim. |
+| `/member/training` | LOW | Still mock data. |
+| Welcome Kit `/` | LOW | Not yet on shared tokens / `PageShell`. Its palette is the source of truth for the tokens. |
+| Doctor portal v1 gaps | FUTURE | No patient search, no audit log, no multi-doctor allocation, no AI-powered patient summaries, chat tab is read-only. See 2026-04-23 handover. |
+| Old v1 `/login` page | LOW | Anna/Erik demo login still exists. |
+| `/v2/onboarding` | DEFERRED | Multi-tool onboarding (PHQ-9, GAD-7, etc.) not yet built. |
 
 ---
 
@@ -182,20 +216,52 @@ precura/
         discuss/route.ts            # Streaming chat - Claude Haiku, prompt caching, Supabase context
         parse-panel/route.ts        # Claude Haiku parses pasted lab text into structured markers
 
-      # Member app (ACTIVE FOCUS - real Supabase data)
+      # Member app - real Supabase data. Home + discuss rewritten editorial.
       member/
-        layout.tsx                  # MemberShell wrapper
-        page.tsx                    # Adaptive 7-state home page (A through G)
-        auth/callback/page.tsx      # Magic link token handler
-        discuss/page.tsx            # Chat with session persistence
+        layout.tsx                  # MemberShell wrapper (shim around PageShell)
+        page.tsx                    # Adaptive 7-state home router (~96 lines)
+        home/                       # Home state files + helpers + blocks
+          StateA.tsx ... StateG.tsx
+          determineState.ts, headline.tsx, seasonalContext.ts
+          categoryMap.ts, plainNames.ts, markerExplanations.ts
+          useHomeData.ts, buildSidebar.ts, LoadingView.tsx
+          blocks/
+            BodySystemsGrid.tsx, Sparkline.tsx, RangeBar.tsx
+            MiniRangeBar.tsx, DoctorLetter.tsx, DoctorProgressTrack.tsx
+            MarkerTag.tsx, WhatMoved.tsx, RiskTrajectory.tsx
+        auth/callback/page.tsx      # Magic link handler (shared with /doctor via ?next=)
+        discuss/                    # Rewritten editorial chat (PR #12)
+          page.tsx                  # Thin router (~85 lines)
+          ActiveChat.tsx, HistoryView.tsx
+          useDiscussData.ts
+          composer/Composer.tsx, composer/useAutoGrow.ts
+          messages/MessageList.tsx, UserMessage.tsx, PrecuraMessage.tsx
+          messages/TypingIndicator.tsx, BlinkingCursor.tsx
+          sessions/SessionCard.tsx, formatSessionDate.ts
         login/page.tsx              # Magic link + dev quick login
         messages/page.tsx           # Annotation feed ("Notes" in sidebar)
         panels/
-          page.tsx                  # Panel list
-          new/page.tsx              # Manual entry form + paste-and-parse
-          [id]/page.tsx             # Panel detail: range bars, findings, annotations
+          page.tsx                  # Panel list (still old, MemberShell shim)
+          new/page.tsx              # Manual entry + paste-and-parse
+          [id]/page.tsx             # Panel detail, partially migrated to SystemTile
         profile/page.tsx            # Settings (still hardcoded)
         training/page.tsx           # Workout program (still mock data)
+
+      # Doctor portal (NEW in PR #14)
+      doctor/
+        page.tsx                    # Dual-pane home
+        login/page.tsx              # Magic link + dev "Sign in as doctor" button
+        home/
+          LeftPane.tsx              # Urgency-sorted patient list
+          RightPane.tsx             # Header + flagged strip + case log + composer
+          MorningSummary.tsx        # First-load right pane
+          sortPatients.ts           # rollupPatient + sortPatients
+          buildMorningSummary.ts    # Deterministic prose builder
+        patient/[id]/page.tsx       # Tabbed file view (Overview / Panels / Notes / Chat)
+        useDoctorData.ts            # Main data hook
+        concepts/                   # 6 design-exploration artifacts (left for reference)
+          mockPatients.ts, page.tsx
+          triage/, pipeline/, briefing/, inbox/, workbench/, messages/
 
       # v1 pages (original MVP demo - untouched)
       login/page.tsx
@@ -216,6 +282,14 @@ precura/
       smith1/ through smith15/
 
     components/
+      layout/                       # NEW shared primitives (PR #11)
+        PageShell.tsx               # Responsive shell (hamburger <1024, grid rail+main above)
+        SideRail.tsx                # Composable rail + Wordmark, IdentityCard, NextPanelHint, RailNav
+        EditorialColumn.tsx         # Centered main column (reading / narrow / wide variants)
+        Hero.tsx                    # Warm + quiet tones; exports Button too
+        SubGrid.tsx                 # Container-query inline grid (2/3/4 columns)
+        NarrativeCard.tsx, SystemTile.tsx, ActionList.tsx
+        index.ts                    # Barrel export
       home/                         # Welcome Kit home page components
       member/
         data.ts                     # Data layer - Supabase queries + Swedish marker category mapping
@@ -472,24 +546,25 @@ npx supabase db push    # Apply migrations
 
 ### Immediate
 1. Add Tomas's real email to `ALLOWED_EMAILS` (both `.env.local` and Vercel)
-2. Wire sign-out button to Supabase auth
-3. Build notification system (email when panels uploaded, when annotations added)
-4. Profile page: pull real data from Supabase profiles table
-5. Remove old `/login` page or redirect to `/member/login`
+2. Set Tomas's `profiles.role` to `'doctor'` via Supabase SQL once his email lands in the allowlist
+3. Wire sign-out button to Supabase auth on both `/member` and `/doctor`
+4. Build notification system (email + optional in-app toast when panels upload / notes post)
+5. Remove old v1 `/login` page or redirect to `/member/login`
 
 ### Short-term
-1. Doctor review workflow for Tomas
-2. Panel comparison / diff view (WhatMoved component for State F)
-3. Sparkline trends on home page for returning users
-4. Training page wired to real data
-5. Mobile polish pass on all /member/* pages
+1. Migrate remaining `/member/*` pages off the `MemberShell` shim onto `PageShell` directly: `/member/panels`, `/member/panels/new`, `/member/panels/[id]` (fully), `/member/messages`, `/member/profile`, `/member/training`. One spec each, small plans.
+2. Welcome Kit `/` token adoption (shared `:root` tokens + `PageShell` if it fits)
+3. Doctor portal v2: patient search, write-a-note from the Overview tab without switching to Notes, audit log surface, "Pre-read by Precura" AI-powered per-patient summaries (internal AI, copy never says the word)
+4. Mobile polish pass on `/doctor/*` and the remaining `/member/*` pages
+5. Profile page: pull real data from Supabase `profiles`
 
 ### Medium-term
-1. PDF upload and auto-parse (skip manual entry)
+1. PDF upload and auto-parse on `/member/panels/new`
 2. Real BankID authentication
 3. Payment integration (Stripe)
-4. Expand beyond 2 users (waitlist/invite system)
+4. Expand beyond 2 users (waitlist / invite system)
 5. v2 onboarding with screening tools (PHQ-9, GAD-7, FINDRISC, etc.)
+6. `/v2/*` mechanical token adoption (leave until the real work above is done)
 
 ### Long-term
 1. 1177 automated data import
