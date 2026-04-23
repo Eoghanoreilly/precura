@@ -1,37 +1,60 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 
-type Persona = "client" | "doctor";
+type Persona = "member" | "doctor";
 
 type UiState =
   | { tag: "idle" }
   | { tag: "loading"; persona: Persona }
   | { tag: "error"; persona: Persona; message: string };
 
+type Panel = {
+  persona: Persona;
+  tone: "warm" | "sage";
+  eyebrow: string;
+  name: string;
+  email: string;
+  role: "patient" | "doctor";
+  redirect: string;
+};
+
+const PANELS: Panel[] = [
+  {
+    persona: "member",
+    tone: "warm",
+    eyebrow: "Member",
+    name: "Eoghan",
+    email: "eoghan@vestego.com",
+    role: "patient",
+    redirect: "/member",
+  },
+  {
+    persona: "doctor",
+    tone: "sage",
+    eyebrow: "Doctor",
+    name: "Tomas",
+    email: "tomas@precura.se",
+    role: "doctor",
+    redirect: "/doctor",
+  },
+];
+
 export default function LoginPage() {
   const [state, setState] = useState<UiState>({ tag: "idle" });
+  const busy = state.tag === "loading";
 
-  async function signIn(persona: Persona) {
-    setState({ tag: "loading", persona });
-    const body =
-      persona === "client"
-        ? {
-            email: "eoghan@vestego.com",
-            role: "patient",
-            redirect: "/member",
-          }
-        : {
-            email: "tomas@precura.se",
-            role: "doctor",
-            redirect: "/doctor",
-          };
+  async function signIn(p: Panel) {
+    setState({ tag: "loading", persona: p.persona });
     try {
       const res = await fetch("/api/dev-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          email: p.email,
+          role: p.role,
+          redirect: p.redirect,
+        }),
       });
       const data = await res.json();
       if (data.url) {
@@ -40,357 +63,281 @@ export default function LoginPage() {
       }
       setState({
         tag: "error",
-        persona,
+        persona: p.persona,
         message: data.error || "Sign in failed.",
       });
     } catch {
       setState({
         tag: "error",
-        persona,
+        persona: p.persona,
         message: "Sign in failed.",
       });
     }
   }
 
-  const busy = state.tag === "loading";
-  const dimOther = (p: Persona) =>
-    state.tag === "loading" && state.persona !== p;
-  const isLoading = (p: Persona) =>
-    state.tag === "loading" && state.persona === p;
-  const errorFor = (p: Persona) =>
-    state.tag === "error" && state.persona === p ? state.message : null;
-
   return (
-    <div className="vlogin-root">
-      <motion.button
-        type="button"
-        disabled={busy}
-        onClick={() => signIn("client")}
-        className="vlogin-half vlogin-half--client"
-        data-dimmed={dimOther("client") ? "true" : "false"}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        aria-label="Sign in as Client (Eoghan)"
-      >
-        <div className="vlogin-inner">
-          <div className="vlogin-kicker">
-            <span className="vlogin-dot vlogin-dot--client" aria-hidden="true" />
-            For members
-          </div>
-          <h1 className="vlogin-headline">Client</h1>
-          <div className="vlogin-name">Eoghan O&rsquo;Reilly</div>
-          <p className="vlogin-bio">
-            Your panels, your trends, your doctor&rsquo;s notes.
-          </p>
-          <div className="vlogin-cta">
-            {isLoading("client") ? "Signing in..." : "Sign in as Eoghan"}
-          </div>
-          <div className="vlogin-email">eoghan@vestego.com</div>
-          {errorFor("client") && (
-            <div className="vlogin-err" role="alert">
-              {errorFor("client")}
-            </div>
-          )}
-        </div>
-      </motion.button>
+    <main className="login">
+      <div className="login__grid">
+        {PANELS.map((p) => {
+          const isLoading =
+            state.tag === "loading" && state.persona === p.persona;
+          const isDimmed =
+            state.tag === "loading" && state.persona !== p.persona;
+          const errorMsg =
+            state.tag === "error" && state.persona === p.persona
+              ? state.message
+              : null;
 
-      <motion.button
-        type="button"
-        disabled={busy}
-        onClick={() => signIn("doctor")}
-        className="vlogin-half vlogin-half--doctor"
-        data-dimmed={dimOther("doctor") ? "true" : "false"}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut", delay: 0.08 }}
-        aria-label="Sign in as Doctor (Tomas)"
-      >
-        <div className="vlogin-inner">
-          <div className="vlogin-kicker">
-            <span className="vlogin-dot vlogin-dot--doctor" aria-hidden="true" />
-            For clinicians
-          </div>
-          <h1 className="vlogin-headline">Doctor</h1>
-          <div className="vlogin-name">Dr. Tomas Kurakovas</div>
-          <p className="vlogin-bio">
-            Dual-pane review, patient by patient.
-          </p>
-          <div className="vlogin-cta">
-            {isLoading("doctor") ? "Signing in..." : "Sign in as Tomas"}
-          </div>
-          <div className="vlogin-email">tomas@precura.se</div>
-          {errorFor("doctor") && (
-            <div className="vlogin-err" role="alert">
-              {errorFor("doctor")}
-            </div>
-          )}
-        </div>
-      </motion.button>
-
-      <div className="vlogin-foot">
-        <span className="vlogin-foot-mark">Precura</span>
-        <span className="vlogin-foot-sep">/</span>
-        <span>Dev console</span>
-        <span className="vlogin-foot-sep">/</span>
-        <span>
-          Real users:{" "}
-          <a href="/member/login">/member/login</a>{" "}
-          or <a href="/doctor/login">/doctor/login</a>
-        </span>
+          return (
+            <button
+              key={p.persona}
+              type="button"
+              disabled={busy}
+              onClick={() => signIn(p)}
+              className={`login__panel login__panel--${p.tone}`}
+              data-dimmed={isDimmed ? "true" : "false"}
+              aria-label={`Sign in as ${p.eyebrow.toLowerCase()} ${p.name}`}
+            >
+              <span className="login__eyebrow">{p.eyebrow}</span>
+              <span className="login__name">{p.name}</span>
+              <span className="login__email">{p.email}</span>
+              <span className="login__hint" data-loading={isLoading}>
+                {isLoading ? "Signing in" : "Click to sign in"}
+              </span>
+              {errorMsg && (
+                <span className="login__err" role="alert">
+                  {errorMsg}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
+      <footer className="login__foot">
+        <span className="login__foot-mark">Precura</span>
+        <span className="login__foot-sep" aria-hidden="true">
+          /
+        </span>
+        <span>Dev console</span>
+        <span className="login__foot-sep" aria-hidden="true">
+          /
+        </span>
+        <span>
+          Real users sign in at{" "}
+          <a href="/member/login">/member/login</a>
+          {" "}or{" "}
+          <a href="/doctor/login">/doctor/login</a>
+        </span>
+      </footer>
+
       <style jsx>{`
-        *,
-        *::before,
-        *::after {
-          box-sizing: border-box;
-        }
-
-        .vlogin-root {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          min-height: 100dvh;
-          font-family: var(--font-sans);
-          position: relative;
-          overflow: hidden;
-          width: 100%;
-          max-width: 100vw;
-        }
-
-        .vlogin-half {
+        .login {
           display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 80px 32px;
-          border: 0;
-          cursor: pointer;
-          font-family: var(--font-sans);
-          text-align: center;
-          transition: opacity 0.4s ease, background 0.3s ease;
-          position: relative;
+          flex-direction: column;
           min-height: 100dvh;
-          width: 100%;
-          min-width: 0;
+          background: var(--canvas);
+          font-family: var(--font-sans);
           color: var(--ink);
           -webkit-font-smoothing: antialiased;
-          overflow: hidden;
         }
 
-        .vlogin-half--client {
+        .login__grid {
+          flex: 1 1 auto;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          min-height: 0;
+        }
+
+        .login__panel {
+          appearance: none;
+          margin: 0;
+          border: 0;
+          border-right: 1px solid var(--line-soft);
+          padding: var(--sp-11) var(--sp-9);
+          background: var(--canvas-soft);
+          color: inherit;
+          font: inherit;
+          text-align: left;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: center;
+          gap: var(--sp-3);
+          min-height: 0;
+          transition: background 0.25s ease, opacity 0.25s ease;
+        }
+        .login__panel:last-child {
+          border-right: 0;
+        }
+
+        .login__panel--warm {
           background: radial-gradient(
-              80% 60% at 50% 30%,
-              rgba(239, 181, 155, 0.14),
-              transparent 70%
+              70% 55% at 20% 28%,
+              rgba(239, 181, 155, 0.22) 0%,
+              transparent 72%
             ),
             var(--canvas);
         }
-        .vlogin-half--doctor {
+        .login__panel--sage {
           background: radial-gradient(
-              80% 60% at 50% 30%,
-              rgba(68, 90, 74, 0.1),
-              transparent 70%
+              70% 55% at 20% 28%,
+              rgba(114, 140, 118, 0.2) 0%,
+              transparent 72%
             ),
             var(--sage-tint);
         }
-
-        .vlogin-half--client:hover:not(:disabled) {
+        .login__panel--warm:hover:not(:disabled) {
           background: radial-gradient(
-              80% 60% at 50% 30%,
-              rgba(239, 181, 155, 0.2),
-              transparent 70%
+              70% 55% at 20% 28%,
+              rgba(239, 181, 155, 0.32) 0%,
+              transparent 68%
             ),
             var(--canvas-soft);
         }
-        .vlogin-half--doctor:hover:not(:disabled) {
+        .login__panel--sage:hover:not(:disabled) {
           background: radial-gradient(
-              80% 60% at 50% 30%,
-              rgba(68, 90, 74, 0.16),
-              transparent 70%
+              70% 55% at 20% 28%,
+              rgba(114, 140, 118, 0.28) 0%,
+              transparent 68%
             ),
             #E3ECE4;
         }
 
-        .vlogin-half[data-dimmed="true"] {
-          opacity: 0.42;
+        .login__panel[data-dimmed="true"] {
+          opacity: 0.35;
         }
-
-        .vlogin-half:disabled {
+        .login__panel:disabled {
           cursor: default;
         }
-
-        .vlogin-half:focus-visible {
+        .login__panel:focus-visible {
           outline: 2px solid var(--sage-deep);
-          outline-offset: -6px;
+          outline-offset: -8px;
         }
 
-        .vlogin-inner {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: 100%;
-          max-width: 440px;
-          min-width: 0;
-        }
-
-        .vlogin-kicker {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          font-family: var(--font-serif);
-          font-style: italic;
-          font-size: 14px;
-          color: var(--ink-soft);
-          margin-bottom: 20px;
-        }
-        .vlogin-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          display: inline-block;
-        }
-        .vlogin-dot--client {
-          background: var(--terracotta-deep);
-        }
-        .vlogin-dot--doctor {
-          background: var(--sage-deep);
-        }
-
-        .vlogin-headline {
-          font-size: clamp(2.5rem, 2rem + 2.2vw, 4rem);
+        .login__eyebrow {
+          font-size: var(--text-eyebrow);
           font-weight: 600;
-          line-height: 1;
-          letter-spacing: -0.035em;
+          color: var(--ink-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.14em;
+        }
+
+        .login__name {
+          font-size: var(--text-title);
+          font-weight: 600;
+          line-height: var(--line-height-title);
+          letter-spacing: -0.025em;
           color: var(--ink);
-          margin: 0 0 14px;
         }
 
-        .vlogin-name {
-          font-family: var(--font-serif);
-          font-style: italic;
-          font-size: 17px;
-          color: var(--ink-soft);
-          margin-bottom: 28px;
-        }
-
-        .vlogin-bio {
-          font-family: var(--font-sans);
-          font-size: 15px;
-          line-height: 1.55;
-          color: var(--ink-soft);
-          margin: 0 0 36px;
-          max-width: 32ch;
-        }
-
-        .vlogin-cta {
-          display: inline-flex;
-          align-items: center;
-          padding: 14px 30px;
-          border-radius: 999px;
-          font-family: var(--font-sans);
-          font-size: 15px;
-          font-weight: 600;
-          letter-spacing: -0.005em;
-          color: #FFFFFF;
-          background: var(--sage-deep);
-          box-shadow: 0 12px 24px -12px rgba(68, 90, 74, 0.55),
-            0 2px 6px rgba(68, 90, 74, 0.2);
-          transition: background 0.2s ease, transform 0.2s ease,
-            box-shadow 0.2s ease;
-          white-space: nowrap;
-          margin-bottom: 18px;
-        }
-        .vlogin-half:hover:not(:disabled) .vlogin-cta {
-          background: #3A4D3F;
-          transform: translateY(-1px);
-        }
-
-        .vlogin-email {
-          font-family: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco,
-            monospace;
-          font-size: 11px;
+        .login__email {
+          font-family: var(--font-mono);
+          font-size: var(--text-meta);
           color: var(--ink-faint);
-          letter-spacing: 0.02em;
+          letter-spacing: 0.01em;
+          margin-top: var(--sp-1);
         }
 
-        .vlogin-err {
-          margin-top: 16px;
-          padding: 10px 14px;
+        .login__hint {
+          margin-top: var(--sp-5);
+          font-size: var(--text-dense);
+          color: var(--ink-muted);
+          display: inline-flex;
+          align-items: baseline;
+          gap: 2px;
+        }
+        .login__panel:hover:not(:disabled) .login__hint {
+          color: var(--sage-deep);
+        }
+        .login__panel--warm:hover:not(:disabled) .login__hint {
+          color: var(--terracotta-deep);
+        }
+        .login__hint[data-loading="true"]::after {
+          content: "...";
+          display: inline-block;
+          animation: dots 1.2s steps(4, end) infinite;
+          width: 1.2em;
+          text-align: left;
+          overflow: hidden;
+        }
+        @keyframes dots {
+          0% { clip-path: inset(0 100% 0 0); }
+          100% { clip-path: inset(0 0 0 0); }
+        }
+
+        .login__err {
+          margin-top: var(--sp-3);
+          padding: var(--sp-2) var(--sp-4);
           background: var(--terracotta-tint);
           border: 1px solid var(--terracotta-soft);
-          border-radius: 10px;
-          font-family: var(--font-sans);
-          font-size: 12px;
+          border-radius: var(--radius);
+          font-size: var(--text-meta);
           color: var(--terracotta-deep);
-          max-width: 32ch;
+          max-width: 36ch;
         }
 
-        .vlogin-foot {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          padding: 16px 20px;
-          font-family: var(--font-serif);
-          font-style: italic;
-          font-size: 11px;
-          color: var(--ink-faint);
-          text-align: center;
+        .login__foot {
+          flex-shrink: 0;
           display: flex;
           justify-content: center;
           align-items: center;
-          gap: 12px;
+          gap: var(--sp-3);
+          padding: var(--sp-5) var(--sp-6);
+          border-top: 1px solid var(--line-soft);
+          background: var(--canvas);
+          font-size: var(--text-micro);
+          color: var(--ink-faint);
           flex-wrap: wrap;
-          pointer-events: auto;
-          background: transparent;
-          z-index: 2;
         }
-        .vlogin-foot-mark {
-          font-family: var(--font-sans);
-          font-style: normal;
+        .login__foot-mark {
           font-weight: 600;
-          color: var(--ink-soft);
+          color: var(--ink-muted);
+          letter-spacing: -0.01em;
         }
-        .vlogin-foot-sep {
+        .login__foot-sep {
           color: var(--line-card);
         }
-        .vlogin-foot a {
-          color: var(--ink-soft);
+        .login__foot a {
+          color: var(--ink-muted);
           text-decoration: underline;
           text-decoration-color: var(--line-card);
           text-underline-offset: 3px;
         }
-        .vlogin-foot a:hover {
+        .login__foot a:hover {
+          color: var(--sage-deep);
           text-decoration-color: var(--sage-deep);
         }
 
-        @media (max-width: 860px) {
-          .vlogin-root {
-            display: flex;
-            flex-direction: column;
+        @media (max-width: 768px) {
+          .login__grid {
+            grid-template-columns: 1fr;
           }
-          .vlogin-half {
-            min-height: 50dvh;
-            padding: 56px 24px;
+          .login__panel {
+            border-right: 0;
+            border-bottom: 1px solid var(--line-soft);
+            padding: var(--sp-9) var(--sp-7);
+            min-height: 320px;
           }
-          .vlogin-headline {
-            font-size: clamp(2rem, 1.7rem + 1.5vw, 2.75rem);
+          .login__panel:last-child {
+            border-bottom: 0;
           }
-          .vlogin-foot {
-            position: static;
-            padding: 16px;
+          .login__foot {
+            padding: var(--sp-4);
+            gap: var(--sp-2);
             font-size: 10px;
-            gap: 8px;
           }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .vlogin-cta,
-          .vlogin-half {
+          .login__panel,
+          .login__hint[data-loading="true"]::after {
             transition: none;
+            animation: none;
           }
         }
       `}</style>
-    </div>
+    </main>
   );
 }
