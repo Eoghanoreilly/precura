@@ -1,5 +1,117 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   PRECURA DESIGN SYSTEM (2026-04-22 redesign)
+   Warm editorial palette shared across /member/* and Welcome Kit.
+   All new code reads from these tokens. No hardcoded numbers.
+   ============================================================================ */
+:root {
+  /* --- Type scale (fluid via clamp) --- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  --font-serif: Georgia, "Times New Roman", "Charter", serif;
+  --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, monospace;
+
+  --text-display: clamp(2.25rem, 1.85rem + 1.8vw, 3rem);       /* 36 -> 48 */
+  --text-title:   clamp(1.5rem, 1.35rem + 0.75vw, 1.875rem);    /* 24 -> 30 */
+  --text-section: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);    /* 18 -> 20 */
+  --text-body:    1.0625rem;   /* 17 - reading size */
+  --text-dense:   0.9375rem;   /* 15 - data rows */
+  --text-meta:    0.8125rem;   /* 13 */
+  --text-micro:   0.6875rem;   /* 11 */
+  --text-eyebrow: 0.75rem;     /* 12 - serif italic */
+
+  --line-height-display: 1.08;
+  --line-height-title:   1.18;
+  --line-height-body:    1.55;
+  --line-height-dense:   1.45;
+
+  /* --- Space scale (4px base) --- */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-7:  32px;
+  --sp-8:  40px;
+  --sp-9:  48px;
+  --sp-10: 64px;
+  --sp-11: 80px;
+  --sp-12: 96px;
+
+  /* --- Canvas palette (Welcome Kit values, single source of truth) --- */
+  --canvas:       #FBF7F0;
+  --canvas-soft:  #FDFBF6;
+  --canvas-warm:  #FEF4E4;    /* hero wash start */
+  --paper:        #FFFFFF;
+
+  /* --- Ink (warm black, never pure #000) --- */
+  --ink:        #1C1A17;
+  --ink-soft:   #2E2B26;
+  --ink-muted:  #615C52;
+  --ink-faint:  #8B8579;
+
+  /* --- Lines --- */
+  --line:        #E5DFD0;
+  --line-soft:   #EEE9DB;
+  --line-card:   #E0D9C8;
+
+  /* --- Terracotta (primary /member accent) --- */
+  --terracotta:       #C9573A;
+  --terracotta-deep:  #9C3F25;
+  --terracotta-soft:  #EFB59B;
+  --terracotta-tint:  #FCEFE7;
+
+  /* --- Sage (medical trust) --- */
+  --sage:       #728C76;
+  --sage-deep:  #445A4A;
+  --sage-soft:  #CBDACC;
+  --sage-tint:  #ECF1EC;
+
+  /* --- Butter (highlight) --- */
+  --butter:       #E9B547;
+  --butter-soft:  #F6DDA0;
+  --butter-tint:  #FDF4DD;
+
+  /* --- Stone (supporting surfaces) --- */
+  --stone:       #E5DFD2;
+  --stone-soft:  #EFEADD;
+  --stone-deep:  #D0C9B8;
+
+  /* --- Health status (warm-palette tuned) --- */
+  --health-good:     #4E8E5C;
+  --health-caution:  #D08417;
+  --health-risk:     #C4472A;
+
+  /* --- Radius --- */
+  --radius-tight: 8px;
+  --radius:       12px;
+  --radius-card:  18px;
+  --radius-hero:  24px;
+  --radius-pill:  999px;
+
+  /* --- Shadow --- */
+  --shadow-soft: 0 1px 2px rgba(28,26,23,0.04), 0 1px 4px rgba(28,26,23,0.03);
+  --shadow-card: 0 1px 2px rgba(28,26,23,0.04), 0 12px 28px rgba(28,26,23,0.08);
+  --shadow-lift: 0 2px 4px rgba(28,26,23,0.06), 0 24px 64px rgba(28,26,23,0.12);
+  --shadow-hero: 0 1px 2px rgba(28,26,23,0.04), 0 18px 40px rgba(28,26,23,0.08);
+
+  /* --- Shell widths (viewport-driven) --- */
+  --rail-width-laptop:  260px;   /* 1024-1279 */
+  --rail-width-desktop: 292px;   /* 1280+ */
+
+  /* --- Column widths --- */
+  --col-reading-tablet:  720px;
+  --col-reading-laptop:  880px;
+  --col-reading-desktop: 1040px;
+  --col-reading-large:   1160px;
+  --col-narrow:          720px;
+  --col-wide:            1280px;
+
+  /* --- Hero wash gradient --- */
+  --hero-wash: linear-gradient(178deg, var(--canvas-warm) 0%, #FDF6ED 48%, var(--canvas) 100%);
+}
+
 /* ========================================
    PRECURA DESIGN SYSTEM
    Light, warm, friendly - Google Labs inspired
@@ -104,6 +216,33 @@
   --color-accent-bg: var(--accent-bg);
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, "Cascadia Code", "Consolas", monospace;
+
+  /* --- 2026-04-22 redesign token aliases --- */
+  --color-canvas:       var(--canvas);
+  --color-canvas-soft:  var(--canvas-soft);
+  --color-canvas-warm:  var(--canvas-warm);
+  --color-paper:        var(--paper);
+  --color-ink:          var(--ink);
+  --color-ink-soft:     var(--ink-soft);
+  --color-ink-muted:    var(--ink-muted);
+  --color-ink-faint:    var(--ink-faint);
+  --color-line:         var(--line);
+  --color-line-soft:    var(--line-soft);
+  --color-line-card:    var(--line-card);
+  --color-terracotta:        var(--terracotta);
+  --color-terracotta-deep:   var(--terracotta-deep);
+  --color-terracotta-soft:   var(--terracotta-soft);
+  --color-terracotta-tint:   var(--terracotta-tint);
+  --color-sage:       var(--sage);
+  --color-sage-deep:  var(--sage-deep);
+  --color-sage-soft:  var(--sage-soft);
+  --color-sage-tint:  var(--sage-tint);
+  --color-butter:       var(--butter);
+  --color-butter-soft:  var(--butter-soft);
+  --color-butter-tint:  var(--butter-tint);
+  --color-health-good:     var(--health-good);
+  --color-health-caution:  var(--health-caution);
+  --color-health-risk:     var(--health-risk);
 }
 
 /* Base */
@@ -263,12 +402,13 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
-/* ==========================================
-   RESPONSIVE LAYOUT SYSTEM
-   Mobile: single column, full width
-   Tablet: wider container
-   Desktop: multi-column grid
-   ========================================== */
+/* ============================================================================
+   v2 PROTOTYPE LAYOUT CLASSES (DO NOT USE IN /member/* OR NEW CODE)
+   These classes (.v2-container, .v2-grid, .v2-main, .v2-sidebar,
+   .v2-article-grid, .v2-health-grid) back the Anna Bergstrom mock prototype
+   at /v2/*. They will be retired when /v2/* migrates to PageShell in a later
+   spec. New code must use the layout primitives from src/components/layout/.
+   ============================================================================ */
 
 .v2-container {
   max-width: 448px;

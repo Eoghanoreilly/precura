@@ -1,16 +1,16 @@
-// Member area tokens - re-export Welcome Kit palette + member-specific constants.
-// One source of truth for the brand palette lives in src/components/home/tokens.ts.
+// Member area tokens.
+//
+// DEPRECATION NOTICE (2026-04-22):
+// New code MUST read from CSS custom properties in globals.css. The C color
+// object and SYSTEM_FONT / MONO_FONT re-exports below are kept only so the
+// existing /member/* pages that still inline-style with C.xyz keep compiling
+// until their own migration spec. When the last consumer is migrated, delete
+// C, SYSTEM_FONT, MONO_FONT, DISPLAY_NUM, EYEBROW. DOCTOR, UserState stay.
 
 export { C, SYSTEM_FONT, MONO_FONT } from "@/components/home/tokens";
 
-// ============================================================================
-// Member area type scale
-// ============================================================================
-
 /**
- * DISPLAY_NUM - the tabular mono face used for data values (panel markers,
- * risk percentages, dates in metadata). Shared across GlucoseHero, WhatMoved,
- * PanelSummary, RiskTrajectory so numbers feel like one voice.
+ * @deprecated Use `font-family: var(--font-mono); font-variant-numeric: tabular-nums;` in CSS.
  */
 export const DISPLAY_NUM = {
   fontFamily:
@@ -21,9 +21,7 @@ export const DISPLAY_NUM = {
 };
 
 /**
- * EYEBROW - small, tracked caps label used above cards. Lowered contrast
- * from inkMuted and smaller letter-spacing so eyebrows recede instead of
- * competing with headlines.
+ * @deprecated Use `font-size: var(--text-micro); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;` in CSS.
  */
 export const EYEBROW = {
   fontSize: 10,

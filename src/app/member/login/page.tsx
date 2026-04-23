@@ -229,7 +229,7 @@ function LoginContent() {
                 fontFamily: SYSTEM_FONT,
                 color: C.canvasSoft,
                 background:
-                  status === "sending" ? C.stone : C.terracotta,
+                  status === "sending" ? C.stone : C.sageDeep,
                 border: "none",
                 borderRadius: 100,
                 cursor:
@@ -237,7 +237,7 @@ function LoginContent() {
                 boxShadow:
                   status === "sending"
                     ? "none"
-                    : "0 8px 18px -8px rgba(201,87,58,0.42), 0 2px 6px rgba(201,87,58,0.2)",
+                    : "0 8px 18px -8px rgba(68,90,74,0.42), 0 2px 6px rgba(68,90,74,0.2)",
                 letterSpacing: "-0.005em",
                 transition: "background 0.2s ease",
               }}

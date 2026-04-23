@@ -118,7 +118,7 @@ function RealPanelsView() {
             style={{
               display: "inline-block",
               padding: "10px 20px",
-              background: C.terracotta,
+              background: C.sageDeep,
               color: C.canvasSoft,
               borderRadius: 100,
               fontSize: 13,
@@ -127,7 +127,7 @@ function RealPanelsView() {
               textDecoration: "none",
               letterSpacing: "-0.005em",
               marginBottom: 32,
-              boxShadow: "0 6px 14px -6px rgba(201,87,58,0.4), 0 2px 4px rgba(201,87,58,0.18)",
+              boxShadow: "0 6px 14px -6px rgba(68,90,74,0.4), 0 2px 4px rgba(68,90,74,0.18)",
             }}
           >
             + Add panel

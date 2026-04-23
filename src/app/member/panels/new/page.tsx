@@ -432,11 +432,11 @@ export default function NewPanelPage() {
                   fontWeight: 600,
                   fontFamily: SYSTEM_FONT,
                   color: C.canvasSoft,
-                  background: parsing || !pasteText.trim() ? C.stone : C.terracotta,
+                  background: parsing || !pasteText.trim() ? C.stone : C.sageDeep,
                   border: "none",
                   borderRadius: 100,
                   cursor: parsing || !pasteText.trim() ? "default" : "pointer",
-                  boxShadow: parsing || !pasteText.trim() ? "none" : "0 6px 14px -6px rgba(201,87,58,0.4)",
+                  boxShadow: parsing || !pasteText.trim() ? "none" : "0 6px 14px -6px rgba(68,90,74,0.4)",
                 }}
               >
                 {parsing ? "Parsing..." : "Extract markers"}
@@ -789,7 +789,7 @@ export default function NewPanelPage() {
               fontWeight: 600,
               fontFamily: SYSTEM_FONT,
               color: C.canvasSoft,
-              background: saving ? C.stone : C.terracotta,
+              background: saving ? C.stone : C.sageDeep,
               border: "none",
               borderRadius: 100,
               cursor: saving ? "default" : "pointer",
@@ -797,7 +797,7 @@ export default function NewPanelPage() {
               pointerEvents: saving ? "none" : "auto",
               boxShadow: saving
                 ? "none"
-                : "0 8px 18px -8px rgba(201,87,58,0.42), 0 2px 6px rgba(201,87,58,0.2)",
+                : "0 8px 18px -8px rgba(68,90,74,0.42), 0 2px 6px rgba(68,90,74,0.2)",
               transition: "background 0.2s ease, opacity 0.2s ease",
               opacity: saving ? 0.6 : 1,
             }}

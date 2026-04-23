@@ -10,9 +10,10 @@ import {
   MONO_FONT,
   DISPLAY_NUM,
   EYEBROW,
-  DOCTOR,
 } from "@/components/member/tokens";
 import { buildSidebar } from "@/components/member/data";
+import { SystemTile } from "@/components/layout";
+import { getPlainName } from "@/app/member/home/plainNames";
 import { getCurrentUser } from "@/lib/data/panels";
 import {
   getAnnotationsForPanel,
@@ -154,11 +155,11 @@ function getMarkerExplanation(m: Biomarker): string {
     return "TSH outside the normal range may indicate thyroid under- or overactivity. Worth a follow-up.";
   }
   if (key === "alat" || key === "asat" || key === "ggt") {
-    return "Liver enzymes outside range. Can be caused by alcohol, medication, or fatty liver. Worth discussing.";
+    return "Liver enzymes outside range. Can be caused by alcohol, medication, or fatty liver.";
   }
 
   const label = m.name_eng || m.short_name;
-  return `${label} is slightly ${direction} the normal range. Worth discussing with Dr. Tomas.`;
+  return `${label} is slightly ${direction} the normal range.`;
 }
 
 function getMarkerTip(m: Biomarker): string {
@@ -198,15 +199,6 @@ function getMarkerTip(m: Biomarker): string {
 
 // ---- Helpers ----
 
-function displayName(m: Biomarker): string {
-  const plain = m.plain_name || PLAIN_NAMES[m.short_name] || "";
-  const label = m.name_eng || m.short_name;
-  if (plain && plain.toLowerCase() !== label.toLowerCase()) {
-    return `${label} (${plain})`;
-  }
-  return label;
-}
-
 function plainOnly(m: Biomarker): string {
   return m.plain_name || PLAIN_NAMES[m.short_name] || "";
 }
@@ -215,6 +207,20 @@ function statusColor(m: Biomarker): string {
   if (m.status === "normal") return C.good;
   if (m.status === "borderline") return C.caution;
   return C.risk;
+}
+
+// Maps Biomarker.status ("normal" | "borderline" | "abnormal") to the
+// direction-aware status that SystemTile consumes. Borderline markers split
+// into "high" or "low" based on where value sits relative to the ref range;
+// abnormal maps to "critical".
+function mapStatus(
+  status: "normal" | "borderline" | "abnormal",
+  value: number,
+  refHigh: number,
+): "normal" | "low" | "high" | "critical" {
+  if (status === "normal") return "normal";
+  if (status === "abnormal") return "critical";
+  return value > refHigh ? "high" : "low";
 }
 
 function formatMonthYear(iso: string): string {
@@ -270,9 +276,7 @@ export default function PanelDetailPage() {
   const [editDate, setEditDate] = useState("");
   const [editLab, setEditLab] = useState("");
 
-  // Inline marker editing
-  const [editingMarkerId, setEditingMarkerId] = useState<string | null>(null);
-  const [editingMarkerValue, setEditingMarkerValue] = useState("");
+  // Shared saving flag for panel-metadata edit form
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Delete
@@ -363,43 +367,6 @@ export default function PanelDetailPage() {
       setPanel({ ...panel, panel_date: editDate, lab_name: editLab || null });
       setEditMode(false);
     }
-    setSavingEdit(false);
-  }
-
-  async function handleSaveMarkerEdit(markerId: string) {
-    if (!panel) return;
-    const val = parseFloat(editingMarkerValue);
-    if (isNaN(val)) return;
-    setSavingEdit(true);
-    const supabase = createClient();
-
-    const marker = panel.biomarkers.find((b) => b.id === markerId);
-    let status: "normal" | "borderline" | "abnormal" = "normal";
-    if (marker && marker.ref_range_low !== null && marker.ref_range_high !== null) {
-      const low = marker.ref_range_low;
-      const high = marker.ref_range_high;
-      if (val < low || val > high) {
-        const range = high - low;
-        const overshoot = val < low ? low - val : val - high;
-        status = overshoot > range * 0.2 ? "abnormal" : "borderline";
-      }
-    }
-
-    const { error: err } = await supabase
-      .from("biomarkers")
-      .update({ value: val, status })
-      .eq("id", markerId);
-
-    if (!err) {
-      setPanel({
-        ...panel,
-        biomarkers: panel.biomarkers.map((b) =>
-          b.id === markerId ? { ...b, value: val, status } : b
-        ),
-      });
-    }
-    setEditingMarkerId(null);
-    setEditingMarkerValue("");
     setSavingEdit(false);
   }
 
@@ -1029,95 +996,7 @@ export default function PanelDetailPage() {
         </motion.div>
 
         {/* ================================================================
-            4. WHAT TO DO NEXT
-            ================================================================ */}
-        <motion.section
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.25 }}
-          style={{ marginBottom: 32 }}
-        >
-          <div style={{ ...EYEBROW, color: C.terracotta, marginBottom: 16 }}>
-            What to do next
-          </div>
-          <div className="panel-ctas">
-            {/* Primary CTA */}
-            <a
-              href="/member/messages"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                padding: "14px 24px",
-                background: C.terracotta,
-                color: "#fff",
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: SYSTEM_FONT,
-                borderRadius: 100,
-                textDecoration: "none",
-                boxShadow:
-                  "0 6px 14px -6px rgba(201,87,58,0.4), 0 2px 4px rgba(201,87,58,0.18)",
-                letterSpacing: "-0.005em",
-              }}
-            >
-              Have {DOCTOR.firstName} review this panel
-              <span style={{ fontSize: 16 }}>{"->"}</span>
-            </a>
-
-            {/* Secondary: Ask Precura */}
-            <a
-              href="/member/discuss"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                padding: "14px 24px",
-                background: C.paper,
-                color: C.ink,
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: SYSTEM_FONT,
-                border: `1px solid ${C.lineCard}`,
-                borderRadius: 100,
-                textDecoration: "none",
-                letterSpacing: "-0.005em",
-              }}
-            >
-              Ask Precura about this
-              <span style={{ fontSize: 16, color: C.inkFaint }}>{"->"}</span>
-            </a>
-
-            {/* Secondary: Add panel */}
-            <a
-              href="/member/panels/new"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                padding: "14px 24px",
-                background: C.paper,
-                color: C.ink,
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: SYSTEM_FONT,
-                border: `1px solid ${C.lineCard}`,
-                borderRadius: 100,
-                textDecoration: "none",
-                letterSpacing: "-0.005em",
-              }}
-            >
-              Add another blood panel
-              <span style={{ fontSize: 16, color: C.inkFaint }}>{"->"}</span>
-            </a>
-          </div>
-        </motion.section>
-
-        {/* ================================================================
-            5. EXPANDABLE: All markers by category
+            4. EXPANDABLE: All markers by category
             ================================================================ */}
         <motion.section
           initial={{ opacity: 0, y: 14 }}
@@ -1177,36 +1056,40 @@ export default function PanelDetailPage() {
               >
                 <div style={{ padding: "0 24px 24px" }}>
                   {allSystems.map((sys, si) => (
-                    <div key={sys.name} style={{ marginTop: si === 0 ? 0 : 22 }}>
+                    <div key={sys.name} style={{ marginTop: si === 0 ? 0 : 28 }}>
                       <div
                         style={{
                           ...EYEBROW,
                           fontSize: 9,
                           color: C.inkFaint,
-                          marginBottom: 10,
+                          marginBottom: 12,
                         }}
                       >
                         {sys.name}
                       </div>
-                      {sys.markers.map((m) => (
-                        <AllMarkerRow
-                          key={m.id}
-                          marker={m}
-                          isEditing={editingMarkerId === m.id}
-                          editValue={editingMarkerValue}
-                          onStartEdit={() => {
-                            setEditingMarkerId(m.id);
-                            setEditingMarkerValue(m.value.toString());
-                          }}
-                          onChangeEdit={setEditingMarkerValue}
-                          onSaveEdit={() => handleSaveMarkerEdit(m.id)}
-                          onCancelEdit={() => {
-                            setEditingMarkerId(null);
-                            setEditingMarkerValue("");
-                          }}
-                          saving={savingEdit}
-                        />
-                      ))}
+                      <div className="panel-allmarkers-grid">
+                        {sys.markers.map((m) => (
+                          <SystemTile
+                            key={m.id}
+                            system={sys.name}
+                            marker={{
+                              shortName: m.short_name,
+                              value: m.value,
+                              unit: m.unit,
+                              refLow: m.ref_range_low ?? 0,
+                              refHigh: m.ref_range_high ?? 1,
+                              status: mapStatus(
+                                m.status,
+                                m.value,
+                                m.ref_range_high ?? 1,
+                              ),
+                              plainName:
+                                m.plain_name ||
+                                getPlainName(m.short_name, m),
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1447,10 +1330,10 @@ export default function PanelDetailPage() {
             grid-template-columns: 1fr;
             gap: 24px;
           }
-          .panel-ctas {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+          .panel-allmarkers-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
           }
           @media (min-width: 768px) {
             .panel-hero {
@@ -1462,9 +1345,14 @@ export default function PanelDetailPage() {
               grid-template-columns: 1fr 1fr;
               gap: 20px;
             }
-            .panel-ctas {
-              flex-direction: row;
-              gap: 12px;
+            .panel-allmarkers-grid {
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
+            }
+          }
+          @media (min-width: 1200px) {
+            .panel-allmarkers-grid {
+              grid-template-columns: 1fr 1fr 1fr;
             }
           }
         `}</style>
@@ -1722,168 +1610,6 @@ function AttentionCard({ marker }: { marker: Biomarker }) {
             {getMarkerTip(m)}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// All Marker Row (expandable section) - editable inline
-// ============================================================================
-
-function AllMarkerRow({
-  marker,
-  isEditing,
-  editValue,
-  onStartEdit,
-  onChangeEdit,
-  onSaveEdit,
-  onCancelEdit,
-  saving,
-}: {
-  marker: Biomarker;
-  isEditing: boolean;
-  editValue: string;
-  onStartEdit: () => void;
-  onChangeEdit: (v: string) => void;
-  onSaveEdit: () => void;
-  onCancelEdit: () => void;
-  saving: boolean;
-}) {
-  const m = marker;
-  const color = statusColor(m);
-  const plain = plainOnly(m);
-  const label = m.name_eng || m.short_name;
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        justifyContent: "space-between",
-        padding: "10px 0",
-        borderBottom: `1px solid ${C.lineSoft}`,
-        gap: 12,
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 2,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: color,
-              flexShrink: 0,
-            }}
-          />
-          <span style={{ fontSize: 13, fontWeight: 500, color: C.ink, letterSpacing: "-0.005em" }}>
-            {label}
-            {plain && (
-              <span style={{ color: C.inkFaint, fontWeight: 400 }}>
-                {" "}({plain})
-              </span>
-            )}
-          </span>
-        </div>
-        {m.ref_range_low !== null && m.ref_range_high !== null && (
-          <div style={{ fontSize: 11, color: C.inkFaint, marginLeft: 15 }}>
-            Normal range: {m.ref_range_low} to {m.ref_range_high} {m.unit}
-          </div>
-        )}
-      </div>
-      <div style={{ textAlign: "right", flexShrink: 0 }}>
-        {isEditing ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <input
-              type="number"
-              step="any"
-              value={editValue}
-              onChange={(e) => onChangeEdit(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  onSaveEdit();
-                }
-                if (e.key === "Escape") onCancelEdit();
-              }}
-              autoFocus
-              style={{
-                width: 80,
-                padding: "5px 8px",
-                fontSize: 15,
-                ...DISPLAY_NUM,
-                color,
-                background: C.canvasSoft,
-                border: `1px solid ${C.lineCard}`,
-                borderRadius: 8,
-                outline: "none",
-                textAlign: "right",
-                boxSizing: "border-box" as const,
-              }}
-            />
-            <span style={{ fontSize: 11, color: C.inkFaint }}>{m.unit}</span>
-            <button
-              onClick={onSaveEdit}
-              disabled={saving}
-              style={{
-                padding: "4px 10px",
-                fontSize: 11,
-                fontWeight: 600,
-                fontFamily: SYSTEM_FONT,
-                color: C.canvasSoft,
-                background: saving ? C.stone : C.sage,
-                border: "none",
-                borderRadius: 6,
-                cursor: saving ? "default" : "pointer",
-              }}
-            >
-              {saving ? "..." : "Save"}
-            </button>
-            <button
-              onClick={onCancelEdit}
-              style={{
-                padding: "4px 8px",
-                fontSize: 11,
-                fontWeight: 500,
-                fontFamily: SYSTEM_FONT,
-                color: C.inkFaint,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textDecoration: "underline",
-                textDecorationColor: C.stone,
-                textUnderlineOffset: 2,
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={onStartEdit}
-            title="Click to edit value"
-            style={{
-              background: "none",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "baseline",
-              gap: 3,
-            }}
-          >
-            <span style={{ ...DISPLAY_NUM, fontSize: 18, color }}>{m.value}</span>
-            <span style={{ fontSize: 11, color: C.inkFaint }}>{m.unit}</span>
-          </button>
-        )}
       </div>
     </div>
   );
