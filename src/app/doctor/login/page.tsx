@@ -19,7 +19,7 @@ function LoginContent() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) router.replace("/doctor/auth/callback");
+      if (user) router.replace("/doctor");
     });
   }, [router]);
 
@@ -33,7 +33,7 @@ function LoginContent() {
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: {
-        emailRedirectTo: `${window.location.origin}/doctor/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/member/auth/callback?next=/doctor`,
       },
     });
     if (error) {
@@ -121,7 +121,7 @@ function LoginContent() {
                           body: JSON.stringify({
                             email: devEmail,
                             role: "both",
-                            redirect: "/doctor/auth/callback",
+                            redirect: "/member/auth/callback?next=/doctor",
                           }),
                         });
                         const data = await res.json();
