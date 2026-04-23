@@ -139,6 +139,12 @@ export default function LoginPage() {
       </div>
 
       <style jsx>{`
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+
         .vlogin-root {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -146,13 +152,16 @@ export default function LoginPage() {
           font-family: var(--font-sans);
           position: relative;
           overflow: hidden;
+          width: 100%;
+          max-width: 100vw;
         }
 
         .vlogin-half {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: var(--sp-9) var(--sp-7);
+          padding: clamp(20px, 4vw, 48px)
+            clamp(16px, 3vw, 32px) clamp(80px, 10vw, 120px);
           border: 0;
           cursor: pointer;
           font-family: var(--font-sans);
@@ -160,8 +169,11 @@ export default function LoginPage() {
           transition: opacity 0.4s ease, background-color 0.25s ease;
           position: relative;
           min-height: 100dvh;
+          width: 100%;
+          min-width: 0;
           color: var(--ink);
           -webkit-font-smoothing: antialiased;
+          overflow: hidden;
         }
 
         .vlogin-half--client {
@@ -199,8 +211,9 @@ export default function LoginPage() {
           flex-direction: column;
           align-items: center;
           gap: var(--sp-3);
-          max-width: 400px;
-          padding: var(--sp-6);
+          width: 100%;
+          max-width: min(400px, 100%);
+          min-width: 0;
         }
 
         .vlogin-avatar {
@@ -244,22 +257,24 @@ export default function LoginPage() {
         }
 
         .vlogin-headline {
-          font-size: clamp(2.25rem, 1.6rem + 3vw, 3.5rem);
+          font-size: clamp(1.75rem, 1.2rem + 2.2vw, 3rem);
           font-weight: 600;
-          line-height: 1;
+          line-height: 1.05;
           letter-spacing: -0.035em;
           color: var(--ink);
           margin: 0;
+          word-break: break-word;
         }
 
         .vlogin-bio {
           font-family: var(--font-serif);
           font-style: italic;
-          font-size: var(--text-body);
+          font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.0625rem);
           line-height: var(--line-height-body);
           color: var(--ink-soft);
           margin: var(--sp-2) 0 0;
           max-width: 34ch;
+          width: 100%;
         }
 
         .vlogin-cta {
@@ -341,22 +356,35 @@ export default function LoginPage() {
           text-decoration-color: var(--sage-deep);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 860px) {
           .vlogin-root {
             display: flex;
             flex-direction: column;
+            min-height: 100dvh;
           }
           .vlogin-half {
             min-height: 50dvh;
-            padding: var(--sp-7) var(--sp-5);
+            padding: clamp(32px, 6vw, 48px) clamp(16px, 4vw, 32px);
+            width: 100%;
           }
           .vlogin-headline {
-            font-size: 2.25rem;
+            font-size: clamp(1.75rem, 1.4rem + 2vw, 2.5rem);
           }
           .vlogin-foot {
             position: static;
             padding: var(--sp-4);
             font-size: 10px;
+            gap: var(--sp-2);
+          }
+        }
+        @media (max-width: 480px) {
+          .vlogin-avatar {
+            width: 60px;
+            height: 60px;
+            font-size: 22px;
+          }
+          .vlogin-bio {
+            max-width: 28ch;
           }
         }
 
