@@ -101,10 +101,12 @@ function LoginContent() {
 
             <div className="dlogin-dev">
               <div className="dlogin-dev-label">Dev quick login</div>
+              <div className="dlogin-dev-body">
+                Flips the account to <code>role = both</code> so it can access both
+                surfaces, then signs you in directly to <code>/doctor</code>.
+              </div>
               <div className="dlogin-dev-row">
-                {[
-                  "eoghan@vestego.com",
-                ].map((devEmail) => (
+                {["eoghan@vestego.com"].map((devEmail) => (
                   <button
                     key={devEmail}
                     type="button"
@@ -116,15 +118,15 @@ function LoginContent() {
                         const res = await fetch("/api/dev-login", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ email: devEmail }),
+                          body: JSON.stringify({
+                            email: devEmail,
+                            role: "both",
+                            redirect: "/doctor/auth/callback",
+                          }),
                         });
                         const data = await res.json();
                         if (data.url) {
-                          const modifiedUrl = data.url.replace(
-                            /\/member\/auth\/callback/,
-                            "/doctor/auth/callback",
-                          );
-                          window.location.href = modifiedUrl;
+                          window.location.href = data.url;
                         } else {
                           setStatus("error");
                           setErrorMsg(data.error || "Dev login failed.");
@@ -136,7 +138,7 @@ function LoginContent() {
                     }}
                     className="dlogin-dev-btn"
                   >
-                    {devEmail}
+                    Sign in as doctor ({devEmail})
                   </button>
                 ))}
               </div>
@@ -257,8 +259,22 @@ function LoginContent() {
             color: var(--ink-faint);
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            margin-bottom: var(--sp-3);
+            margin-bottom: var(--sp-2);
             text-align: center;
+          }
+          .dlogin-dev-body {
+            font-size: var(--text-meta);
+            color: var(--ink-muted);
+            line-height: var(--line-height-body);
+            text-align: center;
+            margin-bottom: var(--sp-3);
+          }
+          .dlogin-dev-body code {
+            font-family: var(--font-mono);
+            font-size: var(--text-micro);
+            background: var(--canvas);
+            padding: 1px 5px;
+            border-radius: 4px;
           }
           .dlogin-dev-row {
             display: flex;
