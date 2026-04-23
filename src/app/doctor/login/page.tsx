@@ -130,7 +130,7 @@ function LoginContent() {
                       body: JSON.stringify({
                         email: "eoghan@vestego.com",
                         role: "both",
-                        redirect: "/member/auth/callback?next=/doctor",
+                        redirect: "/doctor",
                       }),
                     });
                     const data = await res.json();
