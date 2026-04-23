@@ -17,10 +17,26 @@ function LoginContent() {
   const urlError = params.get("error");
 
   useEffect(() => {
+    // Only auto-redirect if the logged-in user already has a doctor role.
+    // Otherwise the middleware bounces them back to /member and they never
+    // see this page, which is the problem we are trying to solve.
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) router.replace("/doctor");
-    });
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (profile?.role === "doctor" || profile?.role === "both") {
+        router.replace("/doctor");
+      }
+      // patients stay on this page so they can click the dev button to
+      // promote themselves to 'both'
+    })();
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -101,46 +117,40 @@ function LoginContent() {
 
             <div className="dlogin-dev">
               <div className="dlogin-dev-label">Dev quick login</div>
-              <div className="dlogin-dev-body">
-                Flips the account to <code>role = both</code> so it can access both
-                surfaces, then signs you in directly to <code>/doctor</code>.
-              </div>
-              <div className="dlogin-dev-row">
-                {["eoghan@vestego.com"].map((devEmail) => (
-                  <button
-                    key={devEmail}
-                    type="button"
-                    disabled={status === "sending"}
-                    onClick={async () => {
-                      setStatus("sending");
-                      setErrorMsg("");
-                      try {
-                        const res = await fetch("/api/dev-login", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            email: devEmail,
-                            role: "both",
-                            redirect: "/member/auth/callback?next=/doctor",
-                          }),
-                        });
-                        const data = await res.json();
-                        if (data.url) {
-                          window.location.href = data.url;
-                        } else {
-                          setStatus("error");
-                          setErrorMsg(data.error || "Dev login failed.");
-                        }
-                      } catch {
-                        setStatus("error");
-                        setErrorMsg("Dev login failed.");
-                      }
-                    }}
-                    className="dlogin-dev-btn"
-                  >
-                    Sign in as doctor ({devEmail})
-                  </button>
-                ))}
+              <button
+                type="button"
+                disabled={status === "sending"}
+                onClick={async () => {
+                  setStatus("sending");
+                  setErrorMsg("");
+                  try {
+                    const res = await fetch("/api/dev-login", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        email: "eoghan@vestego.com",
+                        role: "both",
+                        redirect: "/member/auth/callback?next=/doctor",
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      setStatus("error");
+                      setErrorMsg(data.error || "Dev login failed.");
+                    }
+                  } catch {
+                    setStatus("error");
+                    setErrorMsg("Dev login failed.");
+                  }
+                }}
+                className="dlogin-dev-btn"
+              >
+                Sign in as doctor
+              </button>
+              <div className="dlogin-dev-foot">
+                Promotes eoghan@vestego.com to role &#39;both&#39; and lands you in /doctor.
               </div>
             </div>
           </form>
@@ -259,34 +269,17 @@ function LoginContent() {
             color: var(--ink-faint);
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            margin-bottom: var(--sp-2);
-            text-align: center;
-          }
-          .dlogin-dev-body {
-            font-size: var(--text-meta);
-            color: var(--ink-muted);
-            line-height: var(--line-height-body);
-            text-align: center;
             margin-bottom: var(--sp-3);
-          }
-          .dlogin-dev-body code {
-            font-family: var(--font-mono);
-            font-size: var(--text-micro);
-            background: var(--canvas);
-            padding: 1px 5px;
-            border-radius: 4px;
-          }
-          .dlogin-dev-row {
-            display: flex;
-            gap: var(--sp-2);
-            justify-content: center;
+            text-align: center;
           }
           .dlogin-dev-btn {
-            flex: 1;
-            padding: var(--sp-2) var(--sp-3);
+            display: block;
+            width: 100%;
+            padding: var(--sp-3) var(--sp-4);
             font-size: var(--text-meta);
+            font-weight: 500;
             font-family: var(--font-sans);
-            color: var(--ink-muted);
+            color: var(--ink);
             background: var(--canvas-soft);
             border: 1px solid var(--line-card);
             border-radius: var(--radius);
@@ -299,6 +292,15 @@ function LoginContent() {
           .dlogin-dev-btn:disabled {
             opacity: 0.5;
             cursor: default;
+          }
+          .dlogin-dev-foot {
+            margin-top: var(--sp-3);
+            font-size: var(--text-micro);
+            color: var(--ink-faint);
+            font-style: italic;
+            font-family: var(--font-serif);
+            text-align: center;
+            line-height: var(--line-height-body);
           }
         `}</style>
       </motion.div>
