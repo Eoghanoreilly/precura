@@ -68,32 +68,25 @@ export default function LoginPage() {
         onClick={() => signIn("client")}
         className="vlogin-half vlogin-half--client"
         data-dimmed={dimOther("client") ? "true" : "false"}
-        initial={{ opacity: 0, x: -24 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         aria-label="Sign in as Client (Eoghan)"
       >
-        <div className="vlogin-numeral" aria-hidden="true">01</div>
-
         <div className="vlogin-inner">
           <div className="vlogin-kicker">
             <span className="vlogin-dot vlogin-dot--client" aria-hidden="true" />
             For members
           </div>
-          <div className="vlogin-headline vlogin-headline--client">Client</div>
+          <h1 className="vlogin-headline">Client</h1>
           <div className="vlogin-name">Eoghan O&rsquo;Reilly</div>
           <p className="vlogin-bio">
-            Your panels, your trends, your doctor&rsquo;s notes. The warm side
-            of Precura.
+            Your panels, your trends, your doctor&rsquo;s notes.
           </p>
-
-          <div className="vlogin-cta-row">
-            <div className="vlogin-cta">
-              {isLoading("client") ? "Signing in..." : "Sign in as Eoghan"}
-            </div>
-            <div className="vlogin-email">eoghan@vestego.com</div>
+          <div className="vlogin-cta">
+            {isLoading("client") ? "Signing in..." : "Sign in as Eoghan"}
           </div>
-
+          <div className="vlogin-email">eoghan@vestego.com</div>
           {errorFor("client") && (
             <div className="vlogin-err" role="alert">
               {errorFor("client")}
@@ -108,31 +101,25 @@ export default function LoginPage() {
         onClick={() => signIn("doctor")}
         className="vlogin-half vlogin-half--doctor"
         data-dimmed={dimOther("doctor") ? "true" : "false"}
-        initial={{ opacity: 0, x: 24 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1], delay: 0.08 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut", delay: 0.08 }}
         aria-label="Sign in as Doctor (Tomas)"
       >
-        <div className="vlogin-numeral" aria-hidden="true">02</div>
-
         <div className="vlogin-inner">
           <div className="vlogin-kicker">
             <span className="vlogin-dot vlogin-dot--doctor" aria-hidden="true" />
             For clinicians
           </div>
-          <div className="vlogin-headline vlogin-headline--doctor">Doctor</div>
+          <h1 className="vlogin-headline">Doctor</h1>
           <div className="vlogin-name">Dr. Tomas Kurakovas</div>
           <p className="vlogin-bio">
-            Dual-pane review, patient-by-patient. The clinical side of Precura.
+            Dual-pane review, patient by patient.
           </p>
-
-          <div className="vlogin-cta-row">
-            <div className="vlogin-cta">
-              {isLoading("doctor") ? "Signing in..." : "Sign in as Tomas"}
-            </div>
-            <div className="vlogin-email">tomas@precura.se</div>
+          <div className="vlogin-cta">
+            {isLoading("doctor") ? "Signing in..." : "Sign in as Tomas"}
           </div>
-
+          <div className="vlogin-email">tomas@precura.se</div>
           {errorFor("doctor") && (
             <div className="vlogin-err" role="alert">
               {errorFor("doctor")}
@@ -141,7 +128,7 @@ export default function LoginPage() {
         </div>
       </motion.button>
 
-      <div className="vlogin-foot" aria-hidden="false">
+      <div className="vlogin-foot">
         <span className="vlogin-foot-mark">Precura</span>
         <span className="vlogin-foot-sep">/</span>
         <span>Dev console</span>
@@ -173,15 +160,13 @@ export default function LoginPage() {
 
         .vlogin-half {
           display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          justify-content: flex-end;
-          padding: clamp(40px, 6vh, 96px) clamp(32px, 6vw, 96px)
-            clamp(96px, 14vh, 168px);
+          align-items: center;
+          justify-content: center;
+          padding: 80px 32px;
           border: 0;
           cursor: pointer;
           font-family: var(--font-sans);
-          text-align: left;
+          text-align: center;
           transition: opacity 0.4s ease, background 0.3s ease;
           position: relative;
           min-height: 100dvh;
@@ -194,36 +179,36 @@ export default function LoginPage() {
 
         .vlogin-half--client {
           background: radial-gradient(
-              1200px 600px at 30% 110%,
-              rgba(239, 181, 155, 0.18),
+              80% 60% at 50% 30%,
+              rgba(239, 181, 155, 0.14),
               transparent 70%
             ),
-            linear-gradient(180deg, var(--canvas-soft) 0%, var(--canvas) 100%);
+            var(--canvas);
         }
         .vlogin-half--doctor {
           background: radial-gradient(
-              1200px 600px at 70% 110%,
-              rgba(68, 90, 74, 0.14),
+              80% 60% at 50% 30%,
+              rgba(68, 90, 74, 0.1),
               transparent 70%
             ),
-            linear-gradient(180deg, #EEF3EE 0%, var(--sage-tint) 100%);
+            var(--sage-tint);
         }
 
         .vlogin-half--client:hover:not(:disabled) {
           background: radial-gradient(
-              1200px 600px at 30% 110%,
-              rgba(239, 181, 155, 0.26),
+              80% 60% at 50% 30%,
+              rgba(239, 181, 155, 0.2),
               transparent 70%
             ),
-            linear-gradient(180deg, var(--paper) 0%, var(--canvas-soft) 100%);
+            var(--canvas-soft);
         }
         .vlogin-half--doctor:hover:not(:disabled) {
           background: radial-gradient(
-              1200px 600px at 70% 110%,
-              rgba(68, 90, 74, 0.2),
+              80% 60% at 50% 30%,
+              rgba(68, 90, 74, 0.16),
               transparent 70%
             ),
-            linear-gradient(180deg, #E5EDE6 0%, #D9E3DA 100%);
+            #E3ECE4;
         }
 
         .vlogin-half[data-dimmed="true"] {
@@ -236,37 +221,16 @@ export default function LoginPage() {
 
         .vlogin-half:focus-visible {
           outline: 2px solid var(--sage-deep);
-          outline-offset: -4px;
-        }
-
-        .vlogin-numeral {
-          position: absolute;
-          top: clamp(24px, 4vh, 48px);
-          left: clamp(32px, 6vw, 96px);
-          font-family: var(--font-serif);
-          font-style: italic;
-          font-size: var(--text-meta);
-          color: var(--ink-faint);
-          letter-spacing: 0.14em;
-          font-weight: 400;
-        }
-        .vlogin-half--doctor .vlogin-numeral {
-          left: auto;
-          right: clamp(32px, 6vw, 96px);
+          outline-offset: -6px;
         }
 
         .vlogin-inner {
           display: flex;
           flex-direction: column;
-          gap: 0;
-          max-width: 640px;
+          align-items: center;
           width: 100%;
+          max-width: 440px;
           min-width: 0;
-        }
-        .vlogin-half--doctor .vlogin-inner {
-          align-items: flex-end;
-          text-align: right;
-          margin-left: auto;
         }
 
         .vlogin-kicker {
@@ -275,14 +239,13 @@ export default function LoginPage() {
           gap: 10px;
           font-family: var(--font-serif);
           font-style: italic;
-          font-size: var(--text-meta);
+          font-size: 14px;
           color: var(--ink-soft);
-          letter-spacing: 0.01em;
-          margin-bottom: var(--sp-4);
+          margin-bottom: 20px;
         }
         .vlogin-dot {
-          width: 8px;
-          height: 8px;
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
           display: inline-block;
         }
@@ -294,89 +257,72 @@ export default function LoginPage() {
         }
 
         .vlogin-headline {
-          font-size: clamp(3.5rem, 2.5rem + 5.5vw, 7.5rem);
+          font-size: clamp(2.5rem, 2rem + 2.2vw, 4rem);
           font-weight: 600;
-          line-height: 0.92;
-          letter-spacing: -0.045em;
+          line-height: 1;
+          letter-spacing: -0.035em;
           color: var(--ink);
-          margin: 0 0 var(--sp-4);
-          word-break: break-word;
+          margin: 0 0 14px;
         }
 
         .vlogin-name {
           font-family: var(--font-serif);
           font-style: italic;
-          font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem);
-          font-weight: 400;
+          font-size: 17px;
           color: var(--ink-soft);
-          letter-spacing: -0.005em;
-          margin-bottom: var(--sp-5);
+          margin-bottom: 28px;
         }
 
         .vlogin-bio {
           font-family: var(--font-sans);
-          font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.125rem);
-          line-height: 1.5;
+          font-size: 15px;
+          line-height: 1.55;
           color: var(--ink-soft);
-          margin: 0 0 var(--sp-8);
-          max-width: 38ch;
-        }
-        .vlogin-half--doctor .vlogin-bio {
-          margin-left: auto;
-        }
-
-        .vlogin-cta-row {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: var(--sp-3);
-        }
-        .vlogin-half--doctor .vlogin-cta-row {
-          align-items: flex-end;
+          margin: 0 0 36px;
+          max-width: 32ch;
         }
 
         .vlogin-cta {
           display: inline-flex;
           align-items: center;
-          padding: 16px 34px;
+          padding: 14px 30px;
           border-radius: 999px;
           font-family: var(--font-sans);
-          font-size: 1rem;
+          font-size: 15px;
           font-weight: 600;
           letter-spacing: -0.005em;
           color: #FFFFFF;
           background: var(--sage-deep);
-          box-shadow: 0 14px 28px -14px rgba(68, 90, 74, 0.55),
+          box-shadow: 0 12px 24px -12px rgba(68, 90, 74, 0.55),
             0 2px 6px rgba(68, 90, 74, 0.2);
           transition: background 0.2s ease, transform 0.2s ease,
             box-shadow 0.2s ease;
           white-space: nowrap;
+          margin-bottom: 18px;
         }
         .vlogin-half:hover:not(:disabled) .vlogin-cta {
           background: #3A4D3F;
           transform: translateY(-1px);
-          box-shadow: 0 18px 34px -14px rgba(68, 90, 74, 0.6),
-            0 3px 8px rgba(68, 90, 74, 0.22);
         }
 
         .vlogin-email {
           font-family: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco,
             monospace;
-          font-size: var(--text-micro);
+          font-size: 11px;
           color: var(--ink-faint);
           letter-spacing: 0.02em;
         }
 
         .vlogin-err {
-          margin-top: var(--sp-3);
-          padding: var(--sp-2) var(--sp-4);
+          margin-top: 16px;
+          padding: 10px 14px;
           background: var(--terracotta-tint);
           border: 1px solid var(--terracotta-soft);
-          border-radius: var(--radius);
+          border-radius: 10px;
           font-family: var(--font-sans);
-          font-size: var(--text-micro);
+          font-size: 12px;
           color: var(--terracotta-deep);
-          max-width: 34ch;
+          max-width: 32ch;
         }
 
         .vlogin-foot {
@@ -384,16 +330,16 @@ export default function LoginPage() {
           bottom: 0;
           left: 0;
           right: 0;
-          padding: var(--sp-4) var(--sp-5);
+          padding: 16px 20px;
           font-family: var(--font-serif);
           font-style: italic;
-          font-size: var(--text-micro);
+          font-size: 11px;
           color: var(--ink-faint);
           text-align: center;
           display: flex;
           justify-content: center;
           align-items: center;
-          gap: var(--sp-3);
+          gap: 12px;
           flex-wrap: wrap;
           pointer-events: auto;
           background: transparent;
@@ -404,7 +350,6 @@ export default function LoginPage() {
           font-style: normal;
           font-weight: 600;
           color: var(--ink-soft);
-          letter-spacing: -0.005em;
         }
         .vlogin-foot-sep {
           color: var(--line-card);
@@ -423,39 +368,19 @@ export default function LoginPage() {
           .vlogin-root {
             display: flex;
             flex-direction: column;
-            min-height: 100dvh;
           }
           .vlogin-half {
-            min-height: 60dvh;
-            padding: clamp(64px, 10vh, 88px) clamp(24px, 6vw, 40px)
-              clamp(40px, 6vh, 72px);
-            align-items: flex-start;
-            justify-content: flex-end;
-            width: 100%;
-          }
-          .vlogin-half--doctor .vlogin-inner {
-            align-items: flex-start;
-            text-align: left;
-            margin-left: 0;
-          }
-          .vlogin-half--doctor .vlogin-bio {
-            margin-left: 0;
-          }
-          .vlogin-half--doctor .vlogin-cta-row {
-            align-items: flex-start;
-          }
-          .vlogin-half--doctor .vlogin-numeral {
-            left: clamp(24px, 6vw, 40px);
-            right: auto;
+            min-height: 50dvh;
+            padding: 56px 24px;
           }
           .vlogin-headline {
-            font-size: clamp(3rem, 2rem + 6vw, 5rem);
+            font-size: clamp(2rem, 1.7rem + 1.5vw, 2.75rem);
           }
           .vlogin-foot {
             position: static;
-            padding: var(--sp-5) var(--sp-4);
+            padding: 16px;
             font-size: 10px;
-            gap: var(--sp-2);
+            gap: 8px;
           }
         }
 
