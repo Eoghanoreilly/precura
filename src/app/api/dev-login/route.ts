@@ -5,20 +5,17 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 // Dev-only endpoint: creates a signed-in session for an allowlisted email
-// WITHOUT sending an email or depending on Supabase's Redirect URL allowlist.
+// without sending an email or depending on Supabase's Redirect URL allowlist.
 //
 // Flow:
-//   1. Optionally upgrade the target profile's role (so the same dev login
-//      can surface the doctor portal without a separate SQL step).
-//   2. Ask the admin API to generateLink to obtain a hashed_token.
-//   3. Use the SSR Supabase client (which writes auth cookies via our
+//   1. Ensure auth.users + profiles rows exist (create via admin.createUser
+//      if missing; the auto-profile trigger fires synchronously).
+//   2. Optionally upgrade the target profile's role.
+//   3. Ask the admin API to generateLink to obtain a hashed_token.
+//   4. Use the SSR Supabase client (which writes auth cookies via our
 //      setAll handler) to verifyOtp against that token. The session gets
 //      baked into cookies attached to the outgoing NextResponse.
-//   4. Return a same-origin redirect URL. The client just sets
-//      window.location.href and is logged in.
-//
-// This path sidesteps Supabase's dashboard Redirect URL allowlist entirely;
-// there is no cross-origin hop through auth.supabase.co.
+//   5. Return a same-origin redirect URL.
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -43,33 +40,61 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  // 1. Optional role upgrade
-  if (role) {
-    const { data: profile, error: profileErr } = await admin
+  // 1. Ensure user + profile exist. admin.generateLink requires an existing
+  // auth.users row; first-time Tomas needs createUser first.
+  let profileRow: { id: string } | null = null;
+  {
+    const { data, error: profileErr } = await admin
       .from("profiles")
       .select("id")
       .eq("email", email)
       .maybeSingle();
     if (profileErr) {
       console.error("[dev-login] profile lookup:", profileErr.message);
-    } else if (profile) {
-      const { error: updErr } = await admin
-        .from("profiles")
-        .update({ role })
-        .eq("id", profile.id);
-      if (updErr) {
-        console.error("[dev-login] role update:", updErr.message);
-      }
+    }
+    profileRow = data;
+  }
+
+  if (!profileRow) {
+    const { error: createErr } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+    });
+    if (createErr) {
+      console.error("[dev-login] createUser:", createErr.message);
+      return NextResponse.json(
+        { error: createErr.message || "Failed to create user." },
+        { status: 500 },
+      );
+    }
+    const { data, error: relookupErr } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (relookupErr) {
+      console.error("[dev-login] profile re-lookup:", relookupErr.message);
+    }
+    profileRow = data;
+  }
+
+  // 2. Optional role upgrade (existing and freshly created users alike).
+  if (role && profileRow) {
+    const { error: updErr } = await admin
+      .from("profiles")
+      .update({ role })
+      .eq("id", profileRow.id);
+    if (updErr) {
+      console.error("[dev-login] role update:", updErr.message);
     }
   }
 
-  // 2. Generate magic link to obtain a hashed_token we can verify server-side
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink(
-    {
+  // 3. Generate magic link to obtain a hashed_token we can verify server-side.
+  const { data: linkData, error: linkErr } =
+    await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
-    },
-  );
+    });
   if (linkErr || !linkData?.properties?.hashed_token) {
     console.error(
       "[dev-login] generateLink failed:",
@@ -82,8 +107,12 @@ export async function POST(req: Request) {
     );
   }
 
-  // 3. Verify the token through the SSR client, buffering the cookies
-  const cookieBuffer: { name: string; value: string; options?: Record<string, unknown> }[] = [];
+  // 4. Verify the token through the SSR client, buffering the cookies.
+  const cookieBuffer: {
+    name: string;
+    value: string;
+    options?: Record<string, unknown>;
+  }[] = [];
   const ssr = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -117,7 +146,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 4. Return a same-origin redirect, cookies attached
+  // 5. Return a same-origin redirect, cookies attached.
   const response = NextResponse.json({ url: redirect });
   for (const c of cookieBuffer) {
     response.cookies.set({
