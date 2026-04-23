@@ -1,258 +1,248 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Activity, Smartphone, Loader2, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
-import Link from "next/link";
-import { DEMO_USERS, setUser } from "@/lib/auth";
-import { initMockReturningUser } from "@/lib/user-state";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 
-type LoginState = "idle" | "verifying" | "success";
+type Persona = "client" | "doctor";
+
+type UiState =
+  | { tag: "idle" }
+  | { tag: "loading"; persona: Persona }
+  | { tag: "error"; message: string };
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [personnummer, setPersonnummer] = useState("");
-  const [loginState, setLoginState] = useState<LoginState>("idle");
-  const [selectedDemo, setSelectedDemo] = useState<"new" | "returning" | null>(null);
+  const [state, setState] = useState<UiState>({ tag: "idle" });
 
-  function formatPersonnummer(value: string): string {
-    const digits = value.replace(/\D/g, "").slice(0, 12);
-    if (digits.length > 8) {
-      return digits.slice(0, 8) + "-" + digits.slice(8);
+  async function signIn(persona: Persona) {
+    setState({ tag: "loading", persona });
+    const body =
+      persona === "client"
+        ? {
+            email: "eoghan@vestego.com",
+            role: "patient",
+            redirect: "/member",
+          }
+        : {
+            email: "tomas@precura.se",
+            role: "doctor",
+            redirect: "/doctor",
+          };
+    try {
+      const res = await fetch("/api/dev-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setState({ tag: "error", message: data.error || "Sign in failed." });
+    } catch {
+      setState({ tag: "error", message: "Sign in failed." });
     }
-    return digits;
   }
 
-  function handleLogin(type: "new" | "returning") {
-    setSelectedDemo(type);
-    const user = DEMO_USERS[type];
-    setPersonnummer(formatPersonnummer(user.personnummer));
-    setLoginState("verifying");
-
-    setTimeout(() => {
-      setLoginState("success");
-      setTimeout(() => {
-        setUser(user);
-        if (type === "new") {
-          router.push("/member?state=new-member");
-        } else {
-          initMockReturningUser();
-          router.push("/member");
-        }
-      }, 800);
-    }, 2000);
-  }
+  const busy = state.tag === "loading";
+  const loadingPersona = state.tag === "loading" ? state.persona : null;
 
   return (
-    <div
-      className="min-h-dvh flex flex-col items-center justify-center px-6"
-      style={{
-        background: "linear-gradient(135deg, #f0f4ff 0%, #fef7ee 50%, #f0fdf4 100%)",
-      }}
-    >
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-10">
-          <div
-            className="w-11 h-11 rounded-2xl flex items-center justify-center"
-            style={{ background: "var(--accent-light)", boxShadow: "var(--shadow-sm)" }}
-          >
-            <Activity size={22} style={{ color: "var(--accent)" }} />
-          </div>
-          <span className="font-bold text-xl tracking-tight" style={{ color: "var(--text)" }}>
-            Precura
-          </span>
+    <div className="vlogin-root">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="vlogin-card"
+      >
+        <div className="vlogin-eyebrow">
+          <em>Precura / Dev console</em>
         </div>
-
-        {/* Card */}
-        <div
-          className="rounded-3xl overflow-hidden"
-          style={{
-            background: "var(--bg-card)",
-            boxShadow: "var(--shadow-lg)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          {/* Header */}
-          <div className="px-6 py-5" style={{ borderBottom: "1px solid var(--divider)" }}>
-            <p className="text-base font-semibold" style={{ color: "var(--text)" }}>
-              Sign in with BankID
-            </p>
-            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-              Secure identification via Mobile BankID
-            </p>
-          </div>
-
-          {/* Body */}
-          <div className="p-6">
-            {loginState === "idle" && (
-              <div className="animate-fade-in">
-                <label
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  Personal number
-                </label>
-                <input
-                  type="text"
-                  value={personnummer}
-                  onChange={(e) => setPersonnummer(formatPersonnummer(e.target.value))}
-                  placeholder="YYYYMMDD-XXXX"
-                  className="w-full px-4 py-3.5 rounded-2xl text-base mb-6"
-                  style={{
-                    background: "var(--bg-elevated)",
-                    border: "1px solid var(--border)",
-                    color: "var(--text)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "16px",
-                    letterSpacing: "0.05em",
-                  }}
-                />
-
-                <p className="text-xs font-semibold mb-3" style={{ color: "var(--text-muted)" }}>
-                  Demo accounts:
-                </p>
-                <div className="grid gap-3">
-                  <button
-                    onClick={() => handleLogin("new")}
-                    className="card-hover w-full flex items-center gap-3 p-4 rounded-2xl text-left"
-                    style={{
-                      background: "var(--bg-elevated)",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
-                      style={{
-                        background: "var(--teal-bg)",
-                        color: "var(--teal-text)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      EL
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                        Erik Lindqvist
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        New user - starts onboarding
-                      </p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleLogin("returning")}
-                    className="card-hover w-full flex items-center gap-3 p-4 rounded-2xl text-left"
-                    style={{
-                      background: "var(--bg-elevated)",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
-                      style={{
-                        background: "var(--accent-light)",
-                        color: "var(--accent)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      AB
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                        Anna Bergstrom
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        Returning user - has data
-                      </p>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Divider */}
-                <div className="flex items-center gap-3 my-5">
-                  <div className="flex-1 h-px" style={{ background: "var(--divider)" }} />
-                  <span className="text-xs" style={{ color: "var(--text-faint)" }}>or</span>
-                  <div className="flex-1 h-px" style={{ background: "var(--divider)" }} />
-                </div>
-
-                {/* Try v2 button */}
-                <Link
-                  href="/v2/login"
-                  className="card-hover w-full flex items-center gap-3 p-4 rounded-2xl text-left block"
-                  style={{
-                    background: "linear-gradient(135deg, var(--accent-light) 0%, var(--purple-bg) 100%)",
-                    border: "1px solid var(--accent-light)",
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "var(--accent)", boxShadow: "var(--shadow-sm)" }}
-                  >
-                    <Sparkles size={18} style={{ color: "#ffffff" }} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold" style={{ color: "var(--accent-hover)" }}>
-                        Try Precura v2
-                      </p>
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: "var(--accent)", color: "#ffffff" }}
-                      >
-                        New
-                      </span>
-                    </div>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      Full platform prototype
-                    </p>
-                  </div>
-                  <ArrowRight size={16} style={{ color: "var(--accent)" }} />
-                </Link>
-              </div>
-            )}
-
-            {loginState === "verifying" && (
-              <div className="animate-fade-in flex flex-col items-center py-10">
-                <div
-                  className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5"
-                  style={{ background: "var(--blue-bg)" }}
-                >
-                  <Smartphone size={28} className="animate-pulse-slow" style={{ color: "var(--blue)" }} />
-                </div>
-                <p className="text-sm font-semibold mb-2" style={{ color: "var(--text)" }}>
-                  Open BankID on your device
-                </p>
-                <p className="text-xs mb-5" style={{ color: "var(--text-muted)" }}>
-                  Verifying {selectedDemo === "new" ? "Erik Lindqvist" : "Anna Bergstrom"}
-                </p>
-                <Loader2 size={20} className="animate-spin" style={{ color: "var(--text-muted)" }} />
-              </div>
-            )}
-
-            {loginState === "success" && (
-              <div className="animate-scale-in flex flex-col items-center py-10">
-                <div
-                  className="w-16 h-16 rounded-3xl flex items-center justify-center mb-5"
-                  style={{ background: "var(--green-bg)" }}
-                >
-                  <CheckCircle2 size={28} style={{ color: "var(--green)" }} />
-                </div>
-                <p className="text-sm font-semibold" style={{ color: "var(--green-text)" }}>
-                  Verified
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <p
-          className="text-center text-xs mt-6"
-          style={{ color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}
-        >
-          Demo mode - no real BankID required
+        <h1 className="vlogin-title">V3 Login</h1>
+        <p className="vlogin-body">
+          One click to sign in as one of the two test personas.
         </p>
-      </div>
+
+        {state.tag === "error" && (
+          <div className="vlogin-err" role="alert">
+            {state.message}
+          </div>
+        )}
+
+        <div className="vlogin-tiles">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => signIn("client")}
+            className="vlogin-tile"
+          >
+            <span className="vlogin-tile-kicker">Client</span>
+            <span className="vlogin-tile-name">Eoghan</span>
+            <span className="vlogin-tile-meta">
+              eoghan@vestego.com
+              <br />
+              role: patient
+              <br />
+              lands on /member
+            </span>
+            <span className="vlogin-tile-cta">
+              {loadingPersona === "client"
+                ? "Signing in..."
+                : "Sign in as Client"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => signIn("doctor")}
+            className="vlogin-tile"
+          >
+            <span className="vlogin-tile-kicker">Doctor</span>
+            <span className="vlogin-tile-name">Tomas</span>
+            <span className="vlogin-tile-meta">
+              tomas@precura.se
+              <br />
+              role: doctor
+              <br />
+              lands on /doctor
+            </span>
+            <span className="vlogin-tile-cta">
+              {loadingPersona === "doctor"
+                ? "Signing in..."
+                : "Sign in as Doctor"}
+            </span>
+          </button>
+        </div>
+
+        <div className="vlogin-foot">
+          Real user? Sign in at <a href="/member/login">/member/login</a> or{" "}
+          <a href="/doctor/login">/doctor/login</a>.
+        </div>
+
+        <style jsx>{`
+          .vlogin-root {
+            min-height: 100dvh;
+            background: var(--canvas);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            font-family: var(--font-sans);
+          }
+          .vlogin-card {
+            width: 100%;
+            max-width: 640px;
+            background: var(--paper);
+            border: 1px solid var(--line-card);
+            border-radius: var(--radius-hero);
+            box-shadow: var(--shadow-card);
+            padding: var(--sp-9) var(--sp-7) var(--sp-8);
+          }
+          .vlogin-eyebrow {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: var(--sage-deep);
+            font-size: var(--text-meta);
+            margin-bottom: var(--sp-3);
+          }
+          .vlogin-title {
+            font-size: var(--text-title);
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: -0.02em;
+            margin: 0 0 var(--sp-3);
+          }
+          .vlogin-body {
+            font-size: var(--text-body);
+            line-height: var(--line-height-body);
+            color: var(--ink-soft);
+            margin: 0 0 var(--sp-6);
+          }
+          .vlogin-err {
+            padding: var(--sp-3) var(--sp-4);
+            background: var(--terracotta-tint);
+            border: 1px solid var(--terracotta-soft);
+            border-radius: var(--radius);
+            font-size: var(--text-meta);
+            color: var(--terracotta-deep);
+            margin-bottom: var(--sp-5);
+          }
+          .vlogin-tiles {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--sp-4);
+            margin-bottom: var(--sp-6);
+          }
+          @media (min-width: 640px) {
+            .vlogin-tiles {
+              grid-template-columns: 1fr 1fr;
+            }
+          }
+          .vlogin-tile {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+            padding: var(--sp-6);
+            background: var(--canvas-soft);
+            border: 1px solid var(--line-card);
+            border-radius: var(--radius-card);
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease,
+              transform 0.15s ease;
+            font-family: var(--font-sans);
+          }
+          .vlogin-tile:hover:not(:disabled) {
+            background: var(--sage-tint);
+            border-color: var(--sage-soft);
+            transform: translateY(-1px);
+          }
+          .vlogin-tile:disabled {
+            opacity: 0.6;
+            cursor: default;
+          }
+          .vlogin-tile-kicker {
+            font-size: var(--text-micro);
+            font-weight: 600;
+            color: var(--sage-deep);
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+          }
+          .vlogin-tile-name {
+            font-size: var(--text-section);
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: -0.015em;
+          }
+          .vlogin-tile-meta {
+            font-size: var(--text-meta);
+            color: var(--ink-soft);
+            line-height: var(--line-height-body);
+          }
+          .vlogin-tile-cta {
+            margin-top: auto;
+            padding-top: var(--sp-3);
+            font-size: var(--text-meta);
+            font-weight: 600;
+            color: var(--sage-deep);
+          }
+          .vlogin-foot {
+            font-size: var(--text-micro);
+            color: var(--ink-faint);
+            font-style: italic;
+            font-family: var(--font-serif);
+            text-align: center;
+            line-height: var(--line-height-body);
+            border-top: 1px solid var(--line-soft);
+            padding-top: var(--sp-5);
+          }
+          .vlogin-foot a {
+            color: var(--ink-soft);
+            text-decoration: underline;
+          }
+        `}</style>
+      </motion.div>
     </div>
   );
 }
