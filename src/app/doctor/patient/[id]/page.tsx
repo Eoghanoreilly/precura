@@ -402,7 +402,9 @@ function NotesTab({
   const [panelId, setPanelId] = useState<string | null>(rollup.panels[0]?.id ?? null);
   const [body, setBody] = useState("");
 
+  // Sync panel selection when rollup changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPanelId(rollup.panels[0]?.id ?? null);
   }, [rollup.panels]);
 
@@ -596,6 +598,7 @@ function ChatTab({ sessions }: { sessions: ChatSession[] }) {
   useEffect(() => {
     if (!openId) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetchChatMessagesForSession(openId)
       .then((msgs) => { if (!cancelled) setMessages(msgs); })

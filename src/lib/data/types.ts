@@ -1,3 +1,5 @@
+import type { PanelReviewStatus } from '@/lib/doctor/reviewState'
+
 export interface Profile {
   id: string
   email: string
@@ -14,6 +16,10 @@ export interface Panel {
   panel_type: string | null
   notes: string | null
   created_at: string
+  review_status: PanelReviewStatus
+  reviewed_at: string | null
+  reviewed_by: string | null
+  defer_reason: string | null
 }
 
 export interface Biomarker {
