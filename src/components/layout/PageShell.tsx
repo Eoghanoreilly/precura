@@ -6,7 +6,8 @@ import { MobileDrawer } from "@/components/member/MobileDrawer";
 
 export interface PageShellProps {
   sideRail: React.ReactNode;
-  mobileDrawer?: React.ReactNode;
+  /** Override the default MobileDrawer. Can be a ReactNode or a render function receiving (open, onClose). */
+  mobileDrawer?: React.ReactNode | ((open: boolean, onClose: () => void) => React.ReactNode);
   userInitials: string;
   logoHref?: string;
   activeHref?: string;
@@ -50,14 +51,13 @@ export function PageShell({
         </Link>
       </header>
 
-      {/* Mobile drawer (can be overridden per-context) */}
-      {mobileDrawer ?? (
-        <MobileDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          activeHref={activeHref}
-        />
-      )}
+      {/* Mobile drawer (can be overridden per-context via node or render function) */}
+      {mobileDrawer == null
+        ? <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} activeHref={activeHref} />
+        : typeof mobileDrawer === "function"
+          ? mobileDrawer(drawerOpen, () => setDrawerOpen(false))
+          : mobileDrawer
+      }
 
       {/* Layout */}
       <div className="shell-layout">

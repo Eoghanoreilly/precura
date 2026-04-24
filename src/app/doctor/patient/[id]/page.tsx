@@ -19,6 +19,7 @@ import { useDoctorData } from "../../useDoctorData";
 import { BodySystemsGrid } from "@/app/member/home/blocks/BodySystemsGrid";
 import { fetchChatMessagesForSession } from "@/lib/data/doctor";
 import type { Biomarker, ChatSession } from "@/lib/data/types";
+import { DoctorMobileDrawer } from "@/components/doctor/DoctorMobileDrawer";
 
 type TabKey = "overview" | "panels" | "notes" | "chat";
 
@@ -90,7 +91,14 @@ function PatientFileInner() {
   };
 
   return (
-    <PageShell sideRail={sideRail} userInitials={initials} activeHref="/doctor">
+    <PageShell
+      sideRail={sideRail}
+      userInitials={initials}
+      activeHref="/doctor"
+      mobileDrawer={(open, onClose) => (
+        <DoctorMobileDrawer open={open} onClose={onClose} activeHref="/doctor" />
+      )}
+    >
       <EditorialColumn variant="reading">
         <div className="pf-back">
           <Link href="/doctor" className="pf-back-link">Back to patients</Link>

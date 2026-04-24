@@ -14,6 +14,7 @@ import { QueueRail, type QueueItem } from "@/components/doctor/queue/QueueRail";
 import { CasePage } from "@/components/doctor/case/CasePage";
 import { EmotionalRail } from "@/components/doctor/emotional/EmotionalRail";
 import { useCaseRollup } from "@/lib/doctor/caseRollup";
+import { DoctorMobileDrawer } from "@/components/doctor/DoctorMobileDrawer";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/doctor" },
@@ -214,7 +215,14 @@ export default function DoctorHomePage() {
   const railVisible = Boolean(emotionalSignal?.triggered) && !railDismissed;
 
   return (
-    <PageShell sideRail={sideRail} userInitials={initials} activeHref="/doctor">
+    <PageShell
+      sideRail={sideRail}
+      userInitials={initials}
+      activeHref="/doctor"
+      mobileDrawer={(open, onClose) => (
+        <DoctorMobileDrawer open={open} onClose={onClose} activeHref="/doctor" />
+      )}
+    >
       {/* Mobile queue toggle button - only visible below laptop breakpoint */}
       <div className="dh-mobile-queue-btn">
         <button type="button" onClick={() => setQueueOpen((o) => !o)} className="dh-queue-toggle">
