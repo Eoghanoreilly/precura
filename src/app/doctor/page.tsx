@@ -17,7 +17,7 @@ import { useCaseRollup } from "@/lib/doctor/caseRollup";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/doctor" },
-  { label: "Patients", href: "/doctor" },
+  { label: "Patients", href: "/doctor/patients" },
   { label: "Settings", href: "/doctor/settings" },
 ];
 
@@ -156,6 +156,7 @@ export default function DoctorHomePage() {
   const [railDismissed, setRailDismissed] = useState(false);
   const [patients, setPatients] = useState<PatientRollup[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(true);
+  const [queueOpen, setQueueOpen] = useState(false);
 
   const displayName = data.doctor?.display_name || "Doctor";
   const initials = displayName
@@ -214,44 +215,163 @@ export default function DoctorHomePage() {
 
   return (
     <PageShell sideRail={sideRail} userInitials={initials} activeHref="/doctor">
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: railVisible ? '240px 1fr 320px' : '240px 1fr',
-          gap: 14,
-          padding: 16,
-          minHeight: 'calc(100dvh - 100px)',
-        }}
-      >
-        <QueueRail
-          {...queueItems}
-          activePatientId={selectedId}
-          onSelect={setSelectedId}
-        />
-        <div>
+      {/* Mobile queue toggle button - only visible below laptop breakpoint */}
+      <div className="dh-mobile-queue-btn">
+        <button type="button" onClick={() => setQueueOpen((o) => !o)} className="dh-queue-toggle">
+          {queueOpen ? 'Hide patient list' : 'Show patient list'}
+          {queueItems.pending.length > 0 && (
+            <span className="dh-queue-badge">{queueItems.pending.length}</span>
+          )}
+        </button>
+      </div>
+
+      <div className={`dh-layout${railVisible ? ' has-rail' : ''}`}>
+        {/* Queue rail - hidden on mobile unless toggled, visible on laptop+ */}
+        <div className={`dh-queue${queueOpen ? ' open' : ''}`}>
+          <QueueRail
+            {...queueItems}
+            activePatientId={selectedId}
+            onSelect={(id) => { setSelectedId(id); setQueueOpen(false); }}
+          />
+        </div>
+
+        {/* Case / empty state */}
+        <div className="dh-case">
           {caseData ? (
             <CasePage data={caseData} />
           ) : (
-            <div
-              style={{
-                padding: 32,
-                color: '#8B8579',
-                fontFamily: 'var(--font-sans)',
-              }}
-            >
+            <div className="dh-empty">
               {loadingPatients ? 'Loading patients...' : 'Select a patient from the queue.'}
             </div>
           )}
         </div>
+
+        {/* Emotional rail */}
         {railVisible && caseData && emotionalSignal && (
-          <EmotionalRail
-            signal={emotionalSignal}
-            memberId={caseData.memberId}
-            wasAutoTriggered={true}
-            onDismiss={() => setRailDismissed(true)}
-          />
+          <div className="dh-emotional">
+            <EmotionalRail
+              signal={emotionalSignal}
+              memberId={caseData.memberId}
+              wasAutoTriggered={true}
+              onDismiss={() => setRailDismissed(true)}
+            />
+          </div>
         )}
       </div>
+
+      <style jsx>{`
+        /* Mobile queue toggle button */
+        .dh-mobile-queue-btn {
+          display: flex;
+          padding: 10px 16px 0;
+        }
+        .dh-queue-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background: #FDFBF6;
+          border: 1px solid #E0D9C8;
+          border-radius: 8px;
+          font-family: var(--font-sans);
+          font-size: 13px;
+          font-weight: 600;
+          color: #1C1A17;
+          cursor: pointer;
+        }
+        .dh-queue-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #9C3F25;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        /* Base layout - mobile first (single column) */
+        .dh-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          padding: 12px 16px 16px;
+          min-height: calc(100dvh - 140px);
+        }
+        .dh-queue {
+          display: none;
+        }
+        .dh-queue.open {
+          display: block;
+        }
+        .dh-case {
+          flex: 1;
+          min-width: 0;
+        }
+        .dh-emotional {
+          /* On mobile emotional rail flows inline below case */
+        }
+        .dh-empty {
+          padding: 32px;
+          color: #8B8579;
+          font-family: var(--font-sans);
+        }
+
+        /* Laptop (>= 1024px): queue sidebar + case */
+        @media (min-width: 1024px) {
+          .dh-mobile-queue-btn {
+            display: none;
+          }
+          .dh-layout {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr);
+            grid-template-rows: auto;
+            gap: 14px;
+            padding: 16px;
+            align-items: start;
+          }
+          .dh-queue {
+            display: block;
+            grid-row: 1 / -1;
+            grid-column: 1;
+          }
+          .dh-queue.open {
+            display: block;
+          }
+          .dh-case {
+            grid-column: 2;
+          }
+          .dh-emotional {
+            grid-column: 2;
+          }
+        }
+
+        /* Desktop (>= 1280px): add 3rd column for emotional rail */
+        @media (min-width: 1280px) {
+          .dh-layout {
+            grid-template-columns: 240px minmax(0, 1fr);
+          }
+          .dh-layout.has-rail {
+            grid-template-columns: 240px minmax(0, 1fr) 320px;
+          }
+          .dh-layout.has-rail .dh-case {
+            grid-column: 2;
+          }
+          .dh-layout.has-rail .dh-emotional {
+            grid-column: 3;
+            grid-row: 1;
+          }
+        }
+
+        /* Widescreen cap */
+        @media (min-width: 1920px) {
+          .dh-layout {
+            max-width: 1800px;
+          }
+        }
+      `}</style>
     </PageShell>
   );
 }

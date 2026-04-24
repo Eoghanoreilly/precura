@@ -24,7 +24,7 @@ type TabKey = "overview" | "panels" | "notes" | "chat";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/doctor" },
-  { label: "Patients", href: "/doctor" },
+  { label: "Patients", href: "/doctor/patients" },
   { label: "Settings", href: "/doctor/settings" },
 ];
 
