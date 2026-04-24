@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { CasePageData } from "@/components/doctor/case/CasePage";
 import type { EmotionalSignal } from "@/lib/doctor/evaluateEmotionalSignal";
+import type { PrecuraPreRead } from "@/lib/data/preReads";
 
 export type UseCaseRollupResult = {
   data: CasePageData | null;
@@ -43,6 +44,24 @@ function rangeDescription(low: number | null, high: number | null, unit: string)
   if (high !== null) return `under ${high} ${unit}`;
   if (low !== null) return `over ${low} ${unit}`;
   return unit;
+}
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  const ct = res.headers.get('content-type') || '';
+  if (!res.ok) {
+    if (ct.includes('application/json')) {
+      const body = await res.json().catch(() => null);
+      throw new Error(`${url} returned ${res.status}: ${body?.error ?? 'no error body'}`);
+    }
+    const text = await res.text().catch(() => '');
+    throw new Error(`${url} returned ${res.status} (${ct || 'no content-type'}): ${text.slice(0, 200)}`);
+  }
+  if (!ct.includes('application/json')) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${url} returned non-JSON response (${ct}): ${text.slice(0, 200)}`);
+  }
+  return res.json() as Promise<T>;
 }
 
 export function useCaseRollup(memberId: string | null, activeUserName: string): UseCaseRollupResult {
@@ -96,8 +115,7 @@ export function useCaseRollup(memberId: string | null, activeUserName: string): 
           continuityEvents.push({ date: formatDate(latestMsg[0].created_at as string), kind: 'member-message', actor: (profile.display_name as string).split(/\s+/)[0], body: latestMsg[0].content as string });
         }
 
-        const preReadRes = await fetch(`/api/pre-read/${latestPanel.id}`);
-        const { preRead } = await preReadRes.json();
+        const { preRead } = await fetchJson<{ preRead: PrecuraPreRead | null }>(`/api/pre-read/${latestPanel.id}`);
 
         const flaggedBiomarkers = ((latestPanel as { biomarkers?: Array<{ short_name: string; value: number; unit: string; ref_range_low: number | null; ref_range_high: number | null }> }).biomarkers ?? []).filter((b) => isFlagged(b));
 
@@ -150,8 +168,7 @@ export function useCaseRollup(memberId: string | null, activeUserName: string): 
           insertText: `${FLAG_PREFIX_MAP[b.short_name] ?? b.short_name} (${b.short_name}) is typically ${rangeDescription(b.ref_range_low, b.ref_range_high, b.unit)}`,
         }));
 
-        const sigRes = await fetch(`/api/emotional-signal/${memberId}`);
-        const { signal } = await sigRes.json();
+        const { signal } = await fetchJson<{ signal: EmotionalSignal }>(`/api/emotional-signal/${memberId}`);
 
         const { count: prevNoteCount } = await supabase
           .from('annotations')
