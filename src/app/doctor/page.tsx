@@ -187,6 +187,7 @@ export default function DoctorHomePage() {
 
   // Reset rail-dismissed when switching patients
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRailDismissed(false);
   }, [selectedId]);
 

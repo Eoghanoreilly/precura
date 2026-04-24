@@ -16,6 +16,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .gte('created_at', new Date(Date.now() - 14 * 86_400_000).toISOString())
     .order('created_at', { ascending: false });
 
-  const signal = evaluateEmotionalSignal((msgs ?? []).map((m: any) => ({ content: m.content, created_at: m.created_at })));
+  const signal = evaluateEmotionalSignal(
+    (msgs ?? []).map((m: { content: string; created_at: string }) => ({
+      content: m.content,
+      created_at: m.created_at,
+    })),
+  );
   return NextResponse.json({ signal });
 }

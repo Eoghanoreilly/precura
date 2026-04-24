@@ -56,7 +56,9 @@ export function RightPane({
   const [body, setBody] = useState("");
   const { ref, resize } = useAutoGrow({ minRows: 2, maxRows: 8, lineHeight: 24 });
 
+  // Reset panel selection and body when patient changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedPanelId(latestPanel?.id ?? null);
     setBody("");
   }, [profile.id, latestPanel?.id]);
