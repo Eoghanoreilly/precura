@@ -1,12 +1,90 @@
 # Precura - Project Handover Document
 
-**Last updated:** April 23, 2026
-**Previous versions:** April 18, 2026; April 1, 2026
+**Last updated:** April 24, 2026
+**Previous versions:** April 23, 2026; April 18, 2026; April 1, 2026
 **Author:** Claude Opus 4.7 (pair programmer)
 **Project Owner:** Eoghan O'Reilly
 **Medical Co-founder:** Dr. Tomas Kurakovas
 **Repository:** https://github.com/Eoghanoreilly/precura
 **Live URL:** https://precura-wine.vercel.app
+
+---
+
+## 0. Latest session (2026-04-24) - doctor portal narrative v1 + 4-column resizable layout
+
+**Full detail:** `~/.claude/projects/-Users-eoghan-Desktop-precura/handover/2026-04-24-session-state.md`
+**Design spec:** `~/.claude/projects/-Users-eoghan-Desktop-precura/specs/2026-04-24-doctor-portal-narrative-v1-design.md`
+**Implementation plan:** `~/.claude/projects/-Users-eoghan-Desktop-precura/specs/2026-04-24-doctor-portal-narrative-v1-plan.md`
+
+### TL;DR of what's different from 2026-04-23
+
+The doctor portal at `/doctor` was rebuilt as a **review workstation** on top of yesterday's dual-pane. New features, all shipped to prod:
+
+1. **Continuity banner** - chronological timeline (last Tomas note / latest panel / latest member chat) at top of every case page
+2. **Precura pre-read** - Haiku-generated 2-3 sentence factual narrative with "Show detail" revealing structured facts (panel count, consistent out-of-range markers, trends). Deterministic fallback when LLM fails.
+3. **Flagged marker tiles** - per-marker card with plain-English name + Swedish prefix + value + ref range + inline SVG sparkline
+4. **Composer** - factual auto-drafted opener + "Accept to prepend" + compose field + 3 insert chips (chat quote / trend / marker reference)
+5. **Outcome states** - explicit 3-state close: Acknowledge / Post note & ack / Defer (requires reason)
+6. **Audit footer** - immutable `Opened by Tomas on X at Y CET` + view history modal
+7. **Conditional emotional rail** - auto-triggers when (3+ chat msgs in 7d) AND (night-hour OR worry-word). Trigger strip + verbatim feed. Hide pill + re-open pill on dismiss.
+8. **Sectioned queue rail** - Pending / Awaiting note / Recently reviewed, urgency-sorted
+
+### Layout as of end of session
+
+`/doctor` now uses a **4-column resizable layout** (PR #31 + #32):
+
+```
+| Nav | Patient list | Case page | Emotional rail (conditional) |
+```
+
+- `react-resizable-panels@^2` with drag seams (1px sage line between columns, hover thickens)
+- All columns touching (no outer padding, no card shadows), distinct bg tints for visual separation
+- Collapsible panels (nav + queue) via drag to min OR the left-stub button
+- Scrollbars hidden globally on all scrolling bodies; wheel/trackpad scroll preserved
+- Layout size persisted via `autoSaveId="doctor-v2-layout"` (localStorage)
+- Bypasses `PageShell` entirely on `/doctor` - the nav is part of the same PanelGroup
+- Mobile (<1024px): separate layout with own top bar, hamburger, drawer, and stacked content
+
+### Database state (prod `xturbbklghicpgucwhwy`)
+
+Migration 002 applied: `panels.review_status` enum + `reviewed_at/by/defer_reason`, new tables `panel_views` / `emotional_rail_toggles` / `precura_pre_reads`, `profiles.demo` flag.
+Migration 003 applied: 5 seed demo profiles (Sofia, Anna, David, Olivia, Carl) with matching panels and chat messages. `demo = true` flag on all.
+
+**Schema name corrections discovered this session** - any new queries must use:
+- `biomarkers.short_name` (NOT `name`)
+- `biomarkers.ref_range_low` / `ref_range_high` (NOT `ref_low` / `ref_high`)
+- `panels.created_at` (NOT `uploaded_at`)
+- `chat_sessions.created_at` (NOT `started_at`)
+
+### PRs merged this session (all on main)
+
+| # | Topic |
+|---|---|
+| 24 | Rewrite `/login` dev console (cleaned up messy split layout) |
+| 25 | **Doctor portal narrative v1** (the big feature - 13 phases) |
+| 26 | Mobile responsive + broken doctor links (+ DoctorMobileDrawer) |
+| 27 | Visible feedback on every interaction (loading/error panels) |
+| 28 | API routes never return HTML 500 (try/catch + LLM fallback) |
+| 29 | Trays + breathing room |
+| 30 | Resizable drag-handle panels with collapse toggles |
+| 31 | **4 columns touching Excel-style + hidden scrollbars** |
+| 32 | Nav column uses proven Wordmark+IdentityCard+RailNav |
+
+### Pick up next session
+
+Most likely next tasks:
+1. `/doctor/patient/[id]` modernization - flow the new narrative modules through to the deep file tabs (currently only on `/doctor` home)
+2. Real `/doctor/patients` list page (currently a redirect stub)
+3. Member app narrative parity - continuity banner + pre-read for patients viewing their own panels
+4. `/doctor/settings` real page (currently a redirect stub)
+
+Known small debts:
+- `fetchPatientRollups` in `/doctor/page.tsx` is N+1 (fine for 6 seed + Eoghan; needs aggregate RPC past ~20)
+- `useDoctorData` only used for `doctor.id` + `display_name` now - could extract narrower hook
+- Old `src/app/doctor/home/{LeftPane,RightPane,MorningSummary}.tsx` are unused - safe to delete in cleanup
+- 18 vitest tests passing. Run with `npm run test`.
+
+See the full session handover for every file added/changed, design decisions, deferred scope, and all known issues.
 
 ---
 
