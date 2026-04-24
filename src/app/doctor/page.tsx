@@ -388,8 +388,8 @@ export default function DoctorHomePage() {
         .dh-layout {
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          padding: 12px 16px 16px;
+          gap: 16px;
+          padding: 12px 16px 20px;
           min-height: calc(100dvh - 140px);
         }
         .dh-queue {
@@ -408,23 +408,26 @@ export default function DoctorHomePage() {
           font-family: var(--font-sans);
         }
 
-        /* Laptop (>= 1024px): queue sidebar + case */
+        /* Laptop (>= 1024px): queue tray + case */
         @media (min-width: 1024px) {
           .dh-mobile-queue-btn {
             display: none;
           }
           .dh-layout {
             display: grid;
-            grid-template-columns: 220px minmax(0, 1fr);
+            grid-template-columns: 260px minmax(0, 1fr);
             grid-template-rows: auto;
-            gap: 14px;
-            padding: 16px;
+            gap: 20px;
+            padding: 20px;
             align-items: start;
           }
           .dh-queue {
             display: block;
             grid-row: 1 / -1;
             grid-column: 1;
+            max-height: calc(100dvh - 40px);
+            position: sticky;
+            top: 20px;
           }
           .dh-queue.open {
             display: block;
@@ -437,13 +440,15 @@ export default function DoctorHomePage() {
           }
         }
 
-        /* Desktop (>= 1280px): add 3rd column for emotional rail */
+        /* Desktop (>= 1280px): add 3rd column for emotional rail, wider gap */
         @media (min-width: 1280px) {
           .dh-layout {
-            grid-template-columns: 240px minmax(0, 1fr);
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 24px;
+            padding: 24px;
           }
           .dh-layout.has-rail {
-            grid-template-columns: 240px minmax(0, 1fr) 320px;
+            grid-template-columns: 280px minmax(0, 1fr) 360px;
           }
           .dh-layout.has-rail .dh-case {
             grid-column: 2;
@@ -451,13 +456,29 @@ export default function DoctorHomePage() {
           .dh-layout.has-rail .dh-emotional {
             grid-column: 3;
             grid-row: 1;
+            position: sticky;
+            top: 24px;
+            max-height: calc(100dvh - 48px);
           }
         }
 
-        /* Widescreen cap */
+        /* Widescreen (>= 1600px): slightly more room + cap */
+        @media (min-width: 1600px) {
+          .dh-layout {
+            grid-template-columns: 300px minmax(0, 1fr);
+            gap: 28px;
+            padding: 28px clamp(28px, 4vw, 64px);
+          }
+          .dh-layout.has-rail {
+            grid-template-columns: 300px minmax(0, 1fr) 380px;
+          }
+        }
+
+        /* Ultra-wide cap */
         @media (min-width: 1920px) {
           .dh-layout {
-            max-width: 1800px;
+            max-width: 1920px;
+            margin: 0 auto;
           }
         }
       `}</style>
