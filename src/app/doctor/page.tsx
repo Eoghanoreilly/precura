@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { Wordmark, IdentityCard, RailNav } from "@/components/layout";
 import { useDoctorData } from "./useDoctorData";
 import { createClient } from "@/lib/supabase/client";
 import { QueueRail, type QueueItem } from "@/components/doctor/queue/QueueRail";
@@ -267,40 +268,18 @@ export default function DoctorHomePage() {
             <ColStub side="left" label="Nav" onClick={() => navPanelRef.current?.expand()} />
           ) : (
             <section className="col col-nav">
-              <div className="col-top">
-                <Link href="/doctor" className="col-wordmark">Precura</Link>
-                <button className="col-mini-btn" aria-label="Collapse nav" onClick={() => navPanelRef.current?.collapse()}>
-                  <ChevronLeft />
-                </button>
+              <div className="col-body hide-scrollbar" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 22 }}>
+                <Wordmark href="/doctor" />
+                <IdentityCard
+                  user={{ name: displayName, initials, memberSince: "Clinician" }}
+                  doctor={{
+                    name: "Precura clinic",
+                    initials: "P",
+                    title: `${patients.length} patient${patients.length === 1 ? '' : 's'}`,
+                  }}
+                />
+                <RailNav items={NAV_ITEMS} activeHref="/doctor" />
               </div>
-              <div className="col-ident">
-                <div className="ident-row">
-                  <div className="ident-avatar user">{initials}</div>
-                  <div className="ident-text">
-                    <div className="ident-name">{displayName}</div>
-                    <div className="ident-meta">Clinician</div>
-                  </div>
-                </div>
-                <div className="ident-hr" />
-                <div className="ident-row doc">
-                  <div className="ident-avatar doc">P</div>
-                  <div className="ident-text">
-                    <div className="ident-name">Precura clinic</div>
-                    <div className="ident-meta sage">{patients.length} patient{patients.length === 1 ? '' : 's'}</div>
-                  </div>
-                </div>
-              </div>
-              <nav className="col-nav-items">
-                {NAV_ITEMS.map((it) => {
-                  const active = it.href === '/doctor';
-                  return (
-                    <Link key={it.label} href={it.href} className={active ? "col-nav-item active" : "col-nav-item"}>
-                      <span className="col-nav-indicator" />
-                      {it.label}
-                    </Link>
-                  );
-                })}
-              </nav>
             </section>
           )}
         </Panel>
@@ -487,51 +466,6 @@ export default function DoctorHomePage() {
         }
         .col-mini-btn:hover { background: var(--canvas-soft, #FDFBF6); }
         .col-body { flex: 1; min-height: 0; overflow-y: auto; }
-
-        .col-wordmark {
-          color: var(--ink, #1C1A17); font-size: 20px; font-weight: 600;
-          letter-spacing: -0.028em; text-decoration: none;
-        }
-        .col-ident {
-          padding: 14px 16px; border-bottom: 1px solid var(--line-soft, #EEE9DB);
-        }
-        .ident-row {
-          display: flex; align-items: center; gap: 10px; padding: 6px 0;
-        }
-        .ident-avatar {
-          width: 36px; height: 36px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 600; color: var(--ink, #1C1A17);
-          flex-shrink: 0;
-        }
-        .ident-avatar.user {
-          background: linear-gradient(135deg, var(--butter-soft, #F6DDA0) 0%, var(--terracotta-soft, #EFB59B) 100%);
-        }
-        .ident-avatar.doc {
-          background: linear-gradient(135deg, var(--sage, #728C76) 0%, var(--sage-deep, #445A4A) 100%);
-          color: var(--canvas-soft, #FDFBF6);
-        }
-        .ident-text { min-width: 0; flex: 1; }
-        .ident-name { font-size: 13px; font-weight: 600; color: var(--ink, #1C1A17); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ident-meta { font-size: 11px; color: var(--ink-faint, #8B8579); }
-        .ident-meta.sage { color: var(--sage-deep, #445A4A); }
-        .ident-hr { height: 1px; background: var(--line-soft, #EEE9DB); margin: 4px 0; }
-
-        .col-nav-items { display: flex; flex-direction: column; padding: 8px 10px; }
-        .col-nav-item {
-          display: flex; align-items: center; gap: 10px;
-          padding: 10px 6px; font-size: 14px; font-weight: 500;
-          color: var(--ink-muted, #615C52); text-decoration: none;
-          letter-spacing: -0.008em;
-        }
-        .col-nav-item.active { font-weight: 700; color: var(--ink, #1C1A17); }
-        .col-nav-indicator {
-          width: 3px; height: 18px; background: transparent; border-radius: 2px; flex-shrink: 0;
-        }
-        .col-nav-item.active .col-nav-indicator {
-          background: var(--terracotta, #C9573A);
-          box-shadow: 0 2px 6px rgba(201, 87, 58, 0.35);
-        }
 
         /* Hide scrollbars but keep scroll */
         .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
