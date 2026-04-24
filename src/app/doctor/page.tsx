@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-  PageShell,
-  SideRail,
-  Wordmark,
-  IdentityCard,
-  RailNav,
-} from "@/components/layout";
+import Link from "next/link";
 import { useDoctorData } from "./useDoctorData";
 import { createClient } from "@/lib/supabase/client";
 import { QueueRail, type QueueItem } from "@/components/doctor/queue/QueueRail";
@@ -136,12 +130,13 @@ export default function DoctorHomePage() {
   const [patients, setPatients] = useState<PatientRollup[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(true);
   const [patientsError, setPatientsError] = useState<string | null>(null);
-  const [queueOpen, setQueueOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileQueueOpen, setMobileQueueOpen] = useState(true);
 
-  // Collapse state for the resizable panels (desktop)
-  const [queueCollapsed, setQueueCollapsed] = useState(false);
+  const navPanelRef = useRef<ImperativePanelHandle>(null);
   const queuePanelRef = useRef<ImperativePanelHandle>(null);
-  const railPanelRef = useRef<ImperativePanelHandle>(null);
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [queueCollapsed, setQueueCollapsed] = useState(false);
 
   const displayName = data.doctor?.display_name || "Doctor";
   const initials = displayName.split(/\s+/).map((s: string) => s[0]).join('').slice(0, 2).toUpperCase();
@@ -189,308 +184,391 @@ export default function DoctorHomePage() {
     setRailDismissed(false);
   }, [selectedId]);
 
-  const sideRail = (
-    <SideRail
-      logo={<Wordmark href="/doctor" />}
-      sections={[
-        <IdentityCard
-          key="id"
-          user={{ name: displayName, initials, memberSince: "Clinician" }}
-          doctor={{ name: "Precura clinic", initials: "P", title: `${patients.length} patient${patients.length === 1 ? '' : 's'}` }}
-        />,
-        <RailNav key="nav" items={NAV_ITEMS} activeHref="/doctor" />,
-      ]}
-    />
-  );
-
   const queueItems = buildQueueItems(sortedPatients);
   const railVisible = Boolean(emotionalSignal?.triggered) && !railDismissed;
 
   const caseContent = (() => {
     if (patientsError) return <EmptyState title="Couldn't load patients" body={patientsError} tone="error" />;
     if (loadingPatients) return <EmptyState title="Loading patients..." body="One moment." tone="neutral" />;
-    if (sortedPatients.length === 0) return <EmptyState title="No patients on file" body="Seed data may not have loaded. Check the Supabase profiles table or run the seed migration." tone="neutral" />;
+    if (sortedPatients.length === 0) return <EmptyState title="No patients on file" body="Seed data may not have loaded." tone="neutral" />;
     if (!selectedId) return <EmptyState title="Pick a patient" body="Open the patient list to start a review." tone="neutral" />;
     if (caseError) return <EmptyState title="Couldn't load this patient's case" body={caseError} tone="error" />;
     if (caseLoading || !caseData) return <EmptyState title="Loading case page..." body={`Fetching panels, chat, and pre-read for ${findName(sortedPatients, selectedId)}`} tone="neutral" />;
     return <CasePage data={caseData} />;
   })();
 
-  const queueNode = (
-    <QueueRail
-      {...queueItems}
-      activePatientId={selectedId}
-      onSelect={(id) => { setSelectedId(id); setQueueOpen(false); }}
-    />
-  );
-  const railNode = railVisible && caseData && emotionalSignal ? (
-    <EmotionalRail
-      signal={emotionalSignal}
-      memberId={caseData.memberId}
-      wasAutoTriggered
-      onDismiss={() => setRailDismissed(true)}
-    />
-  ) : null;
-
-  return (
-    <PageShell
-      sideRail={sideRail}
-      userInitials={initials}
-      activeHref="/doctor"
-      mobileDrawer={(open, onClose) => (<DoctorMobileDrawer open={open} onClose={onClose} activeHref="/doctor" />)}
-    >
-      {/* MOBILE layout (below 1024px) */}
-      <div className="dh-mobile-root">
-        <div className="dh-mobile-queue-btn">
-          <button type="button" onClick={() => setQueueOpen((o) => !o)} className="dh-queue-toggle">
-            {queueOpen ? 'Hide patient list' : 'Show patient list'}
-            {queueItems.pending.length > 0 && <span className="dh-queue-badge">{queueItems.pending.length}</span>}
-          </button>
-          {railVisible === false && emotionalSignal?.triggered && railDismissed && (
-            <button type="button" onClick={() => setRailDismissed(false)} className="dh-show-rail-btn">
-              Show emotional context
-            </button>
-          )}
-        </div>
-        <div className="dh-mobile-stack">
-          {queueOpen && <div className="dh-mobile-queue">{queueNode}</div>}
-          <div className="dh-mobile-case">{caseContent}</div>
-          {railNode && <div className="dh-mobile-rail">{railNode}</div>}
-        </div>
-      </div>
-
-      {/* DESKTOP layout (>=1024px) - resizable panels */}
-      <div className="dh-desktop-root">
+  // === MOBILE layout (<1024px) ===
+  const mobileLayout = (
+    <div className="doc-mobile">
+      <header className="doc-topbar">
+        <button className="doc-hamburger" onClick={() => setMobileMenuOpen(true)} aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <rect x="3" y="6" width="16" height="2" rx="1" fill="currentColor" />
+            <rect x="3" y="11" width="16" height="2" rx="1" fill="currentColor" />
+            <rect x="3" y="16" width="16" height="2" rx="1" fill="currentColor" />
+          </svg>
+        </button>
+        <Link href="/doctor" className="doc-wordmark">Precura</Link>
+        <div className="doc-avatar">{initials}</div>
+      </header>
+      <DoctorMobileDrawer open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} activeHref="/doctor" />
+      <div className="doc-mobile-toggles">
+        <button type="button" onClick={() => setMobileQueueOpen((o) => !o)} className="doc-toggle">
+          {mobileQueueOpen ? 'Hide patient list' : 'Show patient list'}
+          {queueItems.pending.length > 0 && <span className="doc-badge">{queueItems.pending.length}</span>}
+        </button>
         {emotionalSignal?.triggered && railDismissed && (
-          <div className="dh-reopen-strip">
-            <button type="button" onClick={() => setRailDismissed(false)} className="dh-reopen-btn">
-              Show emotional context for {caseData?.memberName ?? 'this patient'}
-            </button>
+          <button type="button" onClick={() => setRailDismissed(false)} className="doc-toggle warm">
+            Show emotional context
+          </button>
+        )}
+      </div>
+      <div className="doc-mobile-stack">
+        {mobileQueueOpen && (
+          <div className="doc-mobile-queue">
+            <QueueRail {...queueItems} activePatientId={selectedId} onSelect={(id) => { setSelectedId(id); setMobileQueueOpen(false); }} />
           </div>
         )}
-        <PanelGroup direction="horizontal" autoSaveId="doctor-v1-layout" className="dh-panelgroup">
-          <Panel
-            ref={queuePanelRef}
-            id="queue"
-            order={1}
-            defaultSize={22}
-            minSize={14}
-            maxSize={34}
-            collapsible
-            collapsedSize={3}
-            onCollapse={() => setQueueCollapsed(true)}
-            onExpand={() => setQueueCollapsed(false)}
-          >
-            {queueCollapsed ? (
-              <CollapsedStub
-                side="left"
-                label="Patient list"
-                badge={queueItems.pending.length > 0 ? String(queueItems.pending.length) : undefined}
-                onClick={() => queuePanelRef.current?.expand()}
-              />
-            ) : (
-              <div className="dh-pane">
-                <PaneHeader
-                  title="Patient list"
-                  subtitle={`${sortedPatients.length} patient${sortedPatients.length === 1 ? '' : 's'}`}
-                  onCollapse={() => queuePanelRef.current?.collapse()}
-                />
-                <div className="dh-pane-body">
-                  {queueNode}
+        <div className="doc-mobile-case">{caseContent}</div>
+        {railVisible && caseData && emotionalSignal && (
+          <div className="doc-mobile-rail">
+            <EmotionalRail signal={emotionalSignal} memberId={caseData.memberId} wasAutoTriggered onDismiss={() => setRailDismissed(true)} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // === DESKTOP layout (>=1024px): 4-column grid, all touching ===
+  const desktopLayout = (
+    <div className="doc-desktop">
+      {emotionalSignal?.triggered && railDismissed && (
+        <div className="doc-reopen">
+          <button type="button" onClick={() => setRailDismissed(false)} className="doc-reopen-btn">
+            Show emotional context for {caseData?.memberName ?? 'this patient'}
+          </button>
+        </div>
+      )}
+      <PanelGroup direction="horizontal" autoSaveId="doctor-v2-layout" className="doc-panels">
+        {/* Column 1: Nav */}
+        <Panel
+          ref={navPanelRef}
+          id="nav"
+          order={1}
+          defaultSize={16}
+          minSize={10}
+          maxSize={24}
+          collapsible
+          collapsedSize={3}
+          onCollapse={() => setNavCollapsed(true)}
+          onExpand={() => setNavCollapsed(false)}
+        >
+          {navCollapsed ? (
+            <ColStub side="left" label="Nav" onClick={() => navPanelRef.current?.expand()} />
+          ) : (
+            <section className="col col-nav">
+              <div className="col-top">
+                <Link href="/doctor" className="col-wordmark">Precura</Link>
+                <button className="col-mini-btn" aria-label="Collapse nav" onClick={() => navPanelRef.current?.collapse()}>
+                  <ChevronLeft />
+                </button>
+              </div>
+              <div className="col-ident">
+                <div className="ident-row">
+                  <div className="ident-avatar user">{initials}</div>
+                  <div className="ident-text">
+                    <div className="ident-name">{displayName}</div>
+                    <div className="ident-meta">Clinician</div>
+                  </div>
+                </div>
+                <div className="ident-hr" />
+                <div className="ident-row doc">
+                  <div className="ident-avatar doc">P</div>
+                  <div className="ident-text">
+                    <div className="ident-name">Precura clinic</div>
+                    <div className="ident-meta sage">{patients.length} patient{patients.length === 1 ? '' : 's'}</div>
+                  </div>
                 </div>
               </div>
-            )}
-          </Panel>
-          <PanelResizeHandle className="dh-handle">
-            <HandleUI />
-          </PanelResizeHandle>
-          <Panel id="case" order={2} minSize={30}>
-            <div className="dh-case-pane">{caseContent}</div>
-          </Panel>
-          {railVisible && railNode && (
-            <>
-              <PanelResizeHandle className="dh-handle">
-                <HandleUI />
-              </PanelResizeHandle>
-              <Panel
-                ref={railPanelRef}
-                id="rail"
-                order={3}
-                defaultSize={26}
-                minSize={16}
-                maxSize={40}
-                collapsible
-                collapsedSize={3}
-              >
-                {railNode}
-              </Panel>
-            </>
+              <nav className="col-nav-items">
+                {NAV_ITEMS.map((it) => {
+                  const active = it.href === '/doctor';
+                  return (
+                    <Link key={it.label} href={it.href} className={active ? "col-nav-item active" : "col-nav-item"}>
+                      <span className="col-nav-indicator" />
+                      {it.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </section>
           )}
-        </PanelGroup>
-      </div>
+        </Panel>
+
+        <PanelResizeHandle className="doc-seam"><SeamUI /></PanelResizeHandle>
+
+        {/* Column 2: Queue */}
+        <Panel
+          ref={queuePanelRef}
+          id="queue"
+          order={2}
+          defaultSize={20}
+          minSize={12}
+          maxSize={30}
+          collapsible
+          collapsedSize={3}
+          onCollapse={() => setQueueCollapsed(true)}
+          onExpand={() => setQueueCollapsed(false)}
+        >
+          {queueCollapsed ? (
+            <ColStub
+              side="left"
+              label="Patient list"
+              badge={queueItems.pending.length > 0 ? String(queueItems.pending.length) : undefined}
+              onClick={() => queuePanelRef.current?.expand()}
+            />
+          ) : (
+            <section className="col col-queue">
+              <div className="col-top">
+                <div className="col-header-text">
+                  <div className="col-eyebrow">Patient list</div>
+                  <div className="col-title">{sortedPatients.length} patient{sortedPatients.length === 1 ? '' : 's'}</div>
+                </div>
+                <button className="col-mini-btn" aria-label="Collapse patient list" onClick={() => queuePanelRef.current?.collapse()}>
+                  <ChevronLeft />
+                </button>
+              </div>
+              <div className="col-body hide-scrollbar">
+                <QueueRail
+                  {...queueItems}
+                  activePatientId={selectedId}
+                  onSelect={(id) => setSelectedId(id)}
+                />
+              </div>
+            </section>
+          )}
+        </Panel>
+
+        <PanelResizeHandle className="doc-seam"><SeamUI /></PanelResizeHandle>
+
+        {/* Column 3: Case (main) */}
+        <Panel id="case" order={3} minSize={30}>
+          <section className="col col-case">
+            <div className="col-body hide-scrollbar">
+              {caseContent}
+            </div>
+          </section>
+        </Panel>
+
+        {/* Column 4: Emotional rail (conditional) */}
+        {railVisible && caseData && emotionalSignal && (
+          <>
+            <PanelResizeHandle className="doc-seam"><SeamUI /></PanelResizeHandle>
+            <Panel id="rail" order={4} defaultSize={24} minSize={14} maxSize={36}>
+              <section className="col col-rail">
+                <div className="col-body hide-scrollbar">
+                  <EmotionalRail
+                    signal={emotionalSignal}
+                    memberId={caseData.memberId}
+                    wasAutoTriggered
+                    onDismiss={() => setRailDismissed(true)}
+                  />
+                </div>
+              </section>
+            </Panel>
+          </>
+        )}
+      </PanelGroup>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="doc-root-mobile">{mobileLayout}</div>
+      <div className="doc-root-desktop">{desktopLayout}</div>
 
       <style jsx>{`
-        /* === MOBILE root (default, below 1024) === */
-        .dh-desktop-root { display: none; }
-        .dh-mobile-root { display: block; }
+        /* Default: mobile, hide desktop */
+        .doc-root-desktop { display: none; }
+        .doc-root-mobile { display: block; min-height: 100dvh; background: var(--canvas); }
 
-        .dh-mobile-queue-btn {
-          display: flex;
-          gap: 8px;
-          padding: 10px 16px 0;
-          flex-wrap: wrap;
-        }
-        .dh-queue-toggle,
-        .dh-show-rail-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 14px;
-          background: #FDFBF6;
-          border: 1px solid #E0D9C8;
-          border-radius: 8px;
-          font-family: var(--font-sans);
-          font-size: 13px;
-          font-weight: 600;
-          color: #1C1A17;
-          cursor: pointer;
-        }
-        .dh-show-rail-btn {
-          background: #FCEFE7;
-          border-color: #EFB59B;
-          color: #9C3F25;
-        }
-        .dh-queue-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 18px;
-          height: 18px;
-          padding: 0 5px;
-          border-radius: 9px;
-          background: #9C3F25;
-          color: #fff;
-          font-size: 10px;
-          font-weight: 700;
-        }
-        .dh-mobile-stack {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          padding: 12px 16px 20px;
-          min-height: calc(100dvh - 180px);
-        }
-
-        /* === DESKTOP root (>=1024) === */
         @media (min-width: 1024px) {
-          .dh-mobile-root { display: none; }
-          .dh-desktop-root {
-            display: flex;
-            flex-direction: column;
-            height: calc(100dvh - 32px);
-            padding: 16px;
-            gap: 10px;
-            box-sizing: border-box;
-          }
-          .dh-reopen-strip {
-            display: flex;
-            justify-content: center;
-          }
-          .dh-reopen-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 14px;
-            background: #FCEFE7;
-            border: 1px solid #EFB59B;
-            border-radius: 999px;
-            font-family: var(--font-sans);
-            font-size: 12px;
-            font-weight: 600;
-            color: #9C3F25;
-            cursor: pointer;
-          }
-          .dh-panelgroup {
-            flex: 1;
-            min-height: 0;
-            width: 100%;
-          }
-          .dh-pane {
-            height: 100%;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-          }
-          .dh-pane-body {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-          }
-          .dh-pane-body > :global(aside),
-          .dh-pane-body > :global(div) {
-            height: 100%;
-            border: none;
-            border-radius: 0;
-            box-shadow: none;
-          }
-          .dh-case-pane {
-            height: 100%;
-            overflow-y: auto;
-            padding: 0 8px;
-            min-height: 0;
-          }
+          .doc-root-mobile { display: none; }
+          .doc-root-desktop { display: block; }
         }
 
-        @media (min-width: 1280px) {
-          .dh-desktop-root {
-            padding: 20px 24px;
-            height: calc(100dvh - 40px);
-          }
+        /* === Mobile topbar/stack === */
+        .doc-mobile { display: flex; flex-direction: column; min-height: 100dvh; }
+        .doc-topbar {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 20px; border-bottom: 1px solid var(--line-soft);
+          background: var(--canvas); position: sticky; top: 0; z-index: 20;
+        }
+        .doc-hamburger {
+          background: none; border: none; cursor: pointer; color: var(--ink);
+          display: inline-flex; padding: 4px;
+        }
+        .doc-wordmark {
+          color: var(--ink); font-size: 20px; font-weight: 600;
+          letter-spacing: -0.028em; text-decoration: none; font-family: var(--font-sans);
+        }
+        .doc-avatar {
+          width: 36px; height: 36px; border-radius: 50%;
+          background: linear-gradient(135deg, var(--butter-soft, #F6DDA0) 0%, var(--terracotta-soft, #EFB59B) 100%);
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 13px; font-weight: 600; color: var(--ink);
+          font-family: var(--font-sans);
+        }
+        .doc-mobile-toggles {
+          display: flex; gap: 8px; padding: 10px 16px 0; flex-wrap: wrap;
+        }
+        .doc-toggle {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 8px 14px; background: #FDFBF6; border: 1px solid #E0D9C8;
+          border-radius: 8px; font-family: var(--font-sans); font-size: 13px;
+          font-weight: 600; color: #1C1A17; cursor: pointer;
+        }
+        .doc-toggle.warm { background: #FCEFE7; border-color: #EFB59B; color: #9C3F25; }
+        .doc-badge {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+          background: #9C3F25; color: #fff; font-size: 10px; font-weight: 700;
+        }
+        .doc-mobile-stack {
+          display: flex; flex-direction: column; gap: 14px;
+          padding: 12px 16px 20px; flex: 1;
         }
 
-        @media (min-width: 1600px) {
-          .dh-desktop-root {
-            padding: 24px clamp(24px, 4vw, 56px);
-            height: 100dvh;
-          }
+        /* === Desktop layout === */
+        .doc-desktop {
+          height: 100dvh; display: flex; flex-direction: column;
+          background: var(--canvas); overflow: hidden;
+        }
+        .doc-reopen {
+          display: flex; justify-content: center;
+          padding: 8px 12px; border-bottom: 1px solid var(--line-soft);
+          background: var(--canvas);
+        }
+        .doc-reopen-btn {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 6px 14px; background: #FCEFE7; border: 1px solid #EFB59B;
+          border-radius: 999px; font-family: var(--font-sans); font-size: 12px;
+          font-weight: 600; color: #9C3F25; cursor: pointer;
+        }
+        .doc-panels { flex: 1; min-height: 0; }
+
+        /* Columns - all touching, no card shadows */
+        .col {
+          height: 100%; display: flex; flex-direction: column;
+          min-height: 0; min-width: 0; overflow: hidden;
+          font-family: var(--font-sans);
+        }
+        .col-nav { background: var(--paper, #FFFFFF); }
+        .col-queue { background: var(--canvas-soft, #FDFBF6); }
+        .col-case { background: var(--canvas, #FBF7F0); }
+        .col-rail { background: #FEFBF5; }
+
+        .col-top {
+          display: flex; align-items: flex-start; justify-content: space-between;
+          padding: 14px 16px; border-bottom: 1px solid var(--line-soft);
+          flex-shrink: 0; gap: 8px;
+        }
+        .col-header-text { min-width: 0; }
+        .col-eyebrow {
+          font-size: 10px; font-weight: 700; color: var(--ink-muted, #615C52);
+          text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 2px;
+        }
+        .col-title { font-size: 15px; font-weight: 600; color: var(--ink, #1C1A17); letter-spacing: -0.01em; }
+        .col-mini-btn {
+          background: transparent; border: 1px solid var(--line-card, #E0D9C8);
+          border-radius: 6px; padding: 4px 6px; cursor: pointer;
+          color: var(--ink-muted, #615C52); display: inline-flex; align-items: center;
+          flex-shrink: 0;
+        }
+        .col-mini-btn:hover { background: var(--canvas-soft, #FDFBF6); }
+        .col-body { flex: 1; min-height: 0; overflow-y: auto; }
+
+        .col-wordmark {
+          color: var(--ink, #1C1A17); font-size: 20px; font-weight: 600;
+          letter-spacing: -0.028em; text-decoration: none;
+        }
+        .col-ident {
+          padding: 14px 16px; border-bottom: 1px solid var(--line-soft, #EEE9DB);
+        }
+        .ident-row {
+          display: flex; align-items: center; gap: 10px; padding: 6px 0;
+        }
+        .ident-avatar {
+          width: 36px; height: 36px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 13px; font-weight: 600; color: var(--ink, #1C1A17);
+          flex-shrink: 0;
+        }
+        .ident-avatar.user {
+          background: linear-gradient(135deg, var(--butter-soft, #F6DDA0) 0%, var(--terracotta-soft, #EFB59B) 100%);
+        }
+        .ident-avatar.doc {
+          background: linear-gradient(135deg, var(--sage, #728C76) 0%, var(--sage-deep, #445A4A) 100%);
+          color: var(--canvas-soft, #FDFBF6);
+        }
+        .ident-text { min-width: 0; flex: 1; }
+        .ident-name { font-size: 13px; font-weight: 600; color: var(--ink, #1C1A17); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ident-meta { font-size: 11px; color: var(--ink-faint, #8B8579); }
+        .ident-meta.sage { color: var(--sage-deep, #445A4A); }
+        .ident-hr { height: 1px; background: var(--line-soft, #EEE9DB); margin: 4px 0; }
+
+        .col-nav-items { display: flex; flex-direction: column; padding: 8px 10px; }
+        .col-nav-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 6px; font-size: 14px; font-weight: 500;
+          color: var(--ink-muted, #615C52); text-decoration: none;
+          letter-spacing: -0.008em;
+        }
+        .col-nav-item.active { font-weight: 700; color: var(--ink, #1C1A17); }
+        .col-nav-indicator {
+          width: 3px; height: 18px; background: transparent; border-radius: 2px; flex-shrink: 0;
+        }
+        .col-nav-item.active .col-nav-indicator {
+          background: var(--terracotta, #C9573A);
+          box-shadow: 0 2px 6px rgba(201, 87, 58, 0.35);
         }
 
-        @media (min-width: 1920px) {
-          .dh-desktop-root {
-            max-width: 1920px;
-            margin: 0 auto;
-          }
-        }
+        /* Hide scrollbars but keep scroll */
+        .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .hide-scrollbar::-webkit-scrollbar { width: 0; height: 0; display: none; }
       `}</style>
 
       <style jsx global>{`
-        /* Panel resize handle styling */
-        .dh-handle {
-          width: 8px;
-          background: transparent;
+        .doc-seam {
+          width: 1px;
+          background: var(--line-soft, #EEE9DB);
           position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: col-resize;
           flex-shrink: 0;
+          cursor: col-resize;
+          transition: background 0.15s ease;
         }
-        .dh-handle:hover .dh-handle-grip,
-        .dh-handle[data-panel-resize-handle-active] .dh-handle-grip {
+        .doc-seam::before {
+          content: '';
+          position: absolute;
+          top: 0; bottom: 0;
+          left: -3px; right: -3px;
+          cursor: col-resize;
+        }
+        .doc-seam:hover,
+        .doc-seam[data-panel-resize-handle-active] {
           background: var(--sage-deep, #445A4A);
-          opacity: 1;
         }
-        .dh-handle-grip {
-          width: 3px;
-          height: 60px;
-          border-radius: 2px;
-          background: var(--line-card, #E0D9C8);
-          opacity: 0.8;
-          transition: background 0.15s ease, opacity 0.15s ease;
+        /* Remove the card styling from child rails since they now live inside naked columns */
+        .col-queue > .col-body > :global(aside),
+        .col-rail > .col-body > :global(aside),
+        .col-queue > .col-body > :global(div[style]) {
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          background: transparent !important;
         }
       `}</style>
-    </PageShell>
+    </>
   );
 }
 
@@ -504,7 +582,7 @@ function EmptyState({ title, body, tone }: { title: string; body: string; tone: 
   const titleColor = tone === 'error' ? '#9C3F25' : '#1C1A17';
   return (
     <div style={{
-      background: bg, border: `1px solid ${border}`, borderRadius: 14,
+      margin: 24, background: bg, border: `1px solid ${border}`, borderRadius: 14,
       padding: '36px 28px', fontFamily: 'var(--font-sans)', textAlign: 'center',
       minHeight: 240, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -515,79 +593,47 @@ function EmptyState({ title, body, tone }: { title: string; body: string; tone: 
   );
 }
 
-function HandleUI() {
-  return <div className="dh-handle-grip" />;
+function SeamUI() {
+  return <span style={{ display: 'block', width: '100%', height: '100%' }} />;
 }
 
-function PaneHeader({
-  title, subtitle, onCollapse,
-}: { title: string; subtitle: string; onCollapse: () => void }) {
+function ChevronLeft() {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '12px 14px', borderBottom: '1px solid #EEE9DB',
-      background: '#FDFBF6', fontFamily: 'var(--font-sans)',
-    }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: '#615C52', textTransform: 'uppercase', letterSpacing: '0.14em' }}>{title}</div>
-        <div style={{ fontSize: 12, color: '#8B8579', marginTop: 2 }}>{subtitle}</div>
-      </div>
-      <button
-        type="button"
-        onClick={onCollapse}
-        aria-label={`Collapse ${title}`}
-        style={{
-          background: '#FFFFFF', border: '1px solid #E0D9C8', borderRadius: 6,
-          padding: '4px 6px', cursor: 'pointer', color: '#615C52',
-          display: 'inline-flex', alignItems: 'center',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M9.5 3L5.5 7L9.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-    </div>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M9.5 3L5.5 7L9.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
-function CollapsedStub({
-  side, label, badge, onClick,
-}: { side: 'left' | 'right'; label: string; badge?: string; onClick: () => void }) {
+function ChevronRight() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M4.5 3L8.5 7L4.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ColStub({ side, label, badge, onClick }: { side: 'left' | 'right'; label: string; badge?: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={`Expand ${label}`}
       style={{
-        height: '100%',
-        width: '100%',
-        background: '#FDFBF6',
-        border: '1px solid #E0D9C8',
-        borderRadius: 10,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        padding: '12px 0',
-        gap: 10,
-        cursor: 'pointer',
+        height: '100%', width: '100%', background: 'transparent', border: 'none',
+        borderRight: '1px solid var(--line-soft, #EEE9DB)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'flex-start', padding: '12px 0', gap: 10, cursor: 'pointer',
         fontFamily: 'var(--font-sans)',
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path
-          d={side === 'left' ? 'M4.5 3L8.5 7L4.5 11' : 'M9.5 3L5.5 7L9.5 11'}
-          stroke="#615C52" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-        />
-      </svg>
+      <span style={{ color: 'var(--ink-muted, #615C52)' }}>
+        {side === 'left' ? <ChevronRight /> : <ChevronLeft />}
+      </span>
       <div style={{
-        writingMode: 'vertical-rl',
-        transform: 'rotate(180deg)',
-        fontSize: 10,
-        fontWeight: 700,
-        color: '#615C52',
-        textTransform: 'uppercase',
-        letterSpacing: '0.14em',
+        writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+        fontSize: 10, fontWeight: 700, color: 'var(--ink-muted, #615C52)',
+        textTransform: 'uppercase', letterSpacing: '0.14em',
       }}>{label}</div>
       {badge && (
         <div style={{
