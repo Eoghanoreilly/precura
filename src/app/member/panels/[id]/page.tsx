@@ -778,6 +778,7 @@ export default function PanelDetailPage() {
 
           {/* RIGHT side - Score ring card */}
           <div
+            className="panel-score-card"
             style={{
               flex: "0 0 auto",
               width: 220,
@@ -1323,7 +1324,12 @@ export default function PanelDetailPage() {
             display: flex;
             flex-direction: column;
             gap: 24px;
-            align-items: flex-start;
+            align-items: center;
+          }
+          /* On mobile score card goes full-width */
+          .panel-score-card {
+            width: 100% !important;
+            max-width: 340px;
           }
           .panel-two-col {
             display: grid;
@@ -1340,6 +1346,10 @@ export default function PanelDetailPage() {
               flex-direction: row;
               gap: 32px;
               align-items: flex-start;
+            }
+            .panel-score-card {
+              width: 220px !important;
+              max-width: 220px;
             }
             .panel-two-col {
               grid-template-columns: 1fr 1fr;

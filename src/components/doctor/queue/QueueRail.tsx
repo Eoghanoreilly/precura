@@ -18,7 +18,7 @@ export function QueueRail({ pending, awaitingNote, recentlyReviewed, activePatie
   return (
     <div style={{
       background: '#FDFBF6', border: '1px solid #E0D9C8', borderRadius: 12,
-      width: 240, overflow: 'auto', fontFamily: 'var(--font-sans)',
+      overflow: 'auto', fontFamily: 'var(--font-sans)',
     }}>
       <QueueSection title="Pending review" count={pending.length}>
         {pending.map((p) => (
@@ -35,6 +35,17 @@ export function QueueRail({ pending, awaitingNote, recentlyReviewed, activePatie
           <QueueRow key={p.id} {...p} muted isSelected={activePatientId === p.id} onClick={() => onSelect(p.id)} />
         ))}
       </QueueSection>
+      {/* Deep-link affordance */}
+      <div style={{ borderTop: '1px solid #E0D9C8', padding: '6px 10px' }}>
+        {activePatientId && (
+          <a
+            href={`/doctor/patient/${activePatientId}`}
+            style={{ fontSize: 11, color: '#445A4A', textDecoration: 'underline', textDecorationColor: '#CBDACC', textUnderlineOffset: 3 }}
+          >
+            Open full patient file
+          </a>
+        )}
+      </div>
     </div>
   );
 }
