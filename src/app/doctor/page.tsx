@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   PageShell,
   SideRail,
@@ -43,6 +43,7 @@ function buildContext(p: PatientRollup): string {
   if (p.latestReviewStatus === 'deferred' && p.deferReason) return `Deferred - ${p.deferReason.slice(0, 40)}`;
   if (p.flagCount > 0) return `${p.flagCount} flag${p.flagCount === 1 ? '' : 's'}`;
   if (p.latestReviewStatus === 'acknowledged_no_note' || p.latestReviewStatus === 'acknowledged_with_note') return 'No action needed';
+  if (p.latestPanelAt == null) return 'No panels yet';
   return 'No flags';
 }
 
@@ -151,13 +152,27 @@ async function fetchPatientRollups(
   return rollups;
 }
 
+function rollupsSortKey(r: PatientRollup): number {
+  // Lower = higher priority (shown first)
+  if (r.latestReviewStatus === 'pending') {
+    if (r.emotionalSignalTriggered) return 0;
+    if (r.flagCount > 0) return 1;
+    return 2;
+  }
+  if (r.latestReviewStatus === 'deferred') return 3;
+  if (r.latestReviewStatus == null) return 4;
+  return 5; // acknowledged
+}
+
 export default function DoctorHomePage() {
   const data = useDoctorData();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const [railDismissed, setRailDismissed] = useState(false);
   const [patients, setPatients] = useState<PatientRollup[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(true);
-  const [queueOpen, setQueueOpen] = useState(false);
+  const [patientsError, setPatientsError] = useState<string | null>(null);
+  const [queueOpen, setQueueOpen] = useState(true); // mobile: visible by default
 
   const displayName = data.doctor?.display_name || "Doctor";
   const initials = displayName
@@ -167,7 +182,7 @@ export default function DoctorHomePage() {
     .slice(0, 2)
     .toUpperCase();
 
-  const { data: caseData, emotionalSignal } = useCaseRollup(selectedId, displayName);
+  const { data: caseData, emotionalSignal, loading: caseLoading, error: caseError } = useCaseRollup(selectedId, displayName);
 
   useEffect(() => {
     if (!data.doctor?.id) return;
@@ -175,17 +190,44 @@ export default function DoctorHomePage() {
     const doctorId = data.doctor.id;
     (async () => {
       setLoadingPatients(true);
-      const supabase = createClient();
-      const rollups = await fetchPatientRollups(supabase, doctorId);
-      if (alive) {
-        setPatients(rollups);
-        setLoadingPatients(false);
+      setPatientsError(null);
+      try {
+        const supabase = createClient();
+        const rollups = await fetchPatientRollups(supabase, doctorId);
+        if (alive) {
+          setPatients(rollups);
+          setLoadingPatients(false);
+        }
+      } catch (e) {
+        if (alive) {
+          setPatientsError((e as Error).message);
+          setLoadingPatients(false);
+        }
       }
     })();
     return () => {
       alive = false;
     };
   }, [data.doctor?.id]);
+
+  const sortedPatients = useMemo(() => {
+    return [...patients].sort((a, b) => {
+      const k = rollupsSortKey(a) - rollupsSortKey(b);
+      if (k !== 0) return k;
+      const aT = a.latestPanelAt ? new Date(a.latestPanelAt).getTime() : 0;
+      const bT = b.latestPanelAt ? new Date(b.latestPanelAt).getTime() : 0;
+      return aT - bT; // older first within tier
+    });
+  }, [patients]);
+
+  // Auto-select the top patient once, on first load
+  useEffect(() => {
+    if (hasAutoSelected) return;
+    if (sortedPatients.length === 0) return;
+    if (selectedId) { setHasAutoSelected(true); return; }
+    setSelectedId(sortedPatients[0].id);
+    setHasAutoSelected(true);
+  }, [sortedPatients, selectedId, hasAutoSelected]);
 
   // Reset rail-dismissed when switching patients
   useEffect(() => {
@@ -203,7 +245,7 @@ export default function DoctorHomePage() {
           doctor={{
             name: "Precura clinic",
             initials: "P",
-            title: `${patients.length} patients`,
+            title: `${patients.length} patient${patients.length === 1 ? '' : 's'}`,
           }}
         />,
         <RailNav key="nav" items={NAV_ITEMS} activeHref="/doctor" />,
@@ -211,8 +253,55 @@ export default function DoctorHomePage() {
     />
   );
 
-  const queueItems = buildQueueItems(patients);
+  const queueItems = buildQueueItems(sortedPatients);
   const railVisible = Boolean(emotionalSignal?.triggered) && !railDismissed;
+
+  // Case area content resolves to one of: error, loading, empty-no-patients, case
+  const caseContent = (() => {
+    if (patientsError) {
+      return (
+        <EmptyState
+          title="Couldn't load patients"
+          body={patientsError}
+          tone="error"
+        />
+      );
+    }
+    if (loadingPatients) {
+      return <EmptyState title="Loading patients..." body="One moment." tone="neutral" />;
+    }
+    if (sortedPatients.length === 0) {
+      return (
+        <EmptyState
+          title="No patients on file"
+          body="Seed data may not have loaded. Check the Supabase profiles table or run the seed migration."
+          tone="neutral"
+        />
+      );
+    }
+    if (!selectedId) {
+      return (
+        <EmptyState
+          title="Pick a patient"
+          body="Open the patient list to start a review."
+          tone="neutral"
+        />
+      );
+    }
+    if (caseError) {
+      return (
+        <EmptyState
+          title="Couldn't load this patient's case"
+          body={caseError}
+          tone="error"
+        />
+      );
+    }
+    if (caseLoading || !caseData) {
+      return <EmptyState title="Loading case page..." body={`Fetching panels, chat, and pre-read for ${findName(sortedPatients, selectedId)}`} tone="neutral" />;
+    }
+    return <CasePage data={caseData} />;
+  })();
 
   return (
     <PageShell
@@ -234,7 +323,7 @@ export default function DoctorHomePage() {
       </div>
 
       <div className={`dh-layout${railVisible ? ' has-rail' : ''}`}>
-        {/* Queue rail - hidden on mobile unless toggled, visible on laptop+ */}
+        {/* Queue rail */}
         <div className={`dh-queue${queueOpen ? ' open' : ''}`}>
           <QueueRail
             {...queueItems}
@@ -243,15 +332,9 @@ export default function DoctorHomePage() {
           />
         </div>
 
-        {/* Case / empty state */}
+        {/* Case area */}
         <div className="dh-case">
-          {caseData ? (
-            <CasePage data={caseData} />
-          ) : (
-            <div className="dh-empty">
-              {loadingPatients ? 'Loading patients...' : 'Select a patient from the queue.'}
-            </div>
-          )}
+          {caseContent}
         </div>
 
         {/* Emotional rail */}
@@ -291,9 +374,10 @@ export default function DoctorHomePage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 18px;
+          min-width: 18px;
           height: 18px;
-          border-radius: 50%;
+          padding: 0 5px;
+          border-radius: 9px;
           background: #9C3F25;
           color: #fff;
           font-size: 10px;
@@ -317,9 +401,6 @@ export default function DoctorHomePage() {
         .dh-case {
           flex: 1;
           min-width: 0;
-        }
-        .dh-emotional {
-          /* On mobile emotional rail flows inline below case */
         }
         .dh-empty {
           padding: 32px;
@@ -381,5 +462,35 @@ export default function DoctorHomePage() {
         }
       `}</style>
     </PageShell>
+  );
+}
+
+function findName(list: PatientRollup[], id: string): string {
+  return list.find((p) => p.id === id)?.name ?? 'patient';
+}
+
+function EmptyState({ title, body, tone }: { title: string; body: string; tone: 'neutral' | 'error' }) {
+  const bg = tone === 'error' ? '#FCEFE7' : '#FDFBF6';
+  const border = tone === 'error' ? '#EFB59B' : '#E0D9C8';
+  const titleColor = tone === 'error' ? '#9C3F25' : '#1C1A17';
+
+  return (
+    <div style={{
+      background: bg,
+      border: `1px solid ${border}`,
+      borderRadius: 14,
+      padding: '36px 28px',
+      fontFamily: 'var(--font-sans)',
+      textAlign: 'center',
+      minHeight: 240,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    }}>
+      <div style={{ fontSize: 18, fontWeight: 600, color: titleColor, letterSpacing: '-0.02em' }}>{title}</div>
+      <div style={{ fontSize: 13, color: '#615C52', maxWidth: 420, lineHeight: 1.55 }}>{body}</div>
+    </div>
   );
 }
