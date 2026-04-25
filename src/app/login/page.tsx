@@ -1,11 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type Persona = "member" | "doctor";
 
 type UiState =
   | { tag: "idle" }
+  | { tag: "loading"; persona: Persona }
+  | { tag: "error"; persona: Persona; message: string };
+
+type WipeState =
+  | { tag: "idle" }
+  | { tag: "confirm"; persona: Persona }
   | { tag: "loading"; persona: Persona }
   | { tag: "error"; persona: Persona; message: string };
 
@@ -17,6 +23,7 @@ type Panel = {
   email: string;
   role: "patient" | "doctor";
   redirect: string;
+  wipeable?: boolean;
 };
 
 const PANELS: Panel[] = [
@@ -28,6 +35,7 @@ const PANELS: Panel[] = [
     email: "eoghan@vestego.com",
     role: "patient",
     redirect: "/member",
+    wipeable: true,
   },
   {
     persona: "doctor",
@@ -40,9 +48,28 @@ const PANELS: Panel[] = [
   },
 ];
 
+const CONFIRM_WINDOW_MS = 3000;
+
 export default function LoginPage() {
   const [state, setState] = useState<UiState>({ tag: "idle" });
-  const busy = state.tag === "loading";
+  const [wipeState, setWipeState] = useState<WipeState>({ tag: "idle" });
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const busy = state.tag === "loading" || wipeState.tag === "loading";
+
+  useEffect(
+    () => () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    },
+    [],
+  );
+
+  function clearConfirmTimer() {
+    if (confirmTimerRef.current) {
+      clearTimeout(confirmTimerRef.current);
+      confirmTimerRef.current = null;
+    }
+  }
 
   async function signIn(p: Panel) {
     setState({ tag: "loading", persona: p.persona });
@@ -75,6 +102,52 @@ export default function LoginPage() {
     }
   }
 
+  async function performWipe(p: Panel) {
+    clearConfirmTimer();
+    setWipeState({ tag: "loading", persona: p.persona });
+    try {
+      const res = await fetch("/api/dev-wipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: p.email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setWipeState({
+          tag: "error",
+          persona: p.persona,
+          message: data.error || "Wipe failed.",
+        });
+        return;
+      }
+      setWipeState({ tag: "idle" });
+      await signIn(p);
+    } catch {
+      setWipeState({
+        tag: "error",
+        persona: p.persona,
+        message: "Wipe failed.",
+      });
+    }
+  }
+
+  function handleWipeClick(p: Panel) {
+    if (
+      wipeState.tag === "confirm" &&
+      wipeState.persona === p.persona
+    ) {
+      void performWipe(p);
+      return;
+    }
+    setWipeState({ tag: "confirm", persona: p.persona });
+    clearConfirmTimer();
+    confirmTimerRef.current = setTimeout(() => {
+      setWipeState((s) =>
+        s.tag === "confirm" && s.persona === p.persona ? { tag: "idle" } : s,
+      );
+    }, CONFIRM_WINDOW_MS);
+  }
+
   return (
     <main className="login">
       <div className="login__grid">
@@ -87,29 +160,68 @@ export default function LoginPage() {
             state.tag === "error" && state.persona === p.persona
               ? state.message
               : null;
+          const isWiping =
+            wipeState.tag === "loading" && wipeState.persona === p.persona;
+          const isConfirming =
+            wipeState.tag === "confirm" && wipeState.persona === p.persona;
+          const wipeError =
+            wipeState.tag === "error" && wipeState.persona === p.persona
+              ? wipeState.message
+              : null;
 
           return (
-            <button
-              key={p.persona}
-              type="button"
-              disabled={busy}
-              onClick={() => signIn(p)}
-              className={`login__panel login__panel--${p.tone}`}
-              data-dimmed={isDimmed ? "true" : "false"}
-              aria-label={`Sign in as ${p.eyebrow.toLowerCase()} ${p.name}`}
-            >
-              <span className="login__eyebrow">{p.eyebrow}</span>
-              <span className="login__name">{p.name}</span>
-              <span className="login__email">{p.email}</span>
-              <span className="login__hint" data-loading={isLoading}>
-                {isLoading ? "Signing in" : "Click to sign in"}
-              </span>
-              {errorMsg && (
-                <span className="login__err" role="alert">
-                  {errorMsg}
+            <div key={p.persona} className="login__cell">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => signIn(p)}
+                className={`login__panel login__panel--${p.tone}`}
+                data-dimmed={isDimmed ? "true" : "false"}
+                aria-label={`Sign in as ${p.eyebrow.toLowerCase()} ${p.name}`}
+              >
+                <span className="login__eyebrow">{p.eyebrow}</span>
+                <span className="login__name">{p.name}</span>
+                <span className="login__email">{p.email}</span>
+                <span className="login__hint" data-loading={isLoading}>
+                  {isLoading
+                    ? "Signing in"
+                    : isWiping
+                      ? "Wiping data"
+                      : "Click to sign in"}
                 </span>
+                {errorMsg && (
+                  <span className="login__err" role="alert">
+                    {errorMsg}
+                  </span>
+                )}
+                {wipeError && (
+                  <span className="login__err" role="alert">
+                    {wipeError}
+                  </span>
+                )}
+              </button>
+
+              {p.wipeable && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => handleWipeClick(p)}
+                  className="login__wipe"
+                  data-confirming={isConfirming ? "true" : "false"}
+                  aria-label={
+                    isConfirming
+                      ? "Click again to confirm wipe"
+                      : "Wipe all data and start fresh"
+                  }
+                >
+                  {isWiping
+                    ? "Wiping"
+                    : isConfirming
+                      ? "Click again to confirm"
+                      : "Wipe and start fresh"}
+                </button>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -149,11 +261,20 @@ export default function LoginPage() {
           min-height: 0;
         }
 
+        .login__cell {
+          position: relative;
+          display: flex;
+          min-height: 0;
+          border-right: 1px solid var(--line-soft);
+        }
+        .login__cell:last-child {
+          border-right: 0;
+        }
+
         .login__panel {
           appearance: none;
           margin: 0;
           border: 0;
-          border-right: 1px solid var(--line-soft);
           padding: var(--sp-11) var(--sp-9);
           background: var(--canvas-soft);
           color: inherit;
@@ -165,11 +286,10 @@ export default function LoginPage() {
           align-items: flex-start;
           justify-content: center;
           gap: var(--sp-3);
+          flex: 1 1 auto;
           min-height: 0;
+          width: 100%;
           transition: background 0.25s ease, opacity 0.25s ease;
-        }
-        .login__panel:last-child {
-          border-right: 0;
         }
 
         .login__panel--warm {
@@ -278,6 +398,42 @@ export default function LoginPage() {
           max-width: 36ch;
         }
 
+        .login__wipe {
+          position: absolute;
+          right: var(--sp-6);
+          bottom: var(--sp-6);
+          appearance: none;
+          margin: 0;
+          padding: var(--sp-2) var(--sp-4);
+          background: transparent;
+          color: var(--ink-faint);
+          border: 1px solid var(--line-soft);
+          border-radius: var(--radius);
+          font: inherit;
+          font-size: var(--text-micro);
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .login__wipe:hover:not(:disabled) {
+          color: var(--ink);
+          border-color: var(--line-card);
+          background: var(--canvas);
+        }
+        .login__wipe:focus-visible {
+          outline: 2px solid var(--sage-deep);
+          outline-offset: 2px;
+        }
+        .login__wipe:disabled {
+          cursor: default;
+          opacity: 0.5;
+        }
+        .login__wipe[data-confirming="true"] {
+          color: var(--terracotta-deep);
+          border-color: var(--terracotta-soft);
+          background: var(--terracotta-tint);
+        }
+
         .login__foot {
           flex-shrink: 0;
           display: flex;
@@ -314,14 +470,20 @@ export default function LoginPage() {
           .login__grid {
             grid-template-columns: 1fr;
           }
-          .login__panel {
+          .login__cell {
             border-right: 0;
             border-bottom: 1px solid var(--line-soft);
+          }
+          .login__cell:last-child {
+            border-bottom: 0;
+          }
+          .login__panel {
             padding: var(--sp-9) var(--sp-7);
             min-height: 320px;
           }
-          .login__panel:last-child {
-            border-bottom: 0;
+          .login__wipe {
+            right: var(--sp-5);
+            bottom: var(--sp-5);
           }
           .login__foot {
             padding: var(--sp-4);
@@ -332,6 +494,7 @@ export default function LoginPage() {
 
         @media (prefers-reduced-motion: reduce) {
           .login__panel,
+          .login__wipe,
           .login__hint[data-loading="true"]::after {
             transition: none;
             animation: none;
