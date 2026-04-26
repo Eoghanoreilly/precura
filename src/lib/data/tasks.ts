@@ -4,7 +4,7 @@ import { computeDueAt } from '@/lib/doctor/sla';
 
 export async function getOpenTasksForDoctor(
   client: SupabaseClient,
-  doctorId: string,
+  _doctorId: string, // intentional: single-doctor system; will be wired up when multi-doctor lands
 ): Promise<Array<Task & { case_title: string; case_id_short: string; patient_id: string }>> {
   const { data, error } = await client
     .from('tasks')

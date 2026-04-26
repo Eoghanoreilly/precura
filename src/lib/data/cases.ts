@@ -10,6 +10,35 @@ export async function getCase(client: SupabaseClient, id: string): Promise<Case 
   return data as Case;
 }
 
+export async function createCase(
+  client: SupabaseClient,
+  params: {
+    patientId: string;
+    title: string;
+    category: import('./types').CaseCategory;
+    priority?: import('./types').CasePriority;
+    ownerDoctorId?: string | null;
+    summary?: string | null;
+    tags?: string[];
+  },
+): Promise<import('./types').Case> {
+  const { data, error } = await client
+    .from('cases')
+    .insert({
+      patient_id: params.patientId,
+      title: params.title,
+      category: params.category,
+      priority: params.priority ?? 'normal',
+      owner_doctor_id: params.ownerDoctorId ?? null,
+      summary: params.summary ?? null,
+      tags: params.tags ?? [],
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as import('./types').Case;
+}
+
 export async function getCaseByShortId(
   client: SupabaseClient,
   shortId: string,
@@ -34,7 +63,7 @@ export async function getOpenCasesForPatient(
     .from('cases')
     .select('*')
     .eq('patient_id', patientId)
-    .not('status', 'in', '(closed)')
+    .not('status', 'in', '(closed,on_hold)')
     .order('opened_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as Case[];
