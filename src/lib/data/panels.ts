@@ -136,6 +136,16 @@ export async function createPanel(
     return { error: bioError.message }
   }
 
+  // Auto-create a panel_review case + review_panel task. Non-fatal: if the trigger
+  // fails (e.g. RPC unavailable), the panel and biomarkers are still saved and the
+  // doctor can review via the legacy review_status path until the trigger recovers.
+  try {
+    const { triggerForNewPanel } = await import('@/lib/doctor/triggers')
+    await triggerForNewPanel(supabase, panel.id)
+  } catch (e) {
+    console.error('open_case_for_panel failed for panel', panel.id, e)
+  }
+
   return { panelId: panel.id, saved: valid.length, skipped }
 }
 
