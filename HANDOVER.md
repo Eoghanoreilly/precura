@@ -10,6 +10,28 @@
 
 ---
 
+## Section 0 - 2026-04-26 - Doctor portal v2 phase 1 (data foundation)
+
+Shipped the data layer for doctor portal v2 (invisible to v1 UI):
+- New tables: `cases`, `tasks`, `case_links`, `case_events`, `patient_summaries`, `billing_items`
+- Profile additions: `tier` (membership_tier enum), `tier_started_at`, `consult_minutes_used_this_year`, `panels_reviewed_this_year`
+- Annotations: `case_id` fk to cases
+- RPC: `open_case_for_panel(uuid)` creates a panel_review case + review_panel task atomically + idempotently
+- Backfilled all existing panels (13) into cases - 3 new + 10 closed; status mapped from legacy review_status
+- Wired `createPanel` in `src/lib/data/panels.ts` to call the trigger after upload (non-fatal)
+- Migrations: `004_doctor_v2_cases.sql` through `010_doctor_v2_backfill_panels.sql`
+- New helpers: `src/lib/doctor/{sla,statusTransitions,caseStateDerivation,triggers}.ts`
+- New data helpers: `src/lib/data/{cases,tasks,caseEvents,billingItems}.ts`
+- 36 new unit tests passing (18 SLA + 9 transitions + 9 state derivation)
+- Total test count: 54
+
+V1 UI at `/doctor` unchanged and still working. Reads `panels.review_status` as before. Phase 2 (new `/doctor` inbox + workspace UI) is the next plan.
+
+Spec: `~/.claude/projects/-Users-eoghan-Desktop-precura/specs/2026-04-25-doctor-portal-v2-design.md`
+Plan: `~/.claude/projects/-Users-eoghan-Desktop-precura/specs/2026-04-25-doctor-portal-v2-phase-1-data-foundation-plan.md`
+
+---
+
 ## 0. Latest session (2026-04-24) - doctor portal narrative v1 + 4-column resizable layout
 
 **Full detail:** `~/.claude/projects/-Users-eoghan-Desktop-precura/handover/2026-04-24-session-state.md`
