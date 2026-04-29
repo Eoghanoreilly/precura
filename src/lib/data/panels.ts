@@ -136,6 +136,24 @@ export async function createPanel(
     return { error: bioError.message }
   }
 
+  // Auto-create a panel_review case + review_panel task. Non-fatal: if the trigger
+  // fails (e.g. RPC unavailable), the panel and biomarkers are still saved and the
+  // doctor can review via the legacy review_status path until the trigger recovers.
+  try {
+    const { triggerForNewPanel } = await import('@/lib/doctor/triggers')
+    await triggerForNewPanel(supabase, panel.id)
+  } catch (e) {
+    console.error('open_case_for_panel failed for panel', panel.id, e)
+  }
+
+  // Close any open order_test tasks for this patient now that their lab results have arrived.
+  // Non-fatal and idempotent - safe to call even if no such tasks exist.
+  try {
+    await supabase.rpc('handle_lab_return_for_panel', { p_panel_id: panel.id })
+  } catch (e) {
+    console.error('handle_lab_return_for_panel failed for panel', panel.id, e)
+  }
+
   return { panelId: panel.id, saved: valid.length, skipped }
 }
 

@@ -1,12 +1,58 @@
 # Precura - Project Handover Document
 
-**Last updated:** April 24, 2026
-**Previous versions:** April 23, 2026; April 18, 2026; April 1, 2026
+**Last updated:** April 25, 2026
+**Previous versions:** April 24, 2026; April 23, 2026; April 18, 2026; April 1, 2026
 **Author:** Claude Opus 4.7 (pair programmer)
 **Project Owner:** Eoghan O'Reilly
 **Medical Co-founder:** Dr. Tomas Kurakovas
 **Repository:** https://github.com/Eoghanoreilly/precura
 **Live URL:** https://precura-wine.vercel.app
+
+---
+
+## Section 0 - 2026-04-29 - Doctor portal v2 Phases 2-8 shipped
+
+Phases 2-8 of doctor portal v2 are now in PR #35. Phase 1 already shipped the data foundation; Phases 2-8 layer the new UI + remaining triggers + billing wiring + v1 cleanup on top:
+
+- Phase 2: replaced /doctor with the 3-column Apple-chassis-Jira-ribs inbox + Jira-led case workspace; added /doctor/case/[caseId] mobile/deep-link route; new Layout3Col / NavRail / InboxColumn / CaseWorkspace + 8 sub-components + 4 atoms; 4 API routes for case status / notes / subtasks / refresh-summary
+- Phase 3: replaced /doctor/patient/[id] with the v2 server component; auto-refreshed Precura summary hero with 30-min TTL via Haiku + deterministic fallback; PatientBanner / MetaStrip / Tabs / SummaryHero / 6 overview blocks / QuickActionsRail; refresh-summary API
+- Phase 4: replaced /doctor/patients stub with the directory; state pills + Precura briefs per row; state-based filter pills + name/email search
+- Phase 5: cmd-K global search overlay (mounted in /doctor/layout.tsx); searches patients / cases / panels / notes; keyboard nav with up/down/return/esc
+- Phase 6: 5 new RPCs (open_case_for_chat, handle_lab_return_for_panel, open_case_for_intake_completion, fire_followup_checks, fire_inactive_checkins) + chat trigger wired into /api/discuss + lab return wired into createPanel + cron-callable endpoints (CRON_SECRET-gated)
+- Phase 7: emit_billing_for_action RPC handles tier-allowance logic for PANEL_REVIEWED_WITH_NOTE / CONSULT_MINUTES / PANEL_ORDERED / TRAINING_PLAN_CREATED / REFERRAL_SENT / ASYNC_MESSAGE_THREAD; 5 doctor-action API routes; aggregate_async_threads daily aggregator
+- Phase 8: v1 dead-code cleanup. Deleted unused QueueRail/CasePage/EmotionalRail/useDoctorData/caseRollup/doctor/home/* files. Kept evaluateEmotionalSignal/generatePreRead/Sparkline (still used).
+
+Open follow-ups:
+- panels.review_status enum still on the table; reads no longer exist in v2 but column kept for safety. Drop in a future migration when no callers remain.
+- Annotation type in src/lib/data/types.ts needs case_id field for full Phase 2 type-safety
+- PatientSummary type missing from types.ts (Phase 3 references it loosely)
+- Rich text formatting in CaseComposer beyond slash commands (markdown/images/attachments)
+- Bulk select on inbox (multi-select renders, actions deferred)
+- pg_cron schedules for fire_followup_checks / fire_inactive_checkins / aggregate_async_threads when extension lands; until then run via Vercel Cron + CRON_SECRET against /api/cron/* endpoints
+
+Final adversarial review pass with 3 reviewer agents pending before final push.
+
+---
+
+## Section 0 - 2026-04-26 - Doctor portal v2 phase 1 (data foundation)
+
+Shipped the data layer for doctor portal v2 (invisible to v1 UI):
+- New tables: `cases`, `tasks`, `case_links`, `case_events`, `patient_summaries`, `billing_items`
+- Profile additions: `tier` (membership_tier enum), `tier_started_at`, `consult_minutes_used_this_year`, `panels_reviewed_this_year`
+- Annotations: `case_id` fk to cases
+- RPC: `open_case_for_panel(uuid)` creates a panel_review case + review_panel task atomically + idempotently
+- Backfilled all existing panels (13) into cases - 3 new + 10 closed; status mapped from legacy review_status
+- Wired `createPanel` in `src/lib/data/panels.ts` to call the trigger after upload (non-fatal)
+- Migrations: `004_doctor_v2_cases.sql` through `010_doctor_v2_backfill_panels.sql`
+- New helpers: `src/lib/doctor/{sla,statusTransitions,caseStateDerivation,triggers}.ts`
+- New data helpers: `src/lib/data/{cases,tasks,caseEvents,billingItems}.ts`
+- 36 new unit tests passing (18 SLA + 9 transitions + 9 state derivation)
+- Total test count: 54
+
+V1 UI at `/doctor` unchanged and still working. Reads `panels.review_status` as before. Phase 2 (new `/doctor` inbox + workspace UI) is the next plan.
+
+Spec: `~/.claude/projects/-Users-eoghan-Desktop-precura/specs/2026-04-25-doctor-portal-v2-design.md`
+Plan: `~/.claude/projects/-Users-eoghan-Desktop-precura/specs/2026-04-25-doctor-portal-v2-phase-1-data-foundation-plan.md`
 
 ---
 
