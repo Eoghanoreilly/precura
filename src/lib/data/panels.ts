@@ -146,6 +146,14 @@ export async function createPanel(
     console.error('open_case_for_panel failed for panel', panel.id, e)
   }
 
+  // Close any open order_test tasks for this patient now that their lab results have arrived.
+  // Non-fatal and idempotent - safe to call even if no such tasks exist.
+  try {
+    await supabase.rpc('handle_lab_return_for_panel', { p_panel_id: panel.id })
+  } catch (e) {
+    console.error('handle_lab_return_for_panel failed for panel', panel.id, e)
+  }
+
   return { panelId: panel.id, saved: valid.length, skipped }
 }
 

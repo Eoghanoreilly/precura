@@ -78,6 +78,25 @@ export async function POST(req: Request) {
       }
 
       try {
+        // Fire the consultation-case trigger for substantive user messages.
+        // Only runs for real users (userId present). Non-fatal: never blocks the response.
+        if (body.userId) {
+          const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user');
+          if (lastUserMsg) {
+            try {
+              const { createServerSupabase } = await import('@/lib/supabase/server');
+              const supa = await createServerSupabase();
+              await supa.rpc('open_case_for_chat', {
+                p_user_id: body.userId,
+                p_message: lastUserMsg.content,
+                p_message_id: null,
+              });
+            } catch (e) {
+              console.error('open_case_for_chat failed for', body.userId, e);
+            }
+          }
+        }
+
         // Build system prompt: real Supabase data if userId provided, Anna mock otherwise
         let systemPromptText: string;
         if (body.userId) {
