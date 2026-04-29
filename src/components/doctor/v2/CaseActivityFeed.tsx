@@ -9,6 +9,7 @@ const KIND_LABELS: Record<CaseEvent['kind'], string> = {
   task_completed: 'Task completed',
   order_placed: 'Order placed',
   referral_sent: 'Referral sent',
+  consult_completed: 'Consult completed',
   member_acted: 'Member acted',
   followup_fired: 'Follow-up fired',
   linked: 'Linked',

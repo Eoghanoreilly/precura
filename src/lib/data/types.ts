@@ -155,6 +155,7 @@ export type CaseEventKind =
   | 'task_completed'
   | 'order_placed'
   | 'referral_sent'
+  | 'consult_completed'
   | 'member_acted'
   | 'followup_fired'
   | 'linked'
