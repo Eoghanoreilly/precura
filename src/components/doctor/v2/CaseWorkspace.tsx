@@ -1,10 +1,10 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { fetchCaseWorkspace, type CaseWorkspaceData } from '@/lib/doctor/v2/caseWorkspaceQueries';
 import { isValidTransition } from '@/lib/doctor/statusTransitions';
-import type { CaseStatus } from '@/lib/data/types';
+import type { CaseStatus, Task } from '@/lib/data/types';
 import { CaseToolbar } from './CaseToolbar';
 import { CaseTitleRow } from './CaseTitleRow';
 import { CaseDescription } from './CaseDescription';
@@ -30,6 +30,8 @@ export function CaseWorkspace({ doctorName, caseShortIdOverride }: CaseWorkspace
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  // Track which case IDs have already had the auto new->in_progress transition fired
+  const autoTransitionedRef = useRef<Set<string>>(new Set());
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
@@ -53,7 +55,20 @@ export function CaseWorkspace({ doctorName, caseShortIdOverride }: CaseWorkspace
           return;
         }
         const ws = await fetchCaseWorkspace(supabase, row.id as string);
-        if (alive) setData(ws);
+        if (alive) {
+          setData(ws);
+          // Auto-transition: new -> in_progress on first open, once per case ID per session
+          if (ws && ws.case.status === 'new' && !autoTransitionedRef.current.has(ws.case.id)) {
+            autoTransitionedRef.current.add(ws.case.id);
+            fetch(`/api/doctor/cases/${ws.case.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'in_progress' }),
+            }).then((r) => {
+              if (r.ok) reload();
+            }).catch((e) => console.warn('auto new->in_progress failed', e));
+          }
+        }
       } catch (e) {
         if (alive) setError((e as Error).message);
       } finally {
@@ -61,7 +76,7 @@ export function CaseWorkspace({ doctorName, caseShortIdOverride }: CaseWorkspace
       }
     })();
     return () => { alive = false; };
-  }, [caseShortId, version]);
+  }, [caseShortId, version, reload]);
 
   if (!caseShortId) {
     return (
@@ -94,6 +109,45 @@ export function CaseWorkspace({ doctorName, caseShortIdOverride }: CaseWorkspace
     }
   }
 
+  async function handleToggleTask(taskId: string, currentStatus: Task['status']) {
+    if (!data) return;
+    const nextStatus = currentStatus === 'done' ? 'open' : 'done';
+    try {
+      const res = await fetch(`/api/doctor/cases/${data.case.id}/subtasks`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, status: nextStatus }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        throw new Error(j?.error ?? `PATCH failed: ${res.status}`);
+      }
+      reload();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function handleAddSubtask() {
+    if (!data) return;
+    const title = window.prompt('Sub-task title', '');
+    if (!title || !title.trim()) return;
+    try {
+      const res = await fetch(`/api/doctor/cases/${data.case.id}/subtasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'custom', title: title.trim() }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        throw new Error(j?.error ?? `POST failed: ${res.status}`);
+      }
+      reload();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', height: '100%' }}>
       <div style={{ overflowY: 'auto' }}>
@@ -109,7 +163,12 @@ export function CaseWorkspace({ doctorName, caseShortIdOverride }: CaseWorkspace
           onChangeStatus={changeStatus}
         />
         <CaseDescription data={data} />
-        <CaseSubtasks tasks={data.tasks} doctorName={doctorName} />
+        <CaseSubtasks
+          tasks={data.tasks}
+          doctorName={doctorName}
+          onToggleTask={handleToggleTask}
+          onAddSubtask={handleAddSubtask}
+        />
         <CaseLinkedCases links={[]} />
         <CaseActivityFeed events={data.events} doctorName={doctorName} />
         <CaseComposer

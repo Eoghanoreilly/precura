@@ -2,12 +2,13 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Search } from 'lucide-react';
 import type { SearchResults } from '@/lib/doctor/v2/searchQueries';
 
 type FlatItem =
   | { kind: 'patient'; id: string; display_name: string; email: string; href: string }
   | { kind: 'case'; id: string; case_id_short: string; title: string; status: string; patient_display_name: string; href: string }
-  | { kind: 'panel'; id: string; panel_date: string; patient_display_name: string; flag_count: number; href: string }
+  | { kind: 'panel'; id: string; panel_date: string; patient_id: string; patient_display_name: string; flag_count: number; href: string }
   | { kind: 'note'; id: string; body: string; created_at: string; href: string };
 
 export function CmdK() {
@@ -119,7 +120,7 @@ export function CmdK() {
       >
         {/* Search input row */}
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-soft, #EEE9DB)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span aria-hidden style={{ fontSize: 14, color: 'var(--ink-faint, #9B958A)' }}>S</span>
+          <Search size={14} color="var(--ink-faint, #9B958A)" aria-hidden />
           <input
             ref={inputRef}
             value={q}
@@ -179,7 +180,7 @@ function buildFlat(r: SearchResults | null): FlatItem[] {
     out.push({ kind: 'case', id: c.id, case_id_short: c.case_id_short, title: c.title, status: c.status, patient_display_name: c.patient_display_name, href: `/doctor?case=${c.case_id_short}` });
   }
   for (const p of r.panels) {
-    out.push({ kind: 'panel', id: p.id, panel_date: p.panel_date, patient_display_name: p.patient_display_name, flag_count: p.flag_count, href: `/member/panels/${p.id}` });
+    out.push({ kind: 'panel', id: p.id, panel_date: p.panel_date, patient_id: p.patient_id, patient_display_name: p.patient_display_name, flag_count: p.flag_count, href: `/doctor/patient/${p.patient_id}?tab=panels` });
   }
   for (const n of r.notes) {
     out.push({ kind: 'note', id: n.id, body: n.body, created_at: n.created_at, href: n.case_id ? `/doctor?case=${n.case_id}` : '/doctor' });

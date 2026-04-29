@@ -34,33 +34,35 @@ export function InboxRow({ task, isActive, contextLine }: InboxRowProps) {
     .slice(0, 2)
     .join('');
 
+  const kindLabel = KIND_CHIPS[task.kind] ?? task.kind;
+
   return (
     <Link
       href={`/doctor?case=${task.case_id_short}`}
       style={{
         display: 'grid',
-        gridTemplateColumns: '32px auto 1fr 110px 88px 88px',
-        gap: 14,
-        padding: '14px 18px',
+        gridTemplateColumns: '24px auto 1fr 60px',
+        gap: 10,
+        padding: '12px 18px',
         borderBottom: '1px solid var(--line-soft, #EEE9DB)',
         alignItems: 'center',
         background: isActive ? 'var(--canvas-soft, #FDFBF6)' : 'transparent',
         textDecoration: 'none',
         color: 'inherit',
         fontFamily: 'var(--font-sans)',
-        minHeight: 64,
+        minHeight: 56,
       }}
       aria-current={isActive ? 'true' : undefined}
     >
       <span
         aria-hidden
-        style={{ width: 18, height: 18, border: '1.5px solid var(--line-card, #C4BDB0)', borderRadius: '50%' }}
+        style={{ width: 16, height: 16, border: '1.5px solid var(--line-card, #C4BDB0)', borderRadius: '50%' }}
       />
       <Avatar initials={initials} patientId={task.patient_id} size="sm" />
       <div style={{ minWidth: 0 }}>
         <div
           style={{
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: 600,
             color: 'var(--ink, #1C1A17)',
             whiteSpace: 'nowrap',
@@ -73,32 +75,33 @@ export function InboxRow({ task, isActive, contextLine }: InboxRowProps) {
         </div>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 11,
             color: 'var(--ink-muted, #615C52)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            display: 'flex',
+            gap: 6,
+            alignItems: 'center',
+            marginTop: 2,
           }}
         >
-          {contextLine}
+          <PriorityDot priority={task.priority} />
+          <span
+            style={{
+              background: 'var(--canvas, #F4EFE3)',
+              color: 'var(--ink-muted, #615C52)',
+              fontSize: 10,
+              padding: '1px 6px',
+              borderRadius: 3,
+              fontWeight: 600,
+            }}
+          >
+            {kindLabel}
+          </span>
+          <span style={{ color: 'var(--ink-faint, #9B958A)' }}>{contextLine}</span>
         </div>
       </div>
-      <span
-        style={{
-          background: 'var(--canvas, #F4EFE3)',
-          color: 'var(--ink-muted, #615C52)',
-          fontSize: 11,
-          padding: '3px 8px',
-          borderRadius: 4,
-          fontWeight: 600,
-          justifySelf: 'start',
-        }}
-      >
-        {KIND_CHIPS[task.kind] ?? task.kind}
-      </span>
-      <span style={{ justifySelf: 'start' }}>
-        <PriorityDot priority={task.priority} />
-      </span>
       <DueLabel dueAt={task.due_at} />
     </Link>
   );

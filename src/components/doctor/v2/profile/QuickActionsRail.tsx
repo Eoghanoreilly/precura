@@ -61,7 +61,8 @@ function ProgressBar({ label, used, total, suffix }: ProgressBarProps) {
   );
 }
 
-// Quick action handlers - Phase 7 wires order/referral/consult to real API routes
+// Quick action handlers - API routes exist; UI modals are deferred to v2.1.
+// All buttons are disabled with tooltip until proper modal/popover input is built.
 
 export function QuickActionsRail({ data }: { data: PatientProfileData }) {
   const { membershipUse, recentActivity, patient } = data;
@@ -69,53 +70,25 @@ export function QuickActionsRail({ data }: { data: PatientProfileData }) {
   const consultLimit = patient.tier === 'plus' ? 60 : 30;
   const panelLimit = patient.tier === 'plus' ? 4 : 2;
 
-  function getTargetCaseId(): string | null {
-    return data.activeCases[0]?.id ?? null;
-  }
+  const disabledBtnBase: React.CSSProperties = {
+    cursor: 'not-allowed',
+    opacity: 0.45,
+  };
 
-  async function placeOrder() {
-    const target = getTargetCaseId();
-    if (!target) { alert('Open a case first to attach an order.'); return; }
-    const test = window.prompt('Test name', 'Ferritin recheck');
-    if (!test) return;
-    const cost = window.prompt('Lab cost (SEK), blank if none', '');
-    const res = await fetch(`/api/doctor/cases/${target}/order-test`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ test_name: test, lab_cost_sek: cost ? Number(cost) : undefined }),
-    });
-    if (res.ok) alert('Order placed.');
-    else { const j = await res.json().catch(() => null); alert(`Failed: ${j?.error ?? res.status}`); }
-  }
-
-  async function sendReferral() {
-    const target = getTargetCaseId();
-    if (!target) { alert('Open a case first to attach a referral.'); return; }
-    const specialist = window.prompt('Specialist / department', 'Endocrinology');
-    if (!specialist) return;
-    const note = window.prompt('Note (optional)', '') ?? '';
-    const res = await fetch(`/api/doctor/cases/${target}/send-referral`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ specialist, note: note || undefined }),
-    });
-    if (res.ok) alert('Referral sent.');
-    else { const j = await res.json().catch(() => null); alert(`Failed: ${j?.error ?? res.status}`); }
-  }
-
-  async function scheduleConsult() {
-    const target = getTargetCaseId();
-    if (!target) { alert('Open a case first to schedule a consult.'); return; }
-    const when = window.prompt('Date/time (e.g. 2026-05-10 14:00)', '');
-    const kind = window.prompt('Kind: video or in_person', 'video') ?? 'video';
-    const res = await fetch(`/api/doctor/cases/${target}/schedule-consult`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduled_for: when || undefined, kind }),
-    });
-    if (res.ok) alert('Consult scheduled.');
-    else { const j = await res.json().catch(() => null); alert(`Failed: ${j?.error ?? res.status}`); }
-  }
+  const primaryBtnStyle: React.CSSProperties = {
+    background: 'var(--ink, #1C1A17)',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 12px',
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    width: '100%',
+    textAlign: 'left',
+    marginBottom: 6,
+    fontFamily: 'var(--font-sans)',
+    ...disabledBtnBase,
+  };
 
   const secondaryBtnStyle: React.CSSProperties = {
     background: 'var(--paper, #fff)',
@@ -125,11 +98,11 @@ export function QuickActionsRail({ data }: { data: PatientProfileData }) {
     borderRadius: 6,
     fontSize: 12,
     fontWeight: 600,
-    cursor: 'pointer',
     width: '100%',
     textAlign: 'left',
     marginBottom: 6,
     fontFamily: 'var(--font-sans)',
+    ...disabledBtnBase,
   };
 
   return (
@@ -156,34 +129,22 @@ export function QuickActionsRail({ data }: { data: PatientProfileData }) {
       </div>
       <button
         type="button"
-        onClick={() => alert('Open new case - coming soon.')}
-        style={{
-          background: 'var(--ink, #1C1A17)',
-          color: '#fff',
-          border: 'none',
-          padding: '8px 12px',
-          borderRadius: 6,
-          fontSize: 12,
-          fontWeight: 600,
-          cursor: 'pointer',
-          width: '100%',
-          textAlign: 'left',
-          marginBottom: 6,
-          fontFamily: 'var(--font-sans)',
-        }}
+        disabled
+        title="Coming in v2.1"
+        style={primaryBtnStyle}
       >
         Open new case
       </button>
-      <button type="button" onClick={() => alert('Messaging coming soon.')} style={secondaryBtnStyle}>
+      <button type="button" disabled title="Coming in v2.1" style={secondaryBtnStyle}>
         Message {patient.display_name.split(' ')[0]}
       </button>
-      <button type="button" onClick={scheduleConsult} style={secondaryBtnStyle}>
+      <button type="button" disabled title="Coming in v2.1" style={secondaryBtnStyle}>
         Schedule consult
       </button>
-      <button type="button" onClick={placeOrder} style={secondaryBtnStyle}>
+      <button type="button" disabled title="Coming in v2.1" style={secondaryBtnStyle}>
         Order panel
       </button>
-      <button type="button" onClick={sendReferral} style={{ ...secondaryBtnStyle, marginBottom: 0 }}>
+      <button type="button" disabled title="Coming in v2.1" style={{ ...secondaryBtnStyle, marginBottom: 0 }}>
         Send referral
       </button>
 

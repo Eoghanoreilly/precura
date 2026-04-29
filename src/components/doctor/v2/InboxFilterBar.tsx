@@ -60,18 +60,21 @@ export function InboxFilterBar({ total, showing }: InboxFilterBarProps) {
           options={KIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
           paramName="kind"
           current={kind}
+          search={search}
         />
         <FilterDropdown
           label={`Priority: ${PRIORITY_OPTIONS.find((o) => o.value === priority)?.label ?? 'All'}`}
           options={PRIORITY_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
           paramName="priority"
           current={priority}
+          search={search}
         />
         <FilterDropdown
           label={`Sort: ${SORT_OPTIONS.find((o) => o.value === sort)?.label ?? 'Due asc'}`}
           options={SORT_OPTIONS}
           paramName="sort"
           current={sort}
+          search={search}
         />
       </div>
       <div style={{ fontSize: 11, color: 'var(--ink-faint, #9B958A)' }}>
@@ -86,11 +89,13 @@ function FilterDropdown({
   options,
   paramName,
   current,
+  search,
 }: {
   label: string;
   options: Array<{ value: string; label: string }>;
   paramName: string;
   current: string;
+  search: ReturnType<typeof useSearchParams>;
 }) {
   return (
     <details style={{ position: 'relative' }}>
@@ -129,7 +134,7 @@ function FilterDropdown({
           return (
             <li key={o.value}>
               <Link
-                href={buildHref(paramName, o.value)}
+                href={buildHref(search, paramName, o.value)}
                 style={{
                   display: 'block',
                   padding: '6px 12px',
@@ -149,9 +154,9 @@ function FilterDropdown({
   );
 }
 
-// TODO Phase 2.1: preserve other query params when building filter hrefs.
-// Currently each dropdown only sets its own param, clearing others.
-// Fix: read current URLSearchParams and merge the new value before serialising.
-function buildHref(paramName: string, value: string): string {
-  return `?${paramName}=${encodeURIComponent(value)}`;
+// Merge a single param into the current search params so other filters are preserved.
+function buildHref(search: ReturnType<typeof useSearchParams>, paramName: string, value: string): string {
+  const params = new URLSearchParams(search?.toString() ?? '');
+  params.set(paramName, value);
+  return `?${params.toString()}`;
 }

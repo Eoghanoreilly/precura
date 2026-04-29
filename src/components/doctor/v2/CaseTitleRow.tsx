@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import type { CaseStatus } from '@/lib/data/types';
+import { isValidTransition } from '@/lib/doctor/statusTransitions';
 
 const FLOW: CaseStatus[] = ['new', 'in_progress', 'replied', 'awaiting_member', 'closed'];
 
@@ -50,8 +51,12 @@ export function CaseTitleRow({
               fontWeight: 600,
             }}
           >
-            {FLOW.map((s) => (<option key={s} value={s}>{labelFor(s)}</option>))}
-            <option value="on_hold">On hold</option>
+            {FLOW.map((s) => (
+              <option key={s} value={s} disabled={s !== status && !isValidTransition(status, s)}>
+                {labelFor(s)}
+              </option>
+            ))}
+            <option value="on_hold" disabled={!isValidTransition(status, 'on_hold')}>On hold</option>
           </select>
           <span style={{ fontSize: 11, color: 'var(--ink-muted, #615C52)' }}>
             Workflow: {FLOW.map((s) => s === status ? <strong key={s}>{labelFor(s)}</strong> : labelFor(s)).reduce((acc: React.ReactNode[], el, i) => i === 0 ? [el] : [...acc, ' / ', el], [])}
@@ -59,9 +64,9 @@ export function CaseTitleRow({
         </div>
       </div>
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        <button onClick={onAssign} type="button" style={btn}>Assign</button>
-        <button onClick={onAddSubtask} type="button" style={btn}>Add sub-task</button>
-        <button onClick={onLinkCase} type="button" style={btn}>Link case</button>
+        {onAssign && <button onClick={onAssign} type="button" style={btn}>Assign</button>}
+        {onAddSubtask && <button onClick={onAddSubtask} type="button" style={btn}>Add sub-task</button>}
+        {onLinkCase && <button onClick={onLinkCase} type="button" style={btn}>Link case</button>}
       </div>
     </div>
   );

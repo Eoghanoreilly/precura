@@ -30,36 +30,41 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (!current) return NextResponse.json({ error: 'Case not found' }, { status: 404 });
 
     if (scope === 'note') {
-      if (!current.migrated_from_panel_id) {
-        return NextResponse.json({
-          error: 'Cannot post member-visible note: this case has no linked panel. Use Internal scope.',
-        }, { status: 400 });
-      }
-      const { error: annoErr } = await supabase.from('annotations').insert({
-        target_type: 'panel',
-        target_id: current.migrated_from_panel_id,
-        author_id: user.id,
-        body: noteBody,
-        case_id: current.id,
-      });
-      if (annoErr) throw annoErr;
-
-      if (current.category === 'panel_review') {
-        const { error: billErr } = await supabase.rpc('emit_billing_for_action', {
-          p_patient_id: current.patient_id,
-          p_case_id: current.id,
-          p_task_id: null,
-          p_action_code: 'PANEL_REVIEWED_WITH_NOTE',
-          p_qty: 1,
-          p_unit: 'item',
-          p_external_sek: null,
+      if (current.migrated_from_panel_id) {
+        // Panel-linked case: store as annotation (member-visible) + billing
+        const { error: annoErr } = await supabase.from('annotations').insert({
+          target_type: 'panel',
+          target_id: current.migrated_from_panel_id,
+          author_id: user.id,
+          body: noteBody,
+          case_id: current.id,
         });
-        if (billErr) console.error('billing emit failed', billErr);
+        if (annoErr) throw annoErr;
+
+        if (current.category === 'panel_review') {
+          const { error: billErr } = await supabase.rpc('emit_billing_for_action', {
+            p_patient_id: current.patient_id,
+            p_case_id: current.id,
+            p_task_id: null,
+            p_action_code: 'PANEL_REVIEWED_WITH_NOTE',
+            p_qty: 1,
+            p_unit: 'item',
+            p_external_sek: null,
+          });
+          if (billErr) console.error('billing emit failed', billErr);
+        }
       }
+      // For cases with or without a panel, always log the note as a case event (member-visible)
       await logCaseEvent(supabase, {
         caseId: id,
         kind: 'note_posted',
-        payload: { scope: 'note', length: noteBody.length },
+        payload: {
+          scope: 'note',
+          body: noteBody,
+          visible_to_member: true,
+          length: noteBody.length,
+          has_panel: !!current.migrated_from_panel_id,
+        },
         actorId: user.id,
       });
     } else {

@@ -42,12 +42,6 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
 
   const openTaskCount = activeCases.reduce((acc, c) => acc + (c.status === 'new' || c.status === 'in_progress' ? 1 : 0), 0);
 
-  function handleAction(label: string) {
-    // Phase 6 will wire real handlers; for v2 log intent
-    console.log(`[PatientBanner] action: ${label}`);
-    alert(`${label} - coming in a later phase`);
-  }
-
   return (
     <div
       style={{
@@ -101,7 +95,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
         <button
           type="button"
-          onClick={() => handleAction('Open new case')}
+          disabled
+          title="Coming in v2.1"
           style={{
             background: 'var(--ink, #1C1A17)',
             color: '#fff',
@@ -110,7 +105,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
             borderRadius: 6,
             fontSize: 12,
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: 'not-allowed',
+            opacity: 0.45,
             fontFamily: 'var(--font-sans)',
           }}
         >
@@ -118,7 +114,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
         </button>
         <button
           type="button"
-          onClick={() => handleAction('Message')}
+          disabled
+          title="Coming in v2.1"
           style={{
             background: '#fff',
             border: '1px solid var(--line-soft, #E0D9C8)',
@@ -127,7 +124,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
             borderRadius: 6,
             fontSize: 12,
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: 'not-allowed',
+            opacity: 0.45,
             fontFamily: 'var(--font-sans)',
           }}
         >
@@ -135,7 +133,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
         </button>
         <button
           type="button"
-          onClick={() => handleAction('Schedule consult')}
+          disabled
+          title="Coming in v2.1"
           style={{
             background: '#fff',
             border: '1px solid var(--line-soft, #E0D9C8)',
@@ -144,7 +143,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
             borderRadius: 6,
             fontSize: 12,
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: 'not-allowed',
+            opacity: 0.45,
             fontFamily: 'var(--font-sans)',
           }}
         >
@@ -152,7 +152,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
         </button>
         <button
           type="button"
-          onClick={() => handleAction('More')}
+          disabled
+          title="Coming in v2.1"
           style={{
             background: '#fff',
             border: '1px solid var(--line-soft, #E0D9C8)',
@@ -160,7 +161,8 @@ export function PatientBanner({ data }: { data: PatientProfileData }) {
             padding: '8px 12px',
             borderRadius: 6,
             fontSize: 12,
-            cursor: 'pointer',
+            cursor: 'not-allowed',
+            opacity: 0.45,
             fontFamily: 'var(--font-sans)',
           }}
         >

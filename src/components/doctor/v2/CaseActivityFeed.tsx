@@ -25,12 +25,27 @@ export function CaseActivityFeed({ events, doctorName }: { events: CaseEvent[]; 
       <div style={{ fontSize: 11, color: 'var(--ink-faint, #9B958A)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
         Activity
       </div>
-      <div style={{ borderLeft: '2px solid var(--line-soft, #EEE9DB)', paddingLeft: 12, fontSize: 12, lineHeight: 1.6, color: 'var(--ink-muted, #615C52)' }}>
+      <div style={{ paddingLeft: 12, fontSize: 12, lineHeight: 1.6, color: 'var(--ink-muted, #615C52)' }}>
         {events.map((e) => (
-          <div key={e.id} style={{ marginTop: 6 }}>
-            <strong style={{ color: 'var(--ink, #1C1A17)' }}>{e.actor_id ? doctorName.split(/\s+/)[0] : 'System'}</strong>{' '}
-            {summarize(e)}
-            <span style={{ marginLeft: 6, color: 'var(--ink-faint, #9B958A)' }}>{relTime(e.occurred_at)}</span>
+          <div key={e.id} style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: 'var(--line-card, #C4BDB0)',
+                flexShrink: 0,
+                position: 'relative',
+                top: '-1px',
+              }}
+            />
+            <span>
+              <strong style={{ color: 'var(--ink, #1C1A17)' }}>{e.actor_id ? doctorName.split(/\s+/)[0] : 'System'}</strong>{' '}
+              {summarize(e)}
+              <span style={{ marginLeft: 6, color: 'var(--ink-faint, #9B958A)' }}>{relTime(e.occurred_at)}</span>
+            </span>
           </div>
         ))}
       </div>

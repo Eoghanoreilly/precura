@@ -10,7 +10,9 @@ export type CaseComposerProps = {
 
 export function CaseComposer({ caseId, patientName, onPosted, emitsBillingCode }: CaseComposerProps) {
   const [body, setBody] = useState('');
-  const [scope, setScope] = useState<'note' | 'internal'>('note');
+  // Default to 'internal' when there is no linked panel (no annotation target available).
+  // If a panel is linked (emitsBillingCode is non-null for panel_review), 'note' is available.
+  const [scope, setScope] = useState<'note' | 'internal'>(emitsBillingCode ? 'note' : 'internal');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +51,15 @@ export function CaseComposer({ caseId, patientName, onPosted, emitsBillingCode }
             Reply
           </span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-            <ScopeChip active={scope === 'note'} onClick={() => setScope('note')} label={`Note for ${patientName.split(/\s+/)[0] ?? 'member'}`} dark />
-            <ScopeChip active={scope === 'internal'} onClick={() => setScope('internal')} label="Internal" />
+            <ScopeChip
+              active={scope === 'note'}
+              onClick={() => setScope('note')}
+              label={emitsBillingCode
+                ? `Note for ${patientName.split(/\s+/)[0] ?? 'member'}`
+                : `Member-visible note (no panel)`}
+              dark
+            />
+            <ScopeChip active={scope === 'internal'} onClick={() => setScope('internal')} label="Internal note" />
           </div>
         </div>
         <textarea

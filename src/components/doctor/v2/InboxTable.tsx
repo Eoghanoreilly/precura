@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { GroupedInbox, TaskRow } from '@/lib/doctor/v2/inboxGrouping';
 import { InboxRow } from './InboxRow';
 
@@ -11,6 +11,17 @@ export type InboxTableProps = {
 };
 
 export function InboxTable({ grouped, activeCaseShortId, buildContextLine }: InboxTableProps) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleSection(key: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   const sections: Array<{
     key: keyof GroupedInbox;
     label: string;
@@ -61,8 +72,8 @@ export function InboxTable({ grouped, activeCaseShortId, buildContextLine }: Inb
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '32px auto 1fr 110px 88px 88px',
-          gap: 14,
+          gridTemplateColumns: '24px auto 1fr 60px',
+          gap: 10,
           padding: '8px 18px',
           background: 'var(--canvas-soft, #FDFBF6)',
           borderBottom: '1px solid var(--line-soft, #EEE9DB)',
@@ -76,8 +87,6 @@ export function InboxTable({ grouped, activeCaseShortId, buildContextLine }: Inb
         <div></div>
         <div></div>
         <div>Patient + case</div>
-        <div>Kind</div>
-        <div>Priority</div>
         <div style={{ textAlign: 'right' }}>Due</div>
       </div>
 
@@ -85,12 +94,14 @@ export function InboxTable({ grouped, activeCaseShortId, buildContextLine }: Inb
         // Hide empty sections except overdue + today (always shown even empty)
         if (s.rows.length === 0 && s.key !== 'overdue' && s.key !== 'today') return null;
 
-        // Collapse later / noDueDate / doneToday by default
-        const collapsed = s.key === 'doneToday' || s.key === 'later' || s.key === 'noDueDate';
+        // Collapse later / noDueDate / doneToday by default; expandable via toggle
+        const collapsedByDefault = s.key === 'doneToday' || s.key === 'later' || s.key === 'noDueDate';
+        const isOpen = collapsedByDefault ? expanded.has(s.key) : true;
 
         return (
           <section key={s.key}>
             <div
+              onClick={collapsedByDefault && s.rows.length > 0 ? () => toggleSection(s.key) : undefined}
               style={{
                 padding: '12px 18px 6px',
                 background: s.tint,
@@ -104,10 +115,12 @@ export function InboxTable({ grouped, activeCaseShortId, buildContextLine }: Inb
                     : s.key === 'doneToday'
                       ? 'var(--sage-deep, #445A4A)'
                       : 'var(--ink-faint, #9B958A)',
+                cursor: collapsedByDefault && s.rows.length > 0 ? 'pointer' : 'default',
+                userSelect: 'none',
               }}
             >
               {s.label}
-              {collapsed && s.rows.length > 0 && (
+              {collapsedByDefault && s.rows.length > 0 && (
                 <span
                   style={{
                     marginLeft: 8,
@@ -117,11 +130,11 @@ export function InboxTable({ grouped, activeCaseShortId, buildContextLine }: Inb
                     letterSpacing: 'normal',
                   }}
                 >
-                  (collapsed)
+                  {isOpen ? 'collapse' : `${s.rows.length} item${s.rows.length === 1 ? '' : 's'} - tap to show`}
                 </span>
               )}
             </div>
-            {!collapsed &&
+            {isOpen &&
               s.rows.map((row) => (
                 <InboxRow
                   key={row.id}
@@ -130,18 +143,6 @@ export function InboxTable({ grouped, activeCaseShortId, buildContextLine }: Inb
                   contextLine={buildContextLine(row)}
                 />
               ))}
-            {collapsed && s.rows.length > 0 && (
-              <div
-                style={{
-                  padding: '6px 18px 12px',
-                  fontSize: 11,
-                  color: 'var(--ink-faint, #9B958A)',
-                  background: s.tint,
-                }}
-              >
-                {s.rows.length} item{s.rows.length === 1 ? '' : 's'}. Click to expand.
-              </div>
-            )}
           </section>
         );
       })}

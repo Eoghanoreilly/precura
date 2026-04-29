@@ -101,7 +101,7 @@ export async function generatePreRead(panels: PanelWithMarkers[], opts: { client
   const facts = buildFactsJson(panels);
   if (!opts.client) return { narrative: fallbackNarrative(facts), facts };
   const response = await opts.client.messages.create({
-    model: 'claude-haiku-4-5',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 220,
     system: PRE_READ_SYSTEM,
     messages: [{ role: 'user', content: `Panel facts JSON:\n${JSON.stringify(facts, null, 2)}\n\nWrite the 2-3 sentence pre-read.` }],

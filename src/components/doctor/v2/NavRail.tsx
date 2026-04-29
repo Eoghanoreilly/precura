@@ -14,7 +14,6 @@ export type NavRailProps = {
 const ITEMS: Array<{ label: string; href: string }> = [
   { label: 'Inbox', href: '/doctor' },
   { label: 'Patients', href: '/doctor/patients' },
-  { label: 'Cases', href: '/doctor/cases' },
   { label: 'Settings', href: '/doctor/settings' },
 ];
 

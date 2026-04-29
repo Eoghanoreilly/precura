@@ -84,7 +84,7 @@ async function callClaudeOrFallback(inputs: Inputs): Promise<string> {
   try {
     const client = new Anthropic({ apiKey });
     const res = await client.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 350,
       system: SYSTEM,
       messages: [{ role: 'user', content: `Patient profile inputs JSON:\n${JSON.stringify(inputs, null, 2)}\n\nWrite the 4-5 sentence summary.` }],

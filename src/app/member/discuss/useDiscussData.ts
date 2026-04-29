@@ -166,7 +166,11 @@ export function useDiscussData(): UseDiscussData {
       const response = await fetch("/api/discuss", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: withUser }),
+        body: JSON.stringify({
+          messages: withUser,
+          userId: USE_REAL_DATA && user ? user.id : undefined,
+          sessionId: USE_REAL_DATA && workingSessionId ? workingSessionId : undefined,
+        }),
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {
