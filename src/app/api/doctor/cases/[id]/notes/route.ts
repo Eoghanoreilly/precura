@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getCase, updateCaseStatus } from '@/lib/data/cases';
 import { logCaseEvent } from '@/lib/data/caseEvents';
-import { emitBillingItem } from '@/lib/data/billingItems';
 import { nextStatus } from '@/lib/doctor/statusTransitions';
 
 export const runtime = 'nodejs';
@@ -46,14 +45,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       if (annoErr) throw annoErr;
 
       if (current.category === 'panel_review') {
-        await emitBillingItem(supabase, {
-          patientId: current.patient_id,
-          caseId: current.id,
-          code: 'PANEL_REVIEWED_WITH_NOTE',
-          qty: 1,
-          unit: 'item',
-          billedAgainst: 'membership',
+        const { error: billErr } = await supabase.rpc('emit_billing_for_action', {
+          p_patient_id: current.patient_id,
+          p_case_id: current.id,
+          p_task_id: null,
+          p_action_code: 'PANEL_REVIEWED_WITH_NOTE',
+          p_qty: 1,
+          p_unit: 'item',
+          p_external_sek: null,
         });
+        if (billErr) console.error('billing emit failed', billErr);
       }
       await logCaseEvent(supabase, {
         caseId: id,
