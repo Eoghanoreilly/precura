@@ -17,12 +17,15 @@ import { EmptyState } from './EmptyState';
 
 export type CaseWorkspaceProps = {
   doctorName: string;
+  // When set, use this short ID directly instead of reading ?case= from the URL.
+  // Used by the mobile deep-link route at /doctor/case/[caseId].
+  caseShortIdOverride?: string;
 };
 
-export function CaseWorkspace({ doctorName }: CaseWorkspaceProps) {
+export function CaseWorkspace({ doctorName, caseShortIdOverride }: CaseWorkspaceProps) {
   const search = useSearchParams();
   const router = useRouter();
-  const caseShortId = search?.get('case') ?? null;
+  const caseShortId = caseShortIdOverride ?? search?.get('case') ?? null;
   const [data, setData] = useState<CaseWorkspaceData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
